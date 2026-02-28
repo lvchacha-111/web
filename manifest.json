@@ -1,0 +1,16 @@
+{
+  "name": "YIJIAO3D模型",
+  "short_name": "3D展示",
+  "description": " 3D 模型浏览应用",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

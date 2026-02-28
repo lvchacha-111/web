@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>3D 产品展示 - Blender背景增强版</title>
     <style>
         /* 将网页基础背景也改为 Blender 灰 */
@@ -32,6 +32,27 @@
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
     </script>
+    <!-- 1. 告诉浏览器这是个 PWA -->
+<link rel="manifest" href="manifest.json">
+
+<!-- 2. 专门针对苹果 iPhone 的优化（必须加，否则没图标） -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="3D展示">
+<link rel="apple-touch-icon" href="logo.png">
+
+<!-- 3. 注册 Service Worker 脚本 -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js').then(function(registration) {
+        console.log('PWA 注册成功！范围: ', registration.scope);
+      }, function(err) {
+        console.log('PWA 注册失败: ', err);
+      });
+    });
+  }
+</script>
 </head>
 <body>
 
