@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 产品展示 - Blender背景增强版</title>
+    <style>
+        /* 将网页基础背景也改为 Blender 灰 */
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #393939; font-family: sans-serif; color: white; }
+        body { display: flex; flex-direction: row; }
+        #sidebar { width: 300px; min-width: 300px; height: 100vh; background: #2c2c2c; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 20; box-shadow: 2px 0 10px rgba(0,0,0,0.5); overflow-y: auto; box-sizing: border-box; }
+        #canvas-container { flex: 1; height: 100%; position: relative; background-color: #393939; min-width: 0; }
+        .header-box { border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;}
+        .header-box h1 { font-size: 18px; color: #f39c12; margin: 0; }
+        .back-btn { color: #aaa; text-decoration: none; font-size: 12px; padding: 4px 8px; background: #3d3d3d; border-radius: 3px; border: 1px solid #555;}
+        label { display: block; margin-bottom: 5px; font-size: 12px; color: #bbb; font-weight: bold; margin-top: 10px; }
+        .option-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .material-btn { width: 42px; height: 42px; border-radius: 4px; border: 2px solid #444; background-size: cover; cursor: pointer; }
+        .material-btn.active { border-color: #f39c12; box-shadow: 0 0 5px #f39c12; }
+        
+        /* 修改点：把 LED 颜色盘也加上相同的样式 */
+        #frontColorPicker, #ledColorPicker { width: 100%; height: 35px; border: 1px solid #444; background: none; cursor: pointer; padding: 0; }
+        
+        select, input[type=range] { width: 100%; padding: 8px; background: #3d3d3d; border: 1px solid #555; color: white; border-radius: 3px; outline: none; }
+        .action-btn { width: 100%; padding: 12px; background: #4a4a4a; border: 1px solid #666; color: white; font-weight: bold; border-radius: 3px; cursor: pointer; margin-top: auto; }
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none;}
+        .spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #f39c12; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) { body { flex-direction: column; } #sidebar { width: 100%; height: 45vh; } #canvas-container { height: 55vh; } }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="header-box">
+        <h1 id="pageTitle">产品详情</h1>
+        <a href="index.html" class="back-btn">← 返回</a>
+    </div>
+    <div>
+        <label>背板材质切换 (Back Material)</label>
+        <div class="option-group" id="materialOptions">
+            <div class="material-btn active" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg');" data-type="metal011" title="金属拉丝"></div>
+            <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg');" data-type="metal049a" title="金属镜面"></div>
+              <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_brushed" title="铜色拉丝"></div>
+    <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_mirror" title="铜色镜面"></div>
+        </div>
+    </div>
+    <div>
+        <label>面壳漆色 (Front Paint)</label>
+        <input type="color" id="frontColorPicker" value="#ffffff">
+    </div>
+    <div>
+        <label>灯光颜色 (LED Color)</label>
+        <!-- 修改点：把 select 下拉框改成了颜色盘 -->
+        <input type="color" id="ledColorPicker" value="#ffffff">
+        
+        <label style="margin-top:10px;">亮度调节 (<span id="brightnessValue">15%</span>)</label>
+        <input type="range" id="brightnessSlider" min="0" max="100" step="1" value="15">
+    </div>
+    <button class="action-btn" id="decomposeBtn">一键解体 (Explode)</button>
+</div>
+
+<div id="canvas-container">
+    <div id="loading"><div class="spinner"></div><span>正在配置 3D 环境...</span></div>
+</div>
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+    import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+    const PRODUCT_DB = {
+        "YJ-M000B": [
+            { file: "front.glb",  type: "front", move: { z: 20 } }, 
+            { file: "plate.glb",  type: "plate", move: { z: 10 } },
+            { file: "led.glb",    type: "led",  move: null },
+            { file: "fixed.glb",  type: "fixed",  move: null }, 
+            { file: "back.glb",   type: "back",  move: { z: -20 } },
+        ]
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('id') || 'YJ-M000B'; 
+    const currentParts = PRODUCT_DB[productId];
+    document.getElementById('pageTitle').innerText = productId;
+
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    
+    // ==========================================
+    // Blender 风格背景设置
+    // ==========================================
+    const blenderBgColor = new THREE.Color('#393939');
+    scene.background = blenderBgColor;
+    
+    // 添加雾化，让网格在远处消失
+    scene.fog = new THREE.Fog(blenderBgColor, 100, 1000); 
+
+    // 1. 基础深色网格
+    const gridSize = 4000;
+    const gridDivisions = 400;
+    const gridColor = new THREE.Color('#464646'); 
+    const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, gridColor, gridColor);
+    scene.add(gridHelper);
+
+    // 2. 红色的 X 轴 (初始化时把高度定在 0，后续由代码动态移动)
+    const xAxisMat = new THREE.LineBasicMaterial({ color: '#c44550', linewidth: 1 });
+    const xAxisGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-gridSize/2, 0, 0),
+        new THREE.Vector3(gridSize/2, 0, 0)
+    ]);
+    const xAxis = new THREE.Line(xAxisGeo, xAxisMat);
+    scene.add(xAxis);
+
+    // 3. 绿色的 Z 轴 
+    const zAxisMat = new THREE.LineBasicMaterial({ color: '#7dab4f', linewidth: 1 });
+    const zAxisGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, -gridSize/2),
+        new THREE.Vector3(0, 0, gridSize/2)
+    ]);
+    const zAxis = new THREE.Line(zAxisGeo, zAxisMat);
+    scene.add(zAxis);
+    // ==========================================
+
+    const modelGroup = new THREE.Group();
+    scene.add(modelGroup);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 10000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.8; 
+    container.appendChild(renderer.domElement);
+    
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // 选择性辉光设置
+    const BLOOM_SCENE = 1; 
+    const bloomLayer = new THREE.Layers();
+    bloomLayer.set(BLOOM_SCENE);
+
+    const darkMaterial = new THREE.MeshBasicMaterial({ color: 'black' });
+    const darkLineMaterial = new THREE.LineBasicMaterial({ color: 'black' }); 
+    const materials = {}; 
+
+    const renderScene = new RenderPass(scene, camera);
+
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.2, 1, 0); 
+    const bloomComposer = new EffectComposer(renderer);
+    bloomComposer.renderToScreen = false;
+    bloomComposer.addPass(renderScene);
+    bloomComposer.addPass(bloomPass);
+
+    const mixPass = new ShaderPass(
+        new THREE.ShaderMaterial({
+            uniforms: {
+                baseTexture: { value: null },
+                tBloom: { value: bloomComposer.renderTarget2.texture }
+            },
+            vertexShader: ` varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 ); } `,
+            fragmentShader: `
+                uniform sampler2D baseTexture;
+                uniform sampler2D tBloom;
+                varying vec2 vUv;
+                void main() {
+                    gl_FragColor = ( texture2D( baseTexture, vUv ) + vec4( 1.0 ) * texture2D( tBloom, vUv ) );
+                }
+            `,
+            defines: {}
+        }), "baseTexture"
+    );
+    mixPass.needsSwap = true;
+
+    const finalComposer = new EffectComposer(renderer);
+    finalComposer.addPass(renderScene);
+    finalComposer.addPass(mixPass);
+    finalComposer.addPass(new OutputPass()); 
+
+    new RGBELoader().setPath('textures/').load('monochrome_studio_02_2k (1).hdr', (t) => {
+        t.mapping = THREE.EquirectangularReflectionMapping; 
+        scene.environment = t; 
+        scene.environmentIntensity = 0; 
+    });
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0));
+    const light = new THREE.DirectionalLight(0xffffff, 0.8);
+    light.position.set(50, 100, 50);
+    scene.add(light);
+
+    const textureLoader = new THREE.TextureLoader();
+    
+  // 新增了 tintColor 参数，默认值为白色 0xffffff（保持原本的银色）
+function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
+    const map = textureLoader.load(`textures/${texName}_2K-JPG_Color.jpg`);
+    const normalMap = textureLoader.load(`textures/${texName}_2K-JPG_NormalGl.jpg`);
+    const roughnessMap = textureLoader.load(`textures/${texName}_2K-JPG_Roughness.jpg`);
+
+    const mat = new THREE.MeshStandardMaterial({
+        color: tintColor, // 修改点：使用传入的颜色对材质进行染色
+        map: map, 
+        normalMap: isBrushed ? normalMap : null,
+        roughnessMap: roughnessMap, 
+        metalness: 1.0, 
+        roughness: isBrushed ? 0.5 : 0.5, 
+        envMapIntensity: isBrushed ? 0.5 : 0.5, 
+        side: THREE.DoubleSide
+    });
+
+    if (isBrushed) {
+        mat.onBeforeCompile = (shader) => {
+            shader.uniforms.uRepeat = { value: 0.05 };
+            shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nvarying vec3 vWorldPosition;\nvarying vec3 vWorldNormal;`);
+            shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvWorldNormal = normalize(mat3(modelMatrix) * normal);`);
+            shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `
+                #include <common>
+                varying vec3 vWorldPosition;
+                varying vec3 vWorldNormal;
+                uniform float uRepeat;
+                vec3 getTriplanarBlend(vec3 normal) {
+                    vec3 blend = abs(normal); blend = pow(blend, vec3(4.0));
+                    return blend / (blend.x + blend.y + blend.z);
+                }
+                vec4 triplanarTexture(sampler2D tex, vec3 worldPos, vec3 normal, float scale) {
+                    vec2 uvXY = vec2(worldPos.x, worldPos.y) * scale; vec2 uvZY = vec2(worldPos.z, worldPos.y) * scale; vec2 uvXZ = vec2(worldPos.x, worldPos.z) * scale;
+                    vec4 colX = texture2D(tex, uvZY); vec4 colY = texture2D(tex, uvXZ); vec4 colZ = texture2D(tex, uvXY);
+                    vec3 blend = getTriplanarBlend(normal); return colX * blend.x + colY * blend.y + colZ * blend.z;
+                }
+            `);
+            shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
+                #ifdef USE_MAP
+                    vec4 sampledColor = triplanarTexture(map, vWorldPosition, vWorldNormal, uRepeat);
+                    diffuseColor.rgb *= (sampledColor.rgb ); // 这里的 diffuseColor 已经包含了前面的 tintColor，所以相乘会自动染色
+                #endif
+            `);
+            shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `
+                float roughnessFactor = roughness;
+                #ifdef USE_ROUGHNESSMAP
+                    roughnessFactor *= triplanarTexture(roughnessMap, vWorldPosition, vWorldNormal, uRepeat).r;
+                #endif
+            `);
+        };
+    }
+    return mat;
+}
+
+    let sceneMeshes = [], backMeshes = [], ledMeshes = [], plateMeshes = [];
+    let isDecomposed = false;
+
+    function loadSmartModel() {
+        if (!currentParts) return;
+        const stlLoader = new STLLoader();
+        const gltfLoader = new GLTFLoader();
+        const folderPath = `stl/${productId}/`; 
+        let loadedCount = 0;
+
+        currentParts.forEach(part => {
+            const filePath = folderPath + part.file;
+            const isGLB = filePath.toLowerCase().endsWith('.glb');
+
+            const setupObject = (object, isFromSTL = false) => {
+                loadedCount++;
+                object.traverse((child) => {
+                    if (child.isMesh) {
+                        const originalColor = child.material.color ? child.material.color.clone() : new THREE.Color(0xffffff);
+
+                        if (part.type === 'back') {
+                            child.material = createBackMaterial('Metal011', true);
+                        } else if (part.type === 'led') {
+                            child.material = new THREE.MeshStandardMaterial({ color: originalColor, emissive: originalColor, emissiveIntensity: 0, toneMapped: false });
+                            child.layers.enable(BLOOM_SCENE); 
+                        } else if (part.type === 'plate') {
+                            child.material = new THREE.MeshStandardMaterial({ color: originalColor, roughness: 1, metalness: 0, emissive: originalColor, emissiveIntensity: 0 });
+                            child.layers.enable(BLOOM_SCENE); 
+                        } else if (part.type === 'front') {
+                            child.material = new THREE.MeshStandardMaterial({ color: originalColor, roughness: 1, metalness: 0});
+                        }
+
+                        if (isFromSTL) child.rotation.x = -Math.PI / 2;
+                        
+                        if (!child.geometry.attributes.uv) {
+                            const pos = child.geometry.attributes.position;
+                            const uv = [];
+                            child.geometry.computeBoundingBox();
+                            const box = child.geometry.boundingBox;
+                            const size = box.getSize(new THREE.Vector3());
+                            for (let i = 0; i < pos.count; i++) {
+                                uv.push((pos.getX(i) - box.min.x) / (size.x || 1), (pos.getY(i) - box.min.y) / (size.y || 1));
+                            }
+                            child.geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+                        }
+                    }
+                });
+
+                object.position.set(0, 0, 0);
+                object.userData = { move: part.move, type: part.type }; 
+                sceneMeshes.push(object);
+                if (part.type === 'back') backMeshes.push(object);
+                if (part.type === 'led') ledMeshes.push(object);
+                if (part.type === 'plate') plateMeshes.push(object);
+                modelGroup.add(object);
+
+                if (loadedCount === currentParts.length) {
+                    document.getElementById('loading').style.display = 'none';
+                    updateBrightness(15);
+                    centerAndFitCamera(); 
+                }
+            };
+
+            if (isGLB) gltfLoader.load(filePath, (g) => setupObject(g.scene), undefined, (e) => console.error(e));
+            else stlLoader.load(filePath, (geo) => setupObject(new THREE.Mesh(geo), true));
+        });
+    }
+
+    function centerAndFitCamera() {
+        // 1. 先把整个模型组居中
+        const box = new THREE.Box3().setFromObject(modelGroup);
+        const center = box.getCenter(new THREE.Vector3());
+        modelGroup.position.sub(center);
+        
+        // 2. 居中完成后，重新计算此时模型的最底端在哪
+        const newBox = new THREE.Box3().setFromObject(modelGroup);
+        const bottomY = newBox.min.y; // 模型的脚底板高度
+
+        // 3. 把网格和坐标轴移到模型脚底下一点点（留出0.5的余量防止材质闪烁）
+        const floorHeight = bottomY - 0.5;
+        gridHelper.position.y = floorHeight;
+        xAxis.position.y = floorHeight;
+        zAxis.position.y = floorHeight;
+
+        // 4. 设置相机距离
+        const size = newBox.getSize(new THREE.Vector3());
+        let cameraDist = Math.max(size.x, size.y, size.z) * 1.8;
+        camera.position.set(cameraDist * 0.8, cameraDist * 0.5, cameraDist);
+        controls.target.set(0, 0, 0);
+        controls.update();
+        
+        // 动态计算雾的范围
+        scene.fog.near = cameraDist * 0.5;
+        scene.fog.far = cameraDist * 5.0;
+    }
+
+    function updateBrightness(percent) {
+        const ledIntensity = (percent / 100) * 3.0;   
+        const plateIntensity = ledIntensity * (2 / 3); 
+        
+        document.getElementById('brightnessValue').textContent = `${Math.round(percent)}%`;
+        
+        ledMeshes.forEach(obj => obj.traverse(c => { if(c.isMesh) c.material.emissiveIntensity = ledIntensity; }));
+        plateMeshes.forEach(obj => obj.traverse(c => { if(c.isMesh) c.material.emissiveIntensity = plateIntensity; }));
+    }
+
+    // ==========================================
+    // 交互事件监听
+    // ==========================================
+    document.getElementById('brightnessSlider').addEventListener('input', (e) => updateBrightness(e.target.value));
+    
+    // 修改点：使用 input 事件实时监听 LED 颜色盘的变化
+    document.getElementById('ledColorPicker').addEventListener('input', (e) => {
+        const col = new THREE.Color(e.target.value);
+        ledMeshes.concat(plateMeshes).forEach(obj => obj.traverse(c => { 
+            if(c.isMesh) { 
+                c.material.color.copy(col); 
+                c.material.emissive.copy(col); 
+            } 
+        }));
+    });
+
+    document.getElementById('frontColorPicker').addEventListener('input', (e) => {
+        const col = new THREE.Color(e.target.value);
+        sceneMeshes.forEach(obj => { if (obj.userData.type === 'front') obj.traverse(c => { if(c.isMesh) c.material.color.copy(col); }); });
+    });
+
+  document.querySelectorAll('#materialOptions .material-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.material-btn').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const type = e.currentTarget.dataset.type;
+        
+        // 定义变量
+        let texName, isBrushed, tintColor;
+
+        // 根据按钮的 data-type 决定参数
+        if (type === 'metal011') {
+            texName = 'Metal011'; isBrushed = true; tintColor = 0xffffff; // 银色拉丝
+        } else if (type === 'metal049a') {
+            texName = 'Metal049A'; isBrushed = false; tintColor = 0xffffff; // 银色镜面
+        } else if (type === 'copper_brushed') {
+            texName = 'Metal011'; isBrushed = true; tintColor = 0xc07c51; // 铜色拉丝 (#c07c51 是标准的红铜色)
+        } else if (type === 'copper_mirror') {
+            texName = 'Metal049A'; isBrushed = false; tintColor = 0xc07c51; // 铜色镜面
+        }
+
+        // 应用材质
+        backMeshes.forEach(obj => { 
+            obj.traverse(c => { 
+                if(c.isMesh) { 
+                    c.material.dispose(); 
+                    c.material = createBackMaterial(texName, isBrushed, tintColor); 
+                } 
+            }); 
+        });
+    });
+});
+
+    document.getElementById('decomposeBtn').addEventListener('click', () => {
+        isDecomposed = !isDecomposed;
+        sceneMeshes.forEach(obj => {
+            const m = obj.userData.move;
+            if (m) {
+                const target = isDecomposed ? { x: m.x || 0, y: m.y || 0, z: m.z || 0 } : { x: 0, y: 0, z: 0 };
+                gsap.to(obj.position, { ...target, duration: 1, ease: "power2.inOut" });
+            }
+        });
+        document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并' : '一键解体';
+    });
+
+    // ==========================================
+    // 渲染循环控制
+    // ==========================================
+    function darkenNonBloomed(obj) {
+        if (bloomLayer.test(obj.layers) === false) {
+            if (obj.isMesh) {
+                materials[obj.uuid] = obj.material;
+                obj.material = darkMaterial;
+            } else if (obj.isLine || obj.isLineSegments) {
+                materials[obj.uuid] = obj.material;
+                obj.material = darkLineMaterial;
+            }
+        }
+    }
+
+    function restoreMaterial(obj) {
+        if (materials[obj.uuid]) {
+            obj.material = materials[obj.uuid];
+            delete materials[obj.uuid];
+        }
+    }
+
+    function animate() { 
+        requestAnimationFrame(animate); 
+        controls.update(); 
+
+        const originalBg = scene.background;
+        scene.background = new THREE.Color(0x000000);
+
+        scene.traverse(darkenNonBloomed);
+        bloomComposer.render();
+
+        scene.traverse(restoreMaterial);
+        scene.background = originalBg;
+
+        finalComposer.render();
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        bloomComposer.setSize(container.clientWidth, container.clientHeight);
+        finalComposer.setSize(container.clientWidth, container.clientHeight);
+    });
+    
+    loadSmartModel();
+    animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yi Jiao - 产品搜索</title>
+    <style>
+
+        /* Free Writing 按钮样式 */
+        .free-writing-btn {
+            color: #f39c12;
+            text-decoration: none;
+            font-weight: bold;
+            border: 1px solid #f39c12;
+            padding: 10px 20px;
+            border-radius: 25px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            margin-left: 20px;
+        }
+        .free-writing-btn:hover {
+            background: #f39c12;
+            color: #000;
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 添加 locked 类，动画未打开前禁止用户瞎滚页面 */
+        body.locked { overflow: hidden; }
+        
+        body { background-color: #000; color: #fff; font-family: 'Arial', sans-serif; min-height: 100vh; }
+
+        /* ================= 开场动画 (Intro Animation) ================= */
+        #intro-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            /* 保证开门后不会挡住下面的点击事件 */
+            pointer-events: auto; 
+        }
+
+        /* 左右两扇黑色的门 */
+        .intro-door {
+            position: absolute;
+            top: 0; width: 50vw; height: 100vh;
+            background-color: #0a0a0a;
+            /* 顺滑的“拉开”曲线 */
+            transition: transform 1.2s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+        .intro-door-left { left: 0; border-right: 1px solid #222; }
+        .intro-door-right { right: 0; border-left: 1px solid #222; }
+
+        /* 内部文字容器 */
+        .intro-content {
+            position: relative; z-index: 10;
+            text-align: center;
+            transition: opacity 0.6s ease, transform 0.8s ease;
+        }
+
+        .intro-title {
+            font-size: 5rem; letter-spacing: 8px; margin: 0;
+            font-weight: bold; color: #fff; text-transform: uppercase;
+        }
+        .intro-title span { color: #f39c12; }
+        
+        .intro-subtitle {
+            font-size: 1.5rem; letter-spacing: 12px; color: #888;
+            margin-top: 10px; text-transform: uppercase;
+        }
+
+        /* 呼吸提示灯 */
+        .scroll-hint {
+            position: absolute; bottom: -80px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px; color: #f39c12; letter-spacing: 2px;
+            animation: breathe 2s infinite ease-in-out;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .scroll-hint::after {
+            content: ''; width: 2px; height: 30px;
+            background: linear-gradient(to bottom, #f39c12, transparent);
+        }
+
+        @keyframes breathe {
+            0%, 100% { opacity: 0.3; transform: translate(-50%, 0); }
+            50% { opacity: 1; transform: translate(-50%, 10px); }
+        }
+
+        /* 动画触发后的状态 (通过 JS 添加 .open 类) */
+        #intro-overlay.open .intro-door-left { transform: translateX(-100%); }
+        #intro-overlay.open .intro-door-right { transform: translateX(100%); }
+        #intro-overlay.open .intro-content { opacity: 0; transform: scale(1.2); }
+        /* ============================================================ */
+
+        /* 原有样式保持不变 */
+        header { display: flex; align-items: center; justify-content: space-between; padding: 20px 50px; background-color: #000; border-bottom: 1px solid #333; }
+        .logo { font-size: 28px; font-weight: bold; color: #fff; letter-spacing: 1px; }
+        .logo span { color: #f39c12; }
+        .search-container { flex-grow: 1; display: flex; justify-content: center; }
+        .search-box { width: 100%; max-width: 500px; padding: 12px 20px; border-radius: 25px; border: 1px solid #444; background-color: #111; color: #fff; font-size: 16px; outline: none; transition: all 0.3s; }
+        .search-box:focus { border-color: #f39c12; box-shadow: 0 0 8px rgba(243, 156, 18, 0.5); }
+        .header-placeholder { width: 100px; }
+
+        main { padding: 40px 50px; text-align: center; }
+        .section-title { color: #f39c12; font-size: 18px; margin-bottom: 40px; letter-spacing: 1px; }
+
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 30px; max-width: 1200px; margin: 0 auto; }
+        .product-card { cursor: pointer; transition: transform 0.3s ease; text-decoration: none; display: flex; flex-direction: column; align-items: center; }
+        .product-card:hover { transform: translateY(-10px); }
+        
+        .image-box { width: 160px; height: 160px; background-color: #fff; border-radius: 12px; margin-bottom: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .image-box img { width: 100%; height: 100%; object-fit: cover; }
+        .product-name { color: #fff; font-size: 14px; font-weight: bold; }
+        .no-results { grid-column: 1 / -1; color: #888; font-size: 16px; margin-top: 20px; display: none; }
+
+        @media (max-width: 768px) { 
+            header { flex-direction: column; gap: 20px; padding: 20px; } 
+            .header-placeholder { display: none; } 
+            .search-box { max-width: 100%; } 
+            main { padding: 20px; } 
+            .intro-title { font-size: 3rem; }
+            .intro-subtitle { font-size: 1rem; letter-spacing: 6px; }
+        }
+    </style>
+</head>
+<body class="locked"> <!-- 初始状态：加上 locked 禁止页面滚动 -->
+
+    <!-- ================= 开场幕布结构 ================= -->
+    <div id="intro-overlay">
+        <!-- 左右两扇门 -->
+        <div class="intro-door intro-door-left"></div>
+        <div class="intro-door intro-door-right"></div>
+        
+        <!-- 中间的文字和提示 -->
+        <div class="intro-content">
+            <h1 class="intro-title">YI JIAO<span>.</span></h1>
+            <p class="intro-subtitle">icon library</p>
+            <div class="scroll-hint">向 下 滚 动</div>
+        </div>
+    </div>
+    <!-- ============================================== -->
+
+    <header>
+        <div class="logo">YiJiao<span>sign</span></div>
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-box" placeholder="输入产品编号搜索 (如: A2228)...">
+        </div>
+        <a href="freewriting.html" class="free-writing-btn">Free Writing ✨</a>
+        <div class="header-placeholder"></div>
+    </header>
+
+    <main>
+        <h2 class="section-title">产品目录 (PRODUCTS)</h2>
+        <div class="product-grid" id="productGrid"></div>
+        <div id="noResults" class="no-results">没有找到匹配的产品。</div>
+    </main>
+
+    <script>
+        // ==========================================
+        // 1. 开场动画触发逻辑
+        // ==========================================
+        let isOpened = false;
+
+        function triggerOpening() {
+            if (isOpened) return; // 防止重复触发
+            isOpened = true;
+
+            const overlay = document.getElementById('intro-overlay');
+            // 给幕布加上打开的 class，触发 CSS 动画
+            overlay.classList.add('open');
+            // 解锁 body 的滚动条
+            document.body.classList.remove('locked');
+
+            // 动画完成后（1.2秒），彻底隐藏这个遮罩层，防止阻挡用户点击产品
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 1200); 
+        }
+
+        // 监听电脑端鼠标滚轮 (往下滚)
+        window.addEventListener('wheel', (e) => {
+            if (e.deltaY > 0) triggerOpening(); // deltaY > 0 表示向下滑动
+        });
+
+        // 监听手机端手指滑动 (往上滑屏幕，即页面往下滚)
+        let touchStartY = 0;
+        window.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        });
+        window.addEventListener('touchmove', (e) => {
+            let touchEndY = e.touches[0].clientY;
+            // 如果手指向上滑动的距离超过 30 像素，触发开门
+            if (touchStartY - touchEndY > 30) {
+                triggerOpening();
+            }
+        });
+
+        // ==========================================
+        // 2. 产品列表逻辑 (保持不变)
+        // ==========================================
+        const products =[
+            { id: "A2228", name: "发光字 A2228", image: "images/A2228.jpg" },
+            { id: "YJ-M000C", name: "发光字 YJ-M000C", image: "images/A2229.jpg" },
+            { id: "YJ-M000B", name: "YJ-M000B", image: "images/B3300.jpg" },
+            { id: "YJ-M000h", name: "YJ-M000h", image: "images/B3300.jpg" }
+        ];
+
+        const productGrid = document.getElementById('productGrid');
+        const searchInput = document.getElementById('searchInput');
+        const noResults = document.getElementById('noResults');
+
+        function renderProducts(productList) {
+            productGrid.innerHTML = ''; 
+            if (productList.length === 0) {
+                noResults.style.display = 'block'; 
+            } else {
+                noResults.style.display = 'none'; 
+                productList.forEach(product => {
+                    const card = document.createElement('a');
+                    card.href = `detail.html?id=${product.id}`; 
+                    card.className = 'product-card';
+                    card.innerHTML = `
+                        <div class="image-box">
+                            <img src="${product.image}" alt="${product.name}" onerror="this.style.display='none'">
+                        </div>
+                        <div class="product-name">${product.name}</div>
+                    `;
+                    productGrid.appendChild(card);
+                });
+            }
+        }
+
+        renderProducts(products);
+
+        searchInput.addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase().trim();
+            const filteredProducts = products.filter(product => 
+                product.name.toLowerCase().includes(keyword) || product.id.toLowerCase().includes(keyword)
+            );
+            renderProducts(filteredProducts);
+        });
+    </script>
+</body>
+</html>
