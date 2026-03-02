@@ -171,7 +171,15 @@
 
     // 产品配置（保持不变）
     const PRODUCT_DB = {
-        /* === 自动插入点：新模型数据 === */
+        
+        
+        "M002": [
+            { file: "front.glb",  type: "front", move: { z: 20 } },
+            { file: "plate.glb",  type: "plate", move: { z: 10 } },
+            { file: "led.glb",  type: "led", move: null },
+            { file: "fixed.glb",  type: "fixed", move: null },
+            { file: "back.glb",  type: "back", move: { z: -20 } }
+        ],
         "YJ-M000B": [
             { file: "front.glb",  type: "front", move: { z: 20 } }, 
             { file: "plate.glb",  type: "plate", move: { z: 10 } },
@@ -179,7 +187,7 @@
             { file: "fixed.glb",  type: "fixed",  move: null }, 
             { file: "back.glb",   type: "back",  move: { z: -20 } },
         ],
-         
+         /* === 自动插入点：新模型数据 === */
     };
 
     const urlParams = new URLSearchParams(window.location.search);
