@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>3D 产品展示 - Blender背景增强版</title>
-       <!-- ==================== 开始：Google Analytics 基础代码 ==================== -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-G8FLHCSSCW"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
+    <title>3D 模型沉浸式展示 | 支持材质切换与结构解体 - 亿角 3D</title>
 
-    // 务必把这里的 G-XXXXXXXXXX 换成你的真实 ID ！！！
-    gtag('config', 'G-G8FLHCSSCW');
-  </script>
+    <!-- 针对详情页的描述 -->
+    <meta name="description" content="进入亿角 3D 详情页，体验 YJ 系列精密模型的细节。功能包括：高保真材质渲染、LED 灯光控制、零部件爆炸图演示。">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-G8FLHCSSCW"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-G8FLHCSSCW');
+    </script>
+
     <style>
-        /* 将网页基础背景也改为 Blender 灰 */
+        /* 基础样式保持原样，追加材质色块和颜色方块的样式 */
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #393939; font-family: sans-serif; color: white; }
         body { display: flex; flex-direction: row; }
         #sidebar { width: 300px; min-width: 300px; height: 100vh; background: #2c2c2c; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 20; box-shadow: 2px 0 10px rgba(0,0,0,0.5); overflow-y: auto; box-sizing: border-box; }
@@ -28,8 +31,26 @@
         .material-btn { width: 42px; height: 42px; border-radius: 4px; border: 2px solid #444; background-size: cover; cursor: pointer; }
         .material-btn.active { border-color: #f39c12; box-shadow: 0 0 5px #f39c12; }
         
-        /* 修改点：把 LED 颜色盘也加上相同的样式 */
-        #frontColorPicker, #ledColorPicker { width: 100%; height: 35px; border: 1px solid #444; background: none; cursor: pointer; padding: 0; }
+        /* 颜色方块样式（从 freewriting 复制） */
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid #444;
+            transition: transform 0.1s, border-color 0.1s;
+            box-sizing: border-box;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+            border-color: #f39c12;
+        }
+        .color-swatch.active {
+            border-color: #f39c12;
+            box-shadow: 0 0 5px #f39c12;
+        }
+        
+        #frontColorPicker, #ledColorPicker { width: 100%; height: 35px; border: 1px solid #444; background: none; cursor: pointer; padding: 0; border-radius: 3px; }
         
         select, input[type=range] { width: 100%; padding: 8px; background: #3d3d3d; border: 1px solid #555; color: white; border-radius: 3px; outline: none; }
         .action-btn { width: 100%; padding: 12px; background: #4a4a4a; border: 1px solid #666; color: white; font-weight: bold; border-radius: 3px; cursor: pointer; margin-top: auto; }
@@ -38,41 +59,37 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 768px) { body { flex-direction: column; } #sidebar { width: 100%; height: 45vh; } #canvas-container { height: 55vh; } }
     </style>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
     </script>
-    <!-- 1. 告诉浏览器这是个 PWA -->
-<link rel="manifest" href="manifest.json">
 
-<!-- 2. 专门针对苹果 iPhone 的优化（必须加，否则没图标） -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="3D展示">
-<link rel="apple-touch-icon" href="logo.png">
-
-<!-- 3. 注册 Service Worker 脚本 -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('sw.js').then(function(registration) {
-        console.log('PWA 注册成功！范围: ', registration.scope);
-      }, function(err) {
-        console.log('PWA 注册失败: ', err);
-      });
-    });
-  }
-</script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  // 这里的 G-XXXXXXXXXX 换成你刚才申请到的 ID
-  gtag('config', 'G-XXXXXXXXXX');
-</script>
+    <!-- PWA 相关 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="3D展示">
+    <link rel="apple-touch-icon" href="logo.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(function(registration) {
+                    console.log('PWA 注册成功！范围: ', registration.scope);
+                }, function(err) {
+                    console.log('PWA 注册失败: ', err);
+                });
+            });
+        }
+    </script>
+    <!-- 备用 GA -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX');
+    </script>
 </head>
 <body>
 
@@ -81,33 +98,66 @@
         <h1 id="pageTitle">产品详情</h1>
         <a href="index.html" class="back-btn">← 返回</a>
     </div>
+
+    <!-- 背板材质切换（升级为 freewriting 样式，包含更多颜色） -->
     <div>
         <label>背板材质切换 (Back Material)</label>
         <div class="option-group" id="materialOptions">
-            <div class="material-btn active" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg');" data-type="metal011" title="金属拉丝"></div>
-            <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg');" data-type="metal049a" title="金属镜面"></div>
-              <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_brushed" title="铜色拉丝"></div>
-    <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_mirror" title="铜色镜面"></div>
+            <!-- 基础银 -->
+            <div class="material-btn active" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg');" data-type="metal011" title="银色拉丝"></div>
+            <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg');" data-type="metal049a" title="银色镜面"></div>
+            <!-- 铜色 -->
+            <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_brushed" title="铜色拉丝"></div>
+            <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_mirror" title="铜色镜面"></div>
+            <!-- 玫瑰金 -->
+            <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #b76e79; background-blend-mode: multiply;" data-type="rosegold_brushed" title="玫瑰金拉丝"></div>
+            <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #b76e79; background-blend-mode: multiply;" data-type="rosegold_mirror" title="玫瑰金镜面"></div>
+            <!-- 金色 -->
+            <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #ffd700; background-blend-mode: multiply;" data-type="gold_brushed" title="金色拉丝"></div>
+            <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #ffd700; background-blend-mode: multiply;" data-type="gold_mirror" title="金色镜面"></div>
+            <!-- 黑色 -->
+            <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #333333; background-blend-mode: multiply;" data-type="black_brushed" title="黑色拉丝"></div>
+            <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #333333; background-blend-mode: multiply;" data-type="black_mirror" title="黑色镜面"></div>
+            <!-- 棕色 -->
+            <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_brushed" title="棕色拉丝"></div>
+            <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_mirror" title="棕色镜面"></div>
         </div>
     </div>
+
+    <!-- 面壳漆色（保持不变） -->
     <div>
         <label>面壳漆色 (Front Paint)</label>
         <input type="color" id="frontColorPicker" value="#ffffff">
     </div>
+
+    <!-- 灯光颜色区域（添加预设色块） -->
     <div>
-        <label>灯光颜色 (LED Color)</label>
-        <!-- 修改点：把 select 下拉框改成了颜色盘 -->
+        <label style="display: block; margin-bottom: 5px;">灯光颜色 (LED Color)</label>
+        <!-- 预设颜色方块 -->
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+            <div class="color-swatch" style="background-color: #FFA500;" data-color="#FFA500" title="橘"></div>
+            <div class="color-swatch" style="background-color: #FFFF00;" data-color="#FFFF00" title="黄"></div>
+            <div class="color-swatch" style="background-color: #FFC0CB;" data-color="#FFC0CB" title="粉"></div>
+            <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF" title="蓝"></div>
+            <div class="color-swatch" style="background-color: #00FF00;" data-color="#00FF00" title="绿"></div>
+            <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000" title="红"></div>
+            <div class="color-swatch" style="background-color: #FFFFFF; border: 2px solid #888;" data-color="#FFFFFF" title="标准白"></div>
+            <div class="color-swatch" style="background-color: #F0F8FF; border: 2px solid #888;" data-color="#F0F8FF" title="高亮白（冷白）"></div>
+            <div class="color-swatch" style="background-color: #FAF0E6; border: 2px solid #888;" data-color="#FAF0E6" title="暗淡白（暖白）"></div>
+        </div>
+        <!-- 颜色选择器（保留） -->
         <input type="color" id="ledColorPicker" value="#ffffff">
-        
         <label style="margin-top:10px;">亮度调节 (<span id="brightnessValue">15%</span>)</label>
         <input type="range" id="brightnessSlider" min="0" max="100" step="1" value="15">
     </div>
+
     <button class="action-btn" id="decomposeBtn">一键解体 (Explode)</button>
 </div>
 
 <div id="canvas-container">
     <div id="loading"><div class="spinner"></div><span>正在配置 3D 环境...</span></div>
 </div>
+
 <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -120,6 +170,7 @@
     import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
+    // 产品配置（保持不变）
     const PRODUCT_DB = {
         "YJ-M000B": [
             { file: "front.glb",  type: "front", move: { z: 20 } }, 
@@ -135,32 +186,24 @@
     const currentParts = PRODUCT_DB[productId];
     document.getElementById('pageTitle').innerText = productId;
 
-    // 【GA4埋点：记录用户打开了哪个 3D 模型】
     gtag('event', 'view_item', {
         'item_name': productId,
         'item_category': '3D_Model_Detail'
     });
-    console.log("【GA4 埋点成功】用户打开了模型: " + productId);
+
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    
-    // ==========================================
-    // Blender 风格背景设置
-    // ==========================================
     const blenderBgColor = new THREE.Color('#393939');
     scene.background = blenderBgColor;
-    
-    // 添加雾化，让网格在远处消失
     scene.fog = new THREE.Fog(blenderBgColor, 100, 1000); 
 
-    // 1. 基础深色网格
+    // 网格和坐标轴
     const gridSize = 4000;
     const gridDivisions = 400;
     const gridColor = new THREE.Color('#464646'); 
     const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, gridColor, gridColor);
     scene.add(gridHelper);
 
-    // 2. 红色的 X 轴 (初始化时把高度定在 0，后续由代码动态移动)
     const xAxisMat = new THREE.LineBasicMaterial({ color: '#c44550', linewidth: 1 });
     const xAxisGeo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(-gridSize/2, 0, 0),
@@ -169,7 +212,6 @@
     const xAxis = new THREE.Line(xAxisGeo, xAxisMat);
     scene.add(xAxis);
 
-    // 3. 绿色的 Z 轴 
     const zAxisMat = new THREE.LineBasicMaterial({ color: '#7dab4f', linewidth: 1 });
     const zAxisGeo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(0, 0, -gridSize/2),
@@ -177,7 +219,6 @@
     ]);
     const zAxis = new THREE.Line(zAxisGeo, zAxisMat);
     scene.add(zAxis);
-    // ==========================================
 
     const modelGroup = new THREE.Group();
     scene.add(modelGroup);
@@ -189,11 +230,11 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.8; 
     container.appendChild(renderer.domElement);
-    
+
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
 
-    // 选择性辉光设置
+    // 辉光设置
     const BLOOM_SCENE = 1; 
     const bloomLayer = new THREE.Layers();
     bloomLayer.set(BLOOM_SCENE);
@@ -203,7 +244,6 @@
     const materials = {}; 
 
     const renderScene = new RenderPass(scene, camera);
-
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.2, 1, 0); 
     const bloomComposer = new EffectComposer(renderer);
     bloomComposer.renderToScreen = false;
@@ -224,8 +264,7 @@
                 void main() {
                     gl_FragColor = ( texture2D( baseTexture, vUv ) + vec4( 1.0 ) * texture2D( tBloom, vUv ) );
                 }
-            `,
-            defines: {}
+            `
         }), "baseTexture"
     );
     mixPass.needsSwap = true;
@@ -247,60 +286,65 @@
     scene.add(light);
 
     const textureLoader = new THREE.TextureLoader();
-    
-  // 新增了 tintColor 参数，默认值为白色 0xffffff（保持原本的银色）
-function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
-    const map = textureLoader.load(`textures/${texName}_2K-JPG_Color.jpg`);
-    const normalMap = textureLoader.load(`textures/${texName}_2K-JPG_NormalGl.jpg`);
-    const roughnessMap = textureLoader.load(`textures/${texName}_2K-JPG_Roughness.jpg`);
 
-    const mat = new THREE.MeshStandardMaterial({
-        color: tintColor, // 修改点：使用传入的颜色对材质进行染色
-        map: map, 
-        normalMap: isBrushed ? normalMap : null,
-        roughnessMap: roughnessMap, 
-        metalness: 1.0, 
-        roughness: isBrushed ? 0.5 : 0.5, 
-        envMapIntensity: isBrushed ? 0.5 : 0.5, 
-        side: THREE.DoubleSide
-    });
+    // 材质创建函数（同 freewriting 中，支持染色）
+    function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
+        const map = textureLoader.load(`textures/${texName}_2K-JPG_Color.jpg`);
+        const normalMap = textureLoader.load(`textures/${texName}_2K-JPG_NormalGl.jpg`);
+        const roughnessMap = textureLoader.load(`textures/${texName}_2K-JPG_Roughness.jpg`);
 
-    if (isBrushed) {
-        mat.onBeforeCompile = (shader) => {
-            shader.uniforms.uRepeat = { value: 0.05 };
-            shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nvarying vec3 vWorldPosition;\nvarying vec3 vWorldNormal;`);
-            shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvWorldNormal = normalize(mat3(modelMatrix) * normal);`);
-            shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `
-                #include <common>
-                varying vec3 vWorldPosition;
-                varying vec3 vWorldNormal;
-                uniform float uRepeat;
-                vec3 getTriplanarBlend(vec3 normal) {
-                    vec3 blend = abs(normal); blend = pow(blend, vec3(4.0));
-                    return blend / (blend.x + blend.y + blend.z);
-                }
-                vec4 triplanarTexture(sampler2D tex, vec3 worldPos, vec3 normal, float scale) {
-                    vec2 uvXY = vec2(worldPos.x, worldPos.y) * scale; vec2 uvZY = vec2(worldPos.z, worldPos.y) * scale; vec2 uvXZ = vec2(worldPos.x, worldPos.z) * scale;
-                    vec4 colX = texture2D(tex, uvZY); vec4 colY = texture2D(tex, uvXZ); vec4 colZ = texture2D(tex, uvXY);
-                    vec3 blend = getTriplanarBlend(normal); return colX * blend.x + colY * blend.y + colZ * blend.z;
-                }
-            `);
-            shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
-                #ifdef USE_MAP
-                    vec4 sampledColor = triplanarTexture(map, vWorldPosition, vWorldNormal, uRepeat);
-                    diffuseColor.rgb *= (sampledColor.rgb ); // 这里的 diffuseColor 已经包含了前面的 tintColor，所以相乘会自动染色
-                #endif
-            `);
-            shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `
-                float roughnessFactor = roughness;
-                #ifdef USE_ROUGHNESSMAP
-                    roughnessFactor *= triplanarTexture(roughnessMap, vWorldPosition, vWorldNormal, uRepeat).r;
-                #endif
-            `);
-        };
+        const mat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(tintColor),
+            map: map, 
+            normalMap: isBrushed ? normalMap : null,
+            roughnessMap: roughnessMap, 
+            metalness: 1.0, 
+            roughness: isBrushed ? 0.5 : 0.5, 
+            envMapIntensity: isBrushed ? 0.5 : 0.5, 
+            side: THREE.DoubleSide
+        });
+
+        if (isBrushed) {
+            mat.onBeforeCompile = (shader) => {
+                shader.uniforms.uRepeat = { value: 0.05 };
+                shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nvarying vec3 vWorldPosition;\nvarying vec3 vWorldNormal;`);
+                shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvWorldNormal = normalize(mat3(modelMatrix) * normal);`);
+                shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `
+                    #include <common>
+                    varying vec3 vWorldPosition;
+                    varying vec3 vWorldNormal;
+                    uniform float uRepeat;
+                    vec3 getTriplanarBlend(vec3 normal) {
+                        vec3 blend = abs(normal); blend = pow(blend, vec3(4.0));
+                        return blend / (blend.x + blend.y + blend.z);
+                    }
+                    vec4 triplanarTexture(sampler2D tex, vec3 worldPos, vec3 normal, float scale) {
+                        vec2 uvXY = vec2(worldPos.y, worldPos.x) * scale; // 竖直拉丝：Y作为U
+                        vec2 uvZY = vec2(worldPos.y, worldPos.z) * scale;
+                        vec2 uvXZ = vec2(worldPos.z, worldPos.x) * scale;
+                        vec4 colX = texture2D(tex, uvZY);
+                        vec4 colY = texture2D(tex, uvXZ);
+                        vec4 colZ = texture2D(tex, uvXY);
+                        vec3 blend = getTriplanarBlend(normal);
+                        return colX * blend.x + colY * blend.y + colZ * blend.z;
+                    }
+                `);
+                shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
+                    #ifdef USE_MAP
+                        vec4 sampledColor = triplanarTexture(map, vWorldPosition, vWorldNormal, uRepeat);
+                        diffuseColor.rgb *= sampledColor.rgb;
+                    #endif
+                `);
+                shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `
+                    float roughnessFactor = roughness;
+                    #ifdef USE_ROUGHNESSMAP
+                        roughnessFactor *= triplanarTexture(roughnessMap, vWorldPosition, vWorldNormal, uRepeat).r;
+                    #endif
+                `);
+            };
+        }
+        return mat;
     }
-    return mat;
-}
 
     let sceneMeshes = [], backMeshes = [], ledMeshes = [], plateMeshes = [];
     let isDecomposed = false;
@@ -371,29 +415,23 @@ function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
     }
 
     function centerAndFitCamera() {
-        // 1. 先把整个模型组居中
         const box = new THREE.Box3().setFromObject(modelGroup);
         const center = box.getCenter(new THREE.Vector3());
         modelGroup.position.sub(center);
         
-        // 2. 居中完成后，重新计算此时模型的最底端在哪
         const newBox = new THREE.Box3().setFromObject(modelGroup);
-        const bottomY = newBox.min.y; // 模型的脚底板高度
-
-        // 3. 把网格和坐标轴移到模型脚底下一点点（留出0.5的余量防止材质闪烁）
+        const bottomY = newBox.min.y;
         const floorHeight = bottomY - 0.5;
         gridHelper.position.y = floorHeight;
         xAxis.position.y = floorHeight;
         zAxis.position.y = floorHeight;
 
-        // 4. 设置相机距离
         const size = newBox.getSize(new THREE.Vector3());
         let cameraDist = Math.max(size.x, size.y, size.z) * 1.8;
         camera.position.set(cameraDist * 0.8, cameraDist * 0.5, cameraDist);
         controls.target.set(0, 0, 0);
         controls.update();
         
-        // 动态计算雾的范围
         scene.fog.near = cameraDist * 0.5;
         scene.fog.far = cameraDist * 5.0;
     }
@@ -413,7 +451,7 @@ function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
     // ==========================================
     document.getElementById('brightnessSlider').addEventListener('input', (e) => updateBrightness(e.target.value));
     
-    // 修改点：使用 input 事件实时监听 LED 颜色盘的变化
+    // LED 颜色选择器
     document.getElementById('ledColorPicker').addEventListener('input', (e) => {
         const col = new THREE.Color(e.target.value);
         ledMeshes.concat(plateMeshes).forEach(obj => obj.traverse(c => { 
@@ -424,42 +462,69 @@ function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
         }));
     });
 
+    // 面壳颜色
     document.getElementById('frontColorPicker').addEventListener('input', (e) => {
         const col = new THREE.Color(e.target.value);
         sceneMeshes.forEach(obj => { if (obj.userData.type === 'front') obj.traverse(c => { if(c.isMesh) c.material.color.copy(col); }); });
     });
 
-  document.querySelectorAll('#materialOptions .material-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.material-btn').forEach(b => b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        const type = e.currentTarget.dataset.type;
-        
-        // 定义变量
-        let texName, isBrushed, tintColor;
+    // 背板材质点击事件（扩展为所有新颜色）
+    document.querySelectorAll('#materialOptions .material-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.material-btn').forEach(b => b.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            const type = e.currentTarget.dataset.type;
+            
+            let texName, isBrushed, tintColor;
 
-        // 根据按钮的 data-type 决定参数
-        if (type === 'metal011') {
-            texName = 'Metal011'; isBrushed = true; tintColor = 0xffffff; // 银色拉丝
-        } else if (type === 'metal049a') {
-            texName = 'Metal049A'; isBrushed = false; tintColor = 0xffffff; // 银色镜面
-        } else if (type === 'copper_brushed') {
-            texName = 'Metal011'; isBrushed = true; tintColor = 0xc07c51; // 铜色拉丝 (#c07c51 是标准的红铜色)
-        } else if (type === 'copper_mirror') {
-            texName = 'Metal049A'; isBrushed = false; tintColor = 0xc07c51; // 铜色镜面
-        }
+            // 根据 data-type 设置参数（合并了所有 freewriting 中的类型）
+            if (type === 'metal011') {
+                texName = 'Metal011'; isBrushed = true; tintColor = 0xffffff;
+            } else if (type === 'metal049a') {
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0xffffff;
+            } else if (type === 'copper_brushed') {
+                texName = 'Metal011'; isBrushed = true; tintColor = 0xc07c51;
+            } else if (type === 'copper_mirror') {
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0xc07c51;
+            } else if (type === 'rosegold_brushed') {
+                texName = 'Metal011'; isBrushed = true; tintColor = 0xb76e79;
+            } else if (type === 'rosegold_mirror') {
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0xb76e79;
+            } else if (type === 'gold_brushed') {
+                texName = 'Metal011'; isBrushed = true; tintColor = 0xffd700;
+            } else if (type === 'gold_mirror') {
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0xffd700;
+            } else if (type === 'black_brushed') {
+                texName = 'Metal011'; isBrushed = true; tintColor = 0x333333;
+            } else if (type === 'black_mirror') {
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0x333333;
+            } else if (type === 'brown_brushed') {
+                texName = 'Metal011'; isBrushed = true; tintColor = 0x8b4513;
+            } else if (type === 'brown_mirror') {
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0x8b4513;
+            }
 
-        // 应用材质
-        backMeshes.forEach(obj => { 
-            obj.traverse(c => { 
-                if(c.isMesh) { 
-                    c.material.dispose(); 
-                    c.material = createBackMaterial(texName, isBrushed, tintColor); 
-                } 
-            }); 
+            // 应用材质到所有背板网格
+            backMeshes.forEach(obj => { 
+                obj.traverse(c => { 
+                    if(c.isMesh) { 
+                        c.material.dispose(); 
+                        c.material = createBackMaterial(texName, isBrushed, tintColor); 
+                    } 
+                }); 
+            });
         });
     });
-});
+
+    // 颜色方块点击事件（新增）
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            const color = swatch.dataset.color;
+            const picker = document.getElementById('ledColorPicker');
+            picker.value = color;
+            picker.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    });
 
     document.getElementById('decomposeBtn').addEventListener('click', () => {
         isDecomposed = !isDecomposed;
@@ -473,9 +538,7 @@ function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
         document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并' : '一键解体';
     });
 
-    // ==========================================
-    // 渲染循环控制
-    // ==========================================
+    // 辉光渲染循环
     function darkenNonBloomed(obj) {
         if (bloomLayer.test(obj.layers) === false) {
             if (obj.isMesh) {
