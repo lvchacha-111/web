@@ -19,7 +19,10 @@
         body { display: flex; flex-direction: row; }
         #sidebar { width: 320px; min-width: 320px; height: 100vh; background: #2c2c2c; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 20; box-shadow: 2px 0 10px rgba(0,0,0,0.5); overflow-y: auto; box-sizing: border-box; }
         #canvas-container { flex: 1; height: 100%; position: relative; background-color: #393939; min-width: 0; }
-        
+        .color-swatch-container.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
         .header-box { border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;}
         .header-box h1 { font-size: 18px; color: #f39c12; margin: 0; letter-spacing: 1px; }
         .back-btn { color: #aaa; text-decoration: none; font-size: 12px; padding: 4px 8px; background: #3d3d3d; border-radius: 3px; border: 1px solid #555;}
@@ -29,7 +32,23 @@
         .material-btn { width: 42px; height: 42px; border-radius: 4px; border: 2px solid #444; background-size: cover; cursor: pointer; }
         .material-btn.active { border-color: #f39c12; box-shadow: 0 0 5px #f39c12; }
         .material-btn.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(100%); }
-        
+        .color-swatch {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid #444;
+    transition: transform 0.1s, border-color 0.1s;
+    box-sizing: border-box;
+}
+.color-swatch:hover {
+    transform: scale(1.1);
+    border-color: #f39c12;
+}
+.color-swatch.active {
+    border-color: #f39c12;
+    box-shadow: 0 0 5px #f39c12;
+}
         #frontColorPicker, #ledColorPicker { width: 100%; height: 35px; border: 1px solid #444; background: none; cursor: pointer; padding: 0; border-radius: 3px; }
         
         #textInput { 
@@ -163,6 +182,28 @@
                 <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg');" data-type="metal049a" title="金属镜面"></div>
                 <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_brushed" title="铜色拉丝"></div>
                 <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_mirror" title="铜色镜面"></div>
+                <!-- 白银色拉丝 -->
+
+
+<!-- 玫瑰金拉丝 -->
+<div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #b76e79; background-blend-mode: multiply;" data-type="rosegold_brushed" title="玫瑰金拉丝"></div>
+<!-- 玫瑰金镜面 -->
+<div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #b76e79; background-blend-mode: multiply;" data-type="rosegold_mirror" title="玫瑰金镜面"></div>
+
+<!-- 金色拉丝 -->
+<div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #ffd700; background-blend-mode: multiply;" data-type="gold_brushed" title="金色拉丝"></div>
+<!-- 金色镜面 -->
+<div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #ffd700; background-blend-mode: multiply;" data-type="gold_mirror" title="金色镜面"></div>
+
+<!-- 黑色拉丝 -->
+<div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #333333; background-blend-mode: multiply;" data-type="black_brushed" title="黑色拉丝"></div>
+<!-- 黑色镜面 -->
+<div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #333333; background-blend-mode: multiply;" data-type="black_mirror" title="黑色镜面"></div>
+
+<!-- 棕色拉丝 -->
+<div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_brushed" title="棕色拉丝"></div>
+<!-- 棕色镜面 -->
+<div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_mirror" title="棕色镜面"></div>
             </div>
         </div>
 
@@ -172,6 +213,21 @@
         </div>
 
         <div id="ledSection">
+            <div style="margin-bottom: 10px;">
+    <label style="display: block; margin-bottom: 5px;">🎨 预设颜色</label>
+    <div class="color-swatch-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <!-- 彩色 -->
+        <div class="color-swatch" style="background-color: #FFA500;" data-color="#FFA500" title="橘"></div>
+            <div class="color-swatch" style="background-color: #FFFF00;" data-color="#FFFF00" title="黄"></div>
+            <div class="color-swatch" style="background-color: #FFC0CB;" data-color="#FFC0CB" title="粉"></div>
+            <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF" title="蓝"></div>
+            <div class="color-swatch" style="background-color: #00FF00;" data-color="#00FF00" title="绿"></div>
+            <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000" title="红"></div>
+            <div class="color-swatch" style="background-color: #FFFFFF; border: 2px solid #888;" data-color="#FFFFFF" title="标准白"></div>
+            <div class="color-swatch" style="background-color: #F0F8FF; border: 2px solid #888;" data-color="#F0F8FF" title="高亮白（冷白）"></div>
+            <div class="color-swatch" style="background-color: #FAF0E6; border: 2px solid #888;" data-color="#FAF0E6" title="暗淡白（暖白）"></div>
+    </div>
+</div>
             <label id="ledColorLabel">💡 灯光颜色 (LED Color)</label>
             <input type="color" id="ledColorPicker" value="#ffffff">
             
@@ -657,6 +713,14 @@
         const frontDesc = document.getElementById('frontDesc');
         const backDesc = document.getElementById('backDesc');
         const depthControl = document.getElementById('depthControl');
+        const swatchContainer = document.querySelector('.color-swatch-container');
+    if (swatchContainer) {
+        if (glowMode === 'metalCut') {
+            swatchContainer.classList.add('disabled');
+        } else {
+            swatchContainer.classList.remove('disabled');
+        }
+    }
 
         // 重置通用状态
         matSection.classList.remove('disabled-overlay');
@@ -796,6 +860,28 @@
             } else if (type === 'copper_mirror') {
                 currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xc07c51;
             }
+
+            else if (type === 'silver_brushed') {
+    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xe0e0e0;
+} else if (type === 'silver_mirror') {
+    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xe0e0e0;
+} else if (type === 'rosegold_brushed') {
+    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xb76e79;
+} else if (type === 'rosegold_mirror') {
+    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xb76e79;
+} else if (type === 'gold_brushed') {
+    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xffd700;
+} else if (type === 'gold_mirror') {
+    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xffd700;
+} else if (type === 'black_brushed') {
+    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0x333333;
+} else if (type === 'black_mirror') {
+    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0x333333;
+} else if (type === 'brown_brushed') {
+    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0x8b4513;
+} else if (type === 'brown_mirror') {
+    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0x8b4513;
+}
 
             const hexColor = '#' + new THREE.Color(currentTintColor).getHexString();
             document.getElementById('frontColorPicker').value = hexColor;
@@ -951,6 +1037,19 @@
     });
     
     animate();
+    // 颜色方块点击事件
+// 颜色方块点击事件
+document.querySelectorAll('.color-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+        // 金属字模式下不允许更改灯光颜色
+        if (glowMode === 'metalCut') return;
+
+        const color = swatch.dataset.color;
+        const picker = document.getElementById('ledColorPicker');
+        picker.value = color;
+        picker.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+});
 </script>
 <script src="auth.js"></script>
 
