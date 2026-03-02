@@ -129,7 +129,6 @@
         <label>面壳漆色 (Front Paint)</label>
         <input type="color" id="frontColorPicker" value="#ffffff">
     </div>
-
     <!-- 灯光颜色区域（添加预设色块） -->
     <div>
         <label style="display: block; margin-bottom: 5px;">灯光颜色 (LED Color)</label>
@@ -172,13 +171,15 @@
 
     // 产品配置（保持不变）
     const PRODUCT_DB = {
+        /* === 自动插入点：新模型数据 === */
         "YJ-M000B": [
             { file: "front.glb",  type: "front", move: { z: 20 } }, 
             { file: "plate.glb",  type: "plate", move: { z: 10 } },
             { file: "led.glb",    type: "led",  move: null },
             { file: "fixed.glb",  type: "fixed",  move: null }, 
             { file: "back.glb",   type: "back",  move: { z: -20 } },
-        ]
+        ],
+         
     };
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -588,4 +589,3 @@
 <script src="auth.js"></script>
 
 </body>
-</html>
