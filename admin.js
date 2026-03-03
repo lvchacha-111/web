@@ -247,4 +247,4 @@ function getBaseHtml(content) {
     </head><body>${content}</body></html>`;
 }
 
-app.listen(3000, () => console.log('✅ 指挥中心已升级：支持 ID 重命名与全站同步'));
+app.listen(3000, () => console.log('✅ 指挥中心已升级：支持 ID 重命名与全站同步http://localhost:3000'));
