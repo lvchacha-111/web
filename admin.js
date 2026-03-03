@@ -16,12 +16,8 @@ if (!fs.existsSync(IMAGE_DIR)) fs.mkdirSync(IMAGE_DIR);
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        // 优先使用新输入的 ID，如果没有（比如上架时）则使用旧 ID
         const productId = req.body.newId || req.body.productId || req.params.id;
-        let targetDir = (file.fieldname.includes('Image')) ? 
-            path.join(__dirname, IMAGE_DIR) : 
-            path.join(__dirname, UPLOAD_DIR, productId);
-        
+        let targetDir = (file.fieldname.includes('Image')) ? path.join(__dirname, IMAGE_DIR) : path.join(__dirname, UPLOAD_DIR, productId);
         if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
         cb(null, targetDir);
     },
@@ -29,7 +25,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- 工具：读取全站数据 ---
 function getData() {
     const indexPath = path.join(__dirname, 'index.html');
     const detailPath = path.join(__dirname, 'detail.html');
@@ -44,23 +39,32 @@ function getData() {
     return { products, indexContent, detailContent };
 }
 
-// --- 首页：列表展示 ---
+// 辅助工具：从字符串 "{ x: 10, z: 20 }" 中提取数值
+function parseMove(str) {
+    const res = { x: 0, y: 0, z: 0 };
+    if (!str || str.trim() === "null") return res;
+    const xM = str.match(/x:\s*(-?\d+)/);
+    const yM = str.match(/y:\s*(-?\d+)/);
+    const zM = str.match(/z:\s*(-?\d+)/);
+    if (xM) res.x = parseInt(xM[1]);
+    if (yM) res.y = parseInt(yM[1]);
+    if (zM) res.z = parseInt(zM[1]);
+    return res;
+}
+
 app.get('/', (req, res) => {
     const { products } = getData();
     const listHtml = products.map(p => `
         <div class="item-card">
             <div class="info"><img src="/${p.image}" class="thumb"><div><div class="id-tag">${p.id}</div><div class="name-text">${p.name}</div></div></div>
-            <div class="btns">
-                <button onclick="location.href='/edit/${p.id}'" class="btn-edit">编辑 ID/名称/模型</button>
-                <button onclick="deleteProduct('${p.id}')" class="btn-del">删除</button>
-            </div>
+            <div class="btns"><button onclick="location.href='/edit/${p.id}'" class="btn-edit">编辑配置</button><button onclick="deleteProduct('${p.id}')" class="btn-del">删除</button></div>
         </div>
     `).join('');
     res.send(getBaseHtml(`
         <div class="box">
             <h2>🚀 上架新产品</h2>
             <form action="/upload" method="post" enctype="multipart/form-data">
-                <input type="text" name="productId" placeholder="产品编号 ID (唯一)" required>
+                <input type="text" name="productId" placeholder="产品编号 ID" required>
                 <input type="text" name="productName" placeholder="显示名称 Name" required>
                 <label>封面图:</label><input type="file" name="imageFile" required>
                 <div class="file-grid">
@@ -70,19 +74,18 @@ app.get('/', (req, res) => {
                     <div><label>LED:</label><input type="file" name="led" required></div>
                     <div><label>Fixed:</label><input type="file" name="fixed" required></div>
                 </div>
-                <button type="submit" class="btn-main">执行一键上架</button>
+                <button type="submit" class="btn-main">一键录入系统</button>
             </form>
         </div>
-        <div class="box"><h3>📦 现有资产列表</h3>${listHtml || '<p>暂无产品</p>'}</div>
+        <div class="box"><h3>📦 模型库资产</h3>${listHtml || '<p>空</p>'}</div>
     `));
 });
 
-// --- 编辑页：支持 ID 和 Name 的修改 ---
 app.get('/edit/:id', (req, res) => {
     const id = req.params.id;
     const { products, detailContent } = getData();
     const product = products.find(p => p.id === id);
-    if (!product) return res.status(404).send('未找到产品');
+    if (!product) return res.status(404).send('未找到');
 
     const detailRegex = new RegExp(`"${id}":\\s*\\[([\\s\\S]*?)\\]`, 'g');
     const match = detailRegex.exec(detailContent);
@@ -90,9 +93,8 @@ app.get('/edit/:id', (req, res) => {
     const partRegex = /\{\s*file:\s*"([^"]+)",\s*type:\s*"([^"]+)",\s*move:\s*([^}]+|null)\s*\}/g;
     let pm;
     while ((pm = partRegex.exec(match[1])) !== null) {
-        let moveVal = pm[3].trim();
-        let displayVal = moveVal === "null" ? "0" : (moveVal.match(/-?\d+/) ? moveVal.match(/-?\d+/)[0] : "0");
-        parts.push({ file: pm[1], type: pm[2], displayVal });
+        const moveObj = parseMove(pm[3]);
+        parts.push({ file: pm[1], type: pm[2], move: moveObj });
     }
 
     res.send(getBaseHtml(`
@@ -101,96 +103,86 @@ app.get('/edit/:id', (req, res) => {
             <form action="/update/${id}" method="post" enctype="multipart/form-data">
                 <div class="img-edit-box">
                     <img src="/${product.image}">
-                    <div style="flex:1">
-                        <label>更换封面图:</label>
-                        <input type="file" name="newImageFile">
-                        <input type="hidden" name="oldImage" value="${product.image}">
-                    </div>
+                    <div style="flex:1"><label>换封面:</label><input type="file" name="newImageFile"><input type="hidden" name="oldImage" value="${product.image}"></div>
                 </div>
-
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div><label>产品编号 (ID):</label><input type="text" name="newId" value="${product.id}" required></div>
-                    <div><label>显示名称 (Name):</label><input type="text" name="newName" value="${product.name}" required></div>
+                    <div><label>ID:</label><input type="text" name="newId" value="${product.id}" required></div>
+                    <div><label>Name:</label><input type="text" name="newName" value="${product.name}" required></div>
                 </div>
-                
-                <h3 style="margin-top:20px; color:#f39c12">部件管理与位移</h3>
+                <h3 style="margin-top:20px; color:#f39c12">解体位移方向控制 (X, Y, Z)</h3>
                 ${parts.map((part, i) => `
                     <div class="part-row">
                         <div style="flex:1">
                             <span class="part-type">${part.type.toUpperCase()}</span><br>
                             <span class="file-name-display">📄 ${part.file}</span>
-                            <input type="file" name="replace_file_${i}" style="font-size:10px; border:none; background:transparent; padding:0; margin-top:5px">
+                            <input type="file" name="replace_file_${i}" style="font-size:10px; border:none; background:transparent; display:block; margin-top:5px">
                             <input type="hidden" name="old_file_${i}" value="${part.file}">
                             <input type="hidden" name="type_${i}" value="${part.type}">
                         </div>
-                        <div style="text-align:right">
-                            <span style="font-size:11px; color:#555">Z轴位移:</span><br>
-                            <input type="number" name="move_${i}" value="${part.displayVal}" style="width:60px; margin-top:5px">
+                        <div class="axis-group">
+                            <div>X: <input type="number" name="move_x_${i}" value="${part.move.x}"></div>
+                            <div>Y: <input type="number" name="move_y_${i}" value="${part.move.y}"></div>
+                            <div>Z: <input type="number" name="move_z_${i}" value="${part.move.z}"></div>
                         </div>
                     </div>
                 `).join('')}
-                
-                <button type="submit" class="btn-main" style="margin-top:20px">保存所有修改 (同步 ID/名称/模型)</button>
-                <button type="button" onclick="location.href='/'" class="btn-sec">取消返回</button>
+                <button type="submit" class="btn-main" style="margin-top:20px">保存所有 3D 空间配置</button>
+                <button type="button" onclick="location.href='/'" class="btn-sec">取消</button>
             </form>
         </div>
     `));
 });
 
-// --- 更新逻辑：支持 ID 重命名和文件夹同步 ---
 app.post('/update/:id', upload.any(), (req, res) => {
     const oldId = req.params.id;
     const { newId, newName, oldImage } = req.body;
     let { indexContent, detailContent } = getData();
 
-    // 1. 处理文件夹重命名 (如果 ID 变了)
     if (oldId !== newId) {
-        const oldPath = path.join(__dirname, UPLOAD_DIR, oldId);
-        const newPath = path.join(__dirname, UPLOAD_DIR, newId);
-        if (fs.existsSync(oldPath)) {
-            // 如果新文件夹已存在，先合并再删除旧的，或者直接重命名
-            if (fs.existsSync(newPath)) {
-                // 简单的防呆处理：如果新 ID 已经存在且不是自己，提示错误
-                return res.status(400).send('错误：新 ID 已经存在，请换一个 ID');
-            }
-            fs.renameSync(oldPath, newPath);
-        }
+        const oldP = path.join(__dirname, UPLOAD_DIR, oldId);
+        const newP = path.join(__dirname, UPLOAD_DIR, newId);
+        if (fs.existsSync(oldP) && !fs.existsSync(newP)) fs.renameSync(oldP, newP);
     }
 
-    // 2. 更新图片
     let finalImg = oldImage;
     const newImg = req.files.find(f => f.fieldname === 'newImageFile');
     if (newImg) finalImg = `images/${newImg.originalname}`;
 
-    // 3. 全局替换 index.html 里的旧 ID 和名称
     const indexRegex = new RegExp(`\\{ id: "${oldId}", name: "[^"]+", image: "[^"]+" \\}`, 'g');
     indexContent = indexContent.replace(indexRegex, `{ id: "${newId}", name: "${newName}", image: "${finalImg}" }`);
 
-    // 4. 构建新的部件数组并替换 detail.html
     let newParts = [];
     for (let i = 0; i < 10; i++) {
         if (req.body[`type_${i}`]) {
             const type = req.body[`type_${i}`];
             const oldFile = req.body[`old_file_${i}`];
-            const dist = parseInt(req.body[`move_${i}`]);
             const upFile = req.files.find(f => f.fieldname === `replace_file_${i}`);
             const fileName = upFile ? upFile.originalname : oldFile;
-            const moveStr = (dist === 0) ? "null" : `{ z: ${dist} }`;
+            
+            const x = parseInt(req.body[`move_x_${i}`]);
+            const y = parseInt(req.body[`move_y_${i}`]);
+            const z = parseInt(req.body[`move_z_${i}`]);
+            
+            let moveStr = "null";
+            if (x !== 0 || y !== 0 || z !== 0) {
+                let parts = [];
+                if (x !== 0) parts.push(`x: ${x}`);
+                if (y !== 0) parts.push(`y: ${y}`);
+                if (z !== 0) parts.push(`z: ${z}`);
+                moveStr = `{ ${parts.join(', ')} }`;
+            }
             newParts.push(`            { file: "${fileName}",  type: "${type}", move: ${moveStr} }`);
         }
     }
 
     const detailRegex = new RegExp(`"${oldId}":\\s*\\[[\\s\\S]*?\\]`, 'g');
-    const newDetailBlock = `"${newId}": [\n${newParts.join(',\n')}\n        ]`;
-    detailContent = detailContent.replace(detailRegex, newDetailBlock);
+    detailContent = detailContent.replace(detailRegex, `"${newId}": [\n${newParts.join(',\n')}\n        ]`);
 
     fs.writeFileSync(path.join(__dirname, 'index.html'), indexContent);
     fs.writeFileSync(path.join(__dirname, 'detail.html'), detailContent);
-
-    res.send(`<script>alert("成功更新 ID [${newId}] 及其配置！"); location.href="/";</script>`);
+    res.send('<script>alert("全站 3D 参数已同步！"); location.href="/";</script>');
 });
 
-// --- 基础功能：上架 & 删除 ---
 app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back'},{name:'plate'},{name:'led'},{name:'fixed'}]), (req, res) => {
     const { productId, productName } = req.body;
     const files = req.files;
@@ -219,32 +211,31 @@ app.delete('/delete/:id', (req, res) => {
     fs.writeFileSync(path.join(__dirname, 'detail.html'), detailContent);
     const dir = path.join(__dirname, UPLOAD_DIR, id);
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
-    res.send('Delete Success');
+    res.send('Done');
 });
 
 function getBaseHtml(content) {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>3D 管理控制台</title><style>
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>3D 指挥中心</title><style>
     body { background: #0a0a0a; color: #ccc; font-family: sans-serif; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-    .box { background: #141414; padding: 20px; border-radius: 8px; width: 100%; max-width: 550px; margin-bottom: 20px; border: 1px solid #222; }
-    h2 { color: #f39c12; text-align: center; margin-bottom: 20px; }
-    input[type=text], input[type=number] { padding: 10px; background: #000; border: 1px solid #333; color: #f39c12; border-radius: 4px; box-sizing: border-box; }
-    input[type=text] { width: 100%; margin: 8px 0; }
+    .box { background: #141414; padding: 20px; border-radius: 8px; width: 100%; max-width: 580px; margin-bottom: 20px; border: 1px solid #222; }
+    h2 { color: #f39c12; text-align: center; }
+    input[type=text], input[type=number] { padding: 8px; background: #000; border: 1px solid #333; color: #f39c12; border-radius: 4px; }
+    input[type=number] { width: 50px; }
     .btn-main { background: #f39c12; color: #000; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; font-size:16px; }
-    .btn-main:hover { background: #fff; }
     .item-card { background: #000; border: 1px solid #222; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .thumb { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; margin-right: 12px; border:1px solid #222; }
-    .img-edit-box { display: flex; align-items: center; gap: 15px; background: #080808; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-    .img-edit-box img { width: 80px; height: 80px; border-radius: 6px; object-fit: cover; border: 1px solid #333; }
-    .part-row { background: #080808; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; border-left: 3px solid #f39c12; }
+    .thumb { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; margin-right: 12px; }
+    .part-row { background: #080808; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #f39c12; }
+    .axis-group { display: flex; gap: 8px; font-size: 11px; color: #666; }
+    .axis-group div { display: flex; align-items: center; gap: 4px; }
     .part-type { font-weight: bold; color: #f39c12; font-size: 13px; }
-    .file-name-display { font-size: 10px; color: #444; font-family: monospace; }
-    .id-tag { font-size: 10px; color: #f39c12; background: #000; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
-    .btn-edit { background: #333; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-size: 12px; }
-    .btn-del { background: #411; color: #f55; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-    .btn-sec { background: transparent; color: #444; border: 1px solid #333; padding: 10px; border-radius: 4px; margin-top: 10px; cursor: pointer; width: 100%; }
+    .file-name-display { font-size: 10px; color: #444; }
+    .img-edit-box { display: flex; align-items: center; gap: 15px; background: #080808; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    .img-edit-box img { width: 70px; height: 70px; border-radius: 6px; object-fit: cover; }
+    .btn-edit { background: #222; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-size: 12px; }
+    .btn-del { background: #311; color: #f55; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
     .file-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; margin-top: 10px; color: #555; }
     </style><script>function deleteProduct(id){if(confirm('确定删除 '+id+'?'))fetch('/delete/'+id,{method:'DELETE'}).then(()=>location.reload());}</script>
     </head><body>${content}</body></html>`;
 }
 
-app.listen(3000, () => console.log('✅ 指挥中心已升级：支持 ID 重命名与全站同步'));
+app.listen(3000, () => console.log('✅ 管理者模式http://localhost:3000'));
