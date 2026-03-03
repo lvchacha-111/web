@@ -244,22 +244,30 @@
     }
 
     // 3. 模型加载
+   // ==========================================
+    // 3. 模型加载 (修复版：直接使用云端链接)
+    // ==========================================
     function loadModels(config, productId) {
-        const folderPath = `stl/${productId}/`;
+        // ❌ 删除旧逻辑： const folderPath = `stl/${productId}/`;
+        
         let loadedCount = 0;
         const loaderSTL = new STLLoader(); 
         const loaderGLB = new GLTFLoader();
 
         config.forEach(part => {
-            const filePath = folderPath + part.file;
-            const isGLB = filePath.toLowerCase().endsWith('.glb');
+            // ✅ 新逻辑：直接读取数据库里的完整 HTTPS 链接
+            const filePath = part.file; 
+            
+            // 简单的判断：如果链接里包含 .glb (忽略大小写)
+            const isGLB = filePath.toLowerCase().includes('.glb');
+
             const setupObject = (object, isSTL = false) => {
                 loadedCount++;
                 object.traverse((child) => {
                     if (child.isMesh) {
                         const col = child.material.color ? child.material.color.clone() : new THREE.Color(0xffffff);
                         if (part.type === 'back') {
-                            child.material = createMetalMaterial('Metal011', true, 0xffffff);
+                            child.material = createMaterial('Metal011', true, 0xffffff);
                             backMeshes.push(child);
                         } else if (part.type === 'led' || part.type === 'plate') {
                             child.material = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0, toneMapped: false });
@@ -274,21 +282,31 @@
                 });
                 object.userData = { move: part.move, type: part.type };
                 modelGroup.add(object);
+
                 if (loadedCount === config.length) { 
                     document.getElementById('loading').style.display='none'; 
                     centerFit(); 
                     updateBrightness(15); 
                 }
             };
-            if (isGLB) loaderGLB.load(filePath, (g) => setupObject(g.scene)); 
-            else loaderSTL.load(filePath, (geo) => setupObject(new THREE.Mesh(geo), true));
+
+            // 开始加载
+            if (isGLB) {
+                loaderGLB.load(filePath, (g) => setupObject(g.scene), undefined, (err) => console.error("GLB加载错:", err));
+            } else {
+                loaderSTL.load(filePath, (geo) => setupObject(new THREE.Mesh(geo), true), undefined, (err) => console.error("STL加载错:", err));
+            }
         });
     }
 
     // --- 高级拉丝/镜面 Shader (已修复 GLSL 编译语法错误) ---
-    function createMetalMaterial(texName, isBrushed, tintColorHex) {
+  // --- 统一命名为 createMaterial ---
+    function createMaterial(texName, isBrushed, tintColorHex) {
+        // 确保颜色是 Hex 数字或字符串
+        const colorVal = new THREE.Color(tintColorHex);
+
         const mat = new THREE.MeshStandardMaterial({
-            color: tintColorHex, 
+            color: colorVal, 
             metalness: 1.0, 
             roughness: isBrushed ? 0.5 : 0.1, 
             side: THREE.DoubleSide,
@@ -297,24 +315,19 @@
             roughnessMap: textureLoader.load(`textures/${texName}_2K-JPG_Roughness.jpg`),
             envMapIntensity: isBrushed ? 0.6 : 1.2
         });
-        
+
+        // 植入 Shader 逻辑 (三向投影)
         if (isBrushed) {
             mat.onBeforeCompile = (shader) => {
                 shader.uniforms.uRepeat = { value: 0.05 };
                 shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nvarying vec3 vWorldPosition;varying vec3 vWorldNormal;`);
                 shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;vWorldNormal = normalize(mat3(modelMatrix) * normal);`);
-                
-                // 修复 GLSL 语法错误（补全了 normal 的 vec3，scale 的 float 类型声明）
                 shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `
                     #include <common>
-                    varying vec3 vWorldPosition;
-                    varying vec3 vWorldNormal;
-                    uniform float uRepeat;
+                    varying vec3 vWorldPosition;varying vec3 vWorldNormal;uniform float uRepeat;
                     vec3 getTriplanarBlend(vec3 normal) { vec3 blend = abs(normal); blend = pow(blend, vec3(4.0)); return blend / (blend.x + blend.y + blend.z); }
                     vec4 triplanarTexture(sampler2D tex, vec3 worldPos, vec3 normal, float scale) {
-                        vec2 uvXY = vec2(worldPos.x, worldPos.y) * scale; 
-                        vec2 uvZY = vec2(worldPos.z, worldPos.y) * scale; 
-                        vec2 uvXZ = vec2(worldPos.x, worldPos.z) * scale;
+                        vec2 uvXY = vec2(worldPos.x, worldPos.y) * scale; vec2 uvZY = vec2(worldPos.z, worldPos.y) * scale; vec2 uvXZ = vec2(worldPos.x, worldPos.z) * scale;
                         vec4 colX = texture2D(tex, uvZY); vec4 colY = texture2D(tex, uvXZ); vec4 colZ = texture2D(tex, uvXY);
                         vec3 blend = getTriplanarBlend(normal); return colX * blend.x + colY * blend.y + colZ * blend.z;
                     }
@@ -324,7 +337,6 @@
         }
         return mat;
     }
-
     function centerFit() {
         const box = new THREE.Box3().setFromObject(modelGroup);
         const center = box.getCenter(new THREE.Vector3());

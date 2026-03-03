@@ -265,10 +265,17 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function initPage() {
     try {
-        // 🚀 注意：下面这一行也要跟着改名
+        // 🚀 1. 从网址获取当前客户 ID
+        // 例如客户 A 访问 index.html?cid=0001
+        // 客户 B 访问 index.html?cid=0002
+        const urlParams = new URLSearchParams(window.location.search);
+        const cid = urlParams.get('cid') || '0001'; 
+
+        // 🚀 2. 只查询 client_id 等于 cid 的产品
         const { data: cloudProducts, error } = await supabaseClient
             .from('products')
             .select('*')
+            .eq('client_id', cid) // 关键过滤！
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -280,10 +287,10 @@ async function initPage() {
         }));
 
         renderProducts(formattedProducts);
-        console.log("✅ 云端产品同步成功！");
+        console.log(`✅ 客户 [${cid}] 的产品加载完毕`);
 
     } catch (err) {
-        console.error("❌ 无法从云端获取数据:", err);
+        console.error("❌ 无法获取客户数据:", err);
     }
 }
 

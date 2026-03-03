@@ -1,5 +1,5 @@
 // 1. 每次你更新了代码（比如改了 index.html 或 auth.js），就把这个 v1 改成 v2, v3...
-const CACHE_NAME = 'yijiao-cache-v2'; 
+const CACHE_NAME = 'yijiao-cache-v3'; 
 
 const assets = [
   '/',
@@ -11,13 +11,20 @@ const assets = [
 ];
 
 // 安装阶段：存入基础文件
-self.addEventListener('install', event => {
-  self.skipWaiting(); // 强制让新版本立刻接管，不要等旧页面关闭
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(assets);
-    })
-  );
+self.addEventListener('fetch', event => {
+    const url = new URL(event.request.url);
+
+    // 🚀 如果请求的是 Supabase 的云端数据，直接放行 (Network Only)
+    // 这样能避免跨域问题，也能保证数据永远是最新的
+    if (url.hostname.includes('supabase.co')) {
+        return; // 直接退出，让浏览器用默认方式去联网
+    }
+
+    // 🚀 其他本地文件 (html, css, js)，走缓存策略 (Network First)
+    event.respondWith(
+        fetch(event.request)
+            .catch(() => caches.match(event.request))
+    );
 });
 
 // 激活阶段：清理旧版本的缓存（非常重要！）
