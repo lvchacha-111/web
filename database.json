@@ -1,0 +1,88 @@
+{
+  "products": [
+    {
+      "id": "YJ-M000B",
+      "name": "YJ-M000B",
+      "image": "images/B3300.jpg"
+    },
+    {
+      "id": "测试001",
+      "name": "测试0022",
+      "image": "images/YJ-M000C.jpg"
+    }
+  ],
+  "model_details": {
+    "YJ-M000B": [
+      {
+        "file": "front.glb",
+        "type": "front",
+        "move": {
+          "z": 20
+        }
+      },
+      {
+        "file": "plate.glb",
+        "type": "plate",
+        "move": {
+          "z": 10
+        }
+      },
+      {
+        "file": "led.glb",
+        "type": "led",
+        "move": null
+      },
+      {
+        "file": "fixed.glb",
+        "type": "fixed",
+        "move": null
+      },
+      {
+        "file": "back.glb",
+        "type": "back",
+        "move": {
+          "z": -20
+        }
+      }
+    ],
+    "测试001": [
+      {
+        "file": "front.glb",
+        "type": "front",
+        "move": {
+          "x": 0,
+          "y": 0,
+          "z": 20
+        }
+      },
+      {
+        "file": "plate.glb",
+        "type": "plate",
+        "move": {
+          "x": 0,
+          "y": 0,
+          "z": 10
+        }
+      },
+      {
+        "file": "led.glb",
+        "type": "led",
+        "move": null
+      },
+      {
+        "file": "fixed.glb",
+        "type": "fixed",
+        "move": null
+      },
+      {
+        "file": "back.glb",
+        "type": "back",
+        "move": {
+          "x": 0,
+          "y": 0,
+          "z": -20
+        }
+      }
+    ]
+  }
+}

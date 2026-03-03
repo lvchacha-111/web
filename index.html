@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
       <!-- 1. 网页标题 (SEO 核心) -->
@@ -249,15 +249,70 @@
         // ==========================================
         // 2. 产品列表逻辑 (保持不变)
         // ==========================================
-        const products =[
+
+
+            // index.html 脚本区
+          let products = []; 
+
+// 2. 核心：向“大脑”申请数据的函数
+// --- 首页云端加载逻辑 ---
+// 1. 把变量名从 supabase 改为 supabaseClient (或者 sb)
+const SUPABASE_URL = 'https://hfiwagyothcdhlcfivsu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6tnK0XbTCTGw5pSmnK3o-A_2a7TlS0O';
+
+// 这里右边用的是库的名字，左边是我们起的新名字
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function initPage() {
+    try {
+        // 🚀 注意：下面这一行也要跟着改名
+        const { data: cloudProducts, error } = await supabaseClient
+            .from('products')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const formattedProducts = cloudProducts.map(p => ({
+            id: p.id,
+            name: p.name,
+            image: p.image_url
+        }));
+
+        renderProducts(formattedProducts);
+        console.log("✅ 云端产品同步成功！");
+
+    } catch (err) {
+        console.error("❌ 无法从云端获取数据:", err);
+    }
+}
+
+initPage();
+
+
+
+
+
+
+
+
+
+         // const products =[
              /* === 自动插入点：新产品数组 === */
-            { id: "YJ-M000C", name: "YJ-M000C", image: "images/YJ-M000C.jpg" },
-            { id: "YJ-M000A", name: "YJ-M000A", image: "images/y.jpg" },
+           // { id: "YJ-M000C", name: "YJ-M000C", image: "images/YJ-M000C.jpg" },
+           // { id: "YJ-M000A", name: "YJ-M000A", image: "images/y.jpg" },
             
-            { id: "YJ-M000B", name: "YJ-M000B", image: "images/B3300.jpg" },
+           // { id: "YJ-M000B", name: "YJ-M000B", image: "images/B3300.jpg" },
             
-        ];
-/*sasasasasasasasasasasa*/
+         //  ];
+            /*sasasasasasasasasasasa*/
+
+
+
+
+
+
+
         const productGrid = document.getElementById('productGrid');
         const searchInput = document.getElementById('searchInput');
         const noResults = document.getElementById('noResults');
