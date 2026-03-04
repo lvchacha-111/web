@@ -114,8 +114,8 @@
 
         /* 原有样式保持不变 */
         header { display: flex; align-items: center; justify-content: space-between; padding: 20px 50px; background-color: #000; border-bottom: 1px solid #333; }
-        .logo { font-size: 28px; font-weight: bold; color: #fff; letter-spacing: 1px; }
-        .logo span { color: #f39c12; }
+        .logo { display: flex; align-items: center; }
+        .logo-img { height: 40px; display: block; }
         .search-container { flex-grow: 1; display: flex; justify-content: center; }
         .search-box { width: 100%; max-width: 500px; padding: 12px 20px; border-radius: 25px; border: 1px solid #444; background-color: #111; color: #fff; font-size: 16px; outline: none; transition: all 0.3s; }
         .search-box:focus { border-color: #f39c12; box-shadow: 0 0 8px rgba(243, 156, 18, 0.5); }
@@ -192,7 +192,11 @@
     <!-- ============================================== -->
 
     <header>
-        <div class="logo">YiJiao<span>sign</span></div>
+        <div class="logo">
+            <a href="http://www.yijiaosign.com/h-col-139.html" target="_blank">
+                <img src="yijiaosign.svg" alt="YiJiao 亿角 标志" class="logo-img">
+            </a>
+        </div>
         <div class="search-container">
             <input type="text" id="searchInput" class="search-box" placeholder="输入产品编号搜索 (如: A2228)...">
         </div>
