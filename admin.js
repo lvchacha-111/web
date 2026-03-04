@@ -55,46 +55,37 @@ function parsePartsForId(id, detailContent) {
     if (!match) return [];
 
     const parts = [];
-    
-    // 【核心修复】：使用更宽容的正则，提取整行内容，防止因空格或格式问题读取失败
-    // 逻辑：匹配 { file: "...", type: "...", [剩余所有内容] }
+    // 正则：宽容匹配 { file: "...", type: "...", ... }
     const partRegex = /\{\s*file:\s*"([^"]+)",\s*type:\s*"([^"]+)",\s*([^}]+)\}/g;
     
     let pm;
     while ((pm = partRegex.exec(match[1])) !== null) {
         const file = pm[1];
         const type = pm[2];
-        const restString = pm[3]; // 包含 move, emissive, texture 等所有剩余属性的字符串
+        const restString = pm[3]; 
 
-        // 1. 解析 Move (位移)
+        // 1. 解析 Move
         let axis = 'z';
         let dist = 0;
-        // 尝试匹配 move: { x: 10 } 或 move: null
         const moveMatch = restString.match(/move:\s*\{\s*([xyz])\s*:\s*(-?\d+)\s*\}/);
         if (moveMatch) {
             axis = moveMatch[1];
             dist = parseInt(moveMatch[2]);
         }
 
-        // 2. 解析 Plate 发光 (emissive)
-        // 逻辑：默认 True，只有明确写了 false 才为 False
+        // 2. 解析 Plate 发光
         let isEmissive = true; 
         if (type === 'plate') {
-            if (restString.includes('emissive: false')) {
-                isEmissive = false;
-            }
+            if (restString.includes('emissive: false')) isEmissive = false;
         } else {
-            isEmissive = false; // 其他部件不发光
+            isEmissive = false;
         }
 
-        // 3. 解析 Back 材质 (texture)
-        // 逻辑：默认 True，只有明确写了 false 才为 False
+        // 3. 解析 Back 材质
         let isTexture = false;
         if (type === 'back') {
-            isTexture = true; // 默认开启
-            if (restString.includes('texture: false')) {
-                isTexture = false; // 只有检测到 explicit false 才关闭
-            }
+            isTexture = true; 
+            if (restString.includes('texture: false')) isTexture = false;
         }
 
         parts.push({ file, type, axis, dist, isEmissive, isTexture });
@@ -225,7 +216,9 @@ app.get('/edit/:id', (req, res) => {
                                     <option value="y" ${p.axis==='y'?'selected':''}>Y</option>
                                     <option value="z" ${p.axis==='z'?'selected':''}>Z</option>
                                 </select>
-                                <input type="number" name="dist_${type}_${i}" value="${p.dist}">
+                                <!-- 【核心修改】：输入框预填当前值，并在后方显示提示 -->
+                                <input type="number" name="dist_${type}_${i}" value="${p.dist}" style="font-weight:bold; color:#f39c12">
+                                <span style="font-size:10px; color:#666; margin-left:5px; line-height:24px;">(当前:${p.dist})</span>
                             </div>
                         </div>
                     </div>
@@ -263,7 +256,7 @@ app.get('/edit/:id', (req, res) => {
                 ${['front', 'back', 'plate', 'led', 'fixed'].map(t => renderGroup(t, groups[t])).join('')}
                 
                 <div class="sticky-footer">
-                    <button type="submit" class="btn-main">💾 保存所有配置（含删除操作）</button>
+                    <button type="submit" class="btn-main">💾 保存所有配置</button>
                     <button type="button" onclick="location.href='/'" class="btn-sec">取消</button>
                 </div>
             </form>
@@ -326,7 +319,6 @@ app.post('/update/:id', upload.any(), (req, res) => {
             
             let extraProps = "";
             if (type === 'plate') extraProps += `, emissive: ${isEmissive ? 'true' : 'false'}`;
-            // 【核心写入】：Back类型，必须明确写入 true 或 false，确保下次读取不会出错
             if (type === 'back') extraProps += `, texture: ${isTexture ? 'true' : 'false'}`;
 
             newParts.push(`            { file: "${fileName}",  type: "${type}", move: ${moveStr}${extraProps} }`);
@@ -343,7 +335,6 @@ app.post('/update/:id', upload.any(), (req, res) => {
             appendFiles.forEach(f => {
                 let extraProps = "";
                 if (type === 'plate') extraProps = `, emissive: true`; 
-                // 追加的 Back 文件默认开启材质
                 if (type === 'back') extraProps = `, texture: true`;   
 
                 newParts.push(`            { file: "${f.originalname}",  type: "${type}", move: ${defaultMove}${extraProps} }`);
@@ -381,7 +372,6 @@ app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back
     processFiles(files.plate, 'plate', '{ z: 10 }', ', emissive: true'); 
     processFiles(files.led, 'led', 'null');
     processFiles(files.fixed, 'fixed', 'null');
-    // 上架 Back 默认开启材质
     processFiles(files.back, 'back', '{ z: -20 }', ', texture: true'); 
 
     const detailEntry = `"${productId}": [\n${partEntries.join(',\n')}\n        ],`;
@@ -443,7 +433,7 @@ function getBaseHtml(content) {
     .mini-file-input { font-size: 10px; color: #555; width: 100%; }
     .part-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
     .control-row { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
-    .move-group { display: flex; gap: 4px; }
+    .move-group { display: flex; gap: 4px; align-items: center; }
     .move-group select { width: 45px; padding: 3px; font-size: 11px; height: 24px; }
     .move-group input[type=number] { width: 50px; padding: 3px; font-size: 11px; height: 24px; }
     .emissive-toggle { font-size: 11px; color: #2ecc71; display: flex; align-items: center; gap: 3px; cursor: pointer; }
@@ -460,4 +450,4 @@ function getBaseHtml(content) {
     </head><body>${content}</body></html>`;
 }
 
-app.listen(3000, () => console.log('✅ 系统核心修复：Regex 更加宽容，材质切换状态完美同步 http://localhost:3000'));
+app.listen(3000, () => console.log('✅ 系统UI升级：编辑页现在直观显示并预填当前位移距离 http://localhost:3000'));

@@ -176,11 +176,10 @@
         
         
         "YJ-M000A": [
-            { file: "front.glb",  type: "front", move: { z: 20 } },
-            { file: "plate.glb",  type: "plate", move: { z: 10 } },
+            { file: "back.glb",  type: "back", move: null, texture: true },
+            { file: "plate.glb",  type: "plate", move: null, emissive: true },
             { file: "led.glb",  type: "led", move: null },
-            { file: "fixed.glb",  type: "fixed", move: null },
-            { file: "back.glb",  type: "back", move: { z: -20 } }
+            { file: "fixed.glb",  type: "fixed", move: null }
         ],
         "YJ-M000B": [
             { file: "front.glb",  type: "front", move: { z: 20 } }, 
@@ -196,13 +195,14 @@
             { file: "fixed.glb",  type: "fixed", move: null },
             { file: "back.glb",  type: "back", move: { z: -20 } }
         ],
+        
         "YJ-0001": [
-            { file: "front.glb",  type: "front", move: null },
-            { file: "back.glb",  type: "back", move: null, texture: false },
-            { file: "plate01.glb",  type: "plate", move: null, emissive: true },
+            { file: "front.glb",  type: "front", move: { z: 10 } },
+            { file: "plate01.glb",  type: "plate", move: { z: 10 }, emissive: true },
+            { file: "back.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "led.glb",  type: "led", move: null },
-            { file: "fixed.glb",  type: "fixed", move: null },
-            { file: "fixed01.glb",  type: "fixed", move: null }
+            { file: "fixed01.glb",  type: "fixed", move: null },
+            { file: "fixed.glb",  type: "fixed", move: null }
         ],
         /* === 自动插入点：新模型数据 === */
     };
