@@ -122,6 +122,7 @@
             <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_brushed" title="棕色拉丝"></div>
             <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_mirror" title="棕色镜面"></div>
         </div>
+        <div id="materialHint" style="font-size: 12px; color: #bbb; margin-top: 5px;">当前材质：银色拉丝</div>
     </div>
 
     <!-- 面壳漆色（保持不变） -->
@@ -146,6 +147,7 @@
         </div>
         <!-- 颜色选择器（保留） -->
         <input type="color" id="ledColorPicker" value="#ffffff">
+        <div id="ledColorHint" style="font-size: 12px; color: #bbb; margin-top: 5px;">当前灯光颜色：标准白</div>
         <label style="margin-top:10px;">亮度调节 (<span id="brightnessValue">15%</span>)</label>
         <input type="range" id="brightnessSlider" min="0" max="100" step="1" value="15">
     </div>
@@ -467,15 +469,45 @@
     // ==========================================
     document.getElementById('brightnessSlider').addEventListener('input', (e) => updateBrightness(e.target.value));
     
+    // 颜色名称映射函数
+    function getColorName(colorValue) {
+        // 预设颜色映射
+        const colorMap = {
+            '#FFA500': '橘',
+            '#FFFF00': '黄',
+            '#FFC0CB': '粉',
+            '#0000FF': '蓝',
+            '#00FF00': '绿',
+            '#FF0000': '红',
+            '#FFFFFF': '标准白',
+            '#F0F8FF': '高亮白（冷白）',
+            '#FAF0E6': '暗淡白（暖白）'
+        };
+        
+        // 检查是否有预设颜色名称
+        const upperColor = colorValue.toUpperCase();
+        if (colorMap[upperColor]) {
+            return colorMap[upperColor];
+        }
+        
+        // 对于其他颜色，返回十六进制值
+        return colorValue;
+    }
+    
     // LED 颜色选择器
     document.getElementById('ledColorPicker').addEventListener('input', (e) => {
-        const col = new THREE.Color(e.target.value);
+        const colorValue = e.target.value;
+        const col = new THREE.Color(colorValue);
         ledMeshes.concat(plateMeshes).forEach(obj => obj.traverse(c => { 
             if(c.isMesh) { 
                 c.material.color.copy(col); 
                 c.material.emissive.copy(col); 
             } 
         }));
+        
+        // 更新灯光颜色提示文字
+        const colorName = getColorName(colorValue);
+        document.getElementById('ledColorHint').textContent = `当前灯光颜色：${colorName}`;
     });
 
     // 面壳颜色
@@ -491,34 +523,37 @@
             e.currentTarget.classList.add('active');
             const type = e.currentTarget.dataset.type;
             
-            let texName, isBrushed, tintColor;
+            let texName, isBrushed, tintColor, materialName;
 
             // 根据 data-type 设置参数（合并了所有 freewriting 中的类型）
             if (type === 'metal011') {
-                texName = 'Metal011'; isBrushed = true; tintColor = 0xffffff;
+                texName = 'Metal011'; isBrushed = true; tintColor = 0xffffff; materialName = '银色拉丝';
             } else if (type === 'metal049a') {
-                texName = 'Metal049A'; isBrushed = false; tintColor = 0xffffff;
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0xffffff; materialName = '银色镜面';
             } else if (type === 'copper_brushed') {
-                texName = 'Metal011'; isBrushed = true; tintColor = 0xc07c51;
+                texName = 'Metal011'; isBrushed = true; tintColor = 0xc07c51; materialName = '铜色拉丝';
             } else if (type === 'copper_mirror') {
-                texName = 'Metal049A'; isBrushed = false; tintColor = 0xc07c51;
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0xc07c51; materialName = '铜色镜面';
             } else if (type === 'rosegold_brushed') {
-                texName = 'Metal011'; isBrushed = true; tintColor = 0xb76e79;
+                texName = 'Metal011'; isBrushed = true; tintColor = 0xb76e79; materialName = '玫瑰金拉丝';
             } else if (type === 'rosegold_mirror') {
-                texName = 'Metal049A'; isBrushed = false; tintColor = 0xb76e79;
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0xb76e79; materialName = '玫瑰金镜面';
             } else if (type === 'gold_brushed') {
-                texName = 'Metal011'; isBrushed = true; tintColor = 0xffd700;
+                texName = 'Metal011'; isBrushed = true; tintColor = 0xffd700; materialName = '金色拉丝';
             } else if (type === 'gold_mirror') {
-                texName = 'Metal049A'; isBrushed = false; tintColor = 0xffd700;
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0xffd700; materialName = '金色镜面';
             } else if (type === 'black_brushed') {
-                texName = 'Metal011'; isBrushed = true; tintColor = 0x333333;
+                texName = 'Metal011'; isBrushed = true; tintColor = 0x333333; materialName = '黑色拉丝';
             } else if (type === 'black_mirror') {
-                texName = 'Metal049A'; isBrushed = false; tintColor = 0x333333;
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0x333333; materialName = '黑色镜面';
             } else if (type === 'brown_brushed') {
-                texName = 'Metal011'; isBrushed = true; tintColor = 0x8b4513;
+                texName = 'Metal011'; isBrushed = true; tintColor = 0x8b4513; materialName = '棕色拉丝';
             } else if (type === 'brown_mirror') {
-                texName = 'Metal049A'; isBrushed = false; tintColor = 0x8b4513;
+                texName = 'Metal049A'; isBrushed = false; tintColor = 0x8b4513; materialName = '棕色镜面';
             }
+
+            // 更新材质提示文字
+            document.getElementById('materialHint').textContent = `当前材质：${materialName}`;
 
             // 应用材质到所有背板网格
             backMeshes.forEach(obj => { 
@@ -538,6 +573,10 @@
             const color = swatch.dataset.color;
             const picker = document.getElementById('ledColorPicker');
             picker.value = color;
+            // 直接更新灯光颜色提示文字
+            const colorName = getColorName(color);
+            document.getElementById('ledColorHint').textContent = `当前灯光颜色：${colorName}`;
+            // 触发颜色选择器事件以更新3D模型
             picker.dispatchEvent(new Event('input', { bubbles: true }));
         });
     });

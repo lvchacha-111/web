@@ -212,9 +212,22 @@
         // ==========================================
         let isOpened = false;
 
+        // 检查是否已经播放过动画
+        const hasPlayedAnimation = localStorage.getItem('introAnimationPlayed') === 'true';
+
+        // 如果已经播放过，直接隐藏动画并解锁页面
+        if (hasPlayedAnimation) {
+            document.getElementById('intro-overlay').style.display = 'none';
+            document.body.classList.remove('locked');
+            isOpened = true; // 标记为已打开，防止再次触发
+        }
+
         function triggerOpening() {
             if (isOpened) return; // 防止重复触发
             isOpened = true;
+
+            // 保存动画已播放状态到 localStorage
+            localStorage.setItem('introAnimationPlayed', 'true');
 
             const overlay = document.getElementById('intro-overlay');
             // 给幕布加上打开的 class，触发 CSS 动画
@@ -228,33 +241,35 @@
             }, 1200); 
         }
 
-        // 监听电脑端鼠标滚轮 (往下滚)
-        window.addEventListener('wheel', (e) => {
-            if (e.deltaY > 0) triggerOpening(); // deltaY > 0 表示向下滑动
-        });
+        // 如果动画还没播放过，才添加滚动/触摸监听
+        if (!hasPlayedAnimation) {
+            // 监听电脑端鼠标滚轮 (往下滚)
+            window.addEventListener('wheel', (e) => {
+                if (e.deltaY > 0) triggerOpening(); // deltaY > 0 表示向下滑动
+            });
 
-        // 监听手机端手指滑动 (往上滑屏幕，即页面往下滚)
-        let touchStartY = 0;
-        window.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        });
-        window.addEventListener('touchmove', (e) => {
-            let touchEndY = e.touches[0].clientY;
-            // 如果手指向上滑动的距离超过 30 像素，触发开门
-            if (touchStartY - touchEndY > 30) {
-                triggerOpening();
-            }
-        });
+            // 监听手机端手指滑动 (往上滑屏幕，即页面往下滚)
+            let touchStartY = 0;
+            window.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+            });
+            window.addEventListener('touchmove', (e) => {
+                let touchEndY = e.touches[0].clientY;
+                // 如果手指向上滑动的距离超过 30 像素，触发开门
+                if (touchStartY - touchEndY > 30) {
+                    triggerOpening();
+                }
+            });
+        }
 
         // ==========================================
         // 2. 产品列表逻辑 (保持不变)
         // ==========================================
         const products =[
              /* === 自动插入点：新产品数组 === */
-            { id: "YJ-M000C", name: "YJ-M000C", image: "images/YJ-M000C.jpg" },
             { id: "YJ-M000A", name: "YJ-M000A", image: "images/y.jpg" },
-            
             { id: "YJ-M000B", name: "YJ-M000B", image: "images/B3300.jpg" },
+            { id: "YJ-M000C", name: "YJ-M000C", image: "images/YJ-M000C.jpg" },
             
         ];
 /*sasasasasasasasasasasa*/
