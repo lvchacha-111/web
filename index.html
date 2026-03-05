@@ -282,12 +282,17 @@
             { id: "YJ-M000C", name: "YJ-M000C", image: "images/YJ-M000C.jpg" },
             
         ];
+          products.sort((a, b) => {
+            // 使用 localeCompare 进行自然排序
+            // numeric: true 表示把数字当成数值比较，而不是字符
+            return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
+        });
 /*sasasasasasasasasasasa*/
         const productGrid = document.getElementById('productGrid');
         const searchInput = document.getElementById('searchInput');
         const noResults = document.getElementById('noResults');
 
-        function renderProducts(productList) {
+       function renderProducts(productList) {
             productGrid.innerHTML = ''; 
             if (productList.length === 0) {
                 noResults.style.display = 'block'; 
@@ -308,6 +313,7 @@
             }
         }
 
+        // 初始渲染（此时 products 已经是排好序的了）
         renderProducts(products);
 
         searchInput.addEventListener('input', (e) => {
@@ -315,6 +321,7 @@
             const filteredProducts = products.filter(product => 
                 product.name.toLowerCase().includes(keyword) || product.id.toLowerCase().includes(keyword)
             );
+            // 搜索结果也依然会保持排序状态，因为源数组已经排好了
             renderProducts(filteredProducts);
         });
     </script>
