@@ -176,10 +176,11 @@
         
         
         "YJ-M000A": [
-            { file: "back.glb",  type: "back", move: null, texture: true },
+            { file: "front.glb",  type: "front", move: { z: 20 } },
+            { file: "back.glb",  type: "back", move: { z: -20 }, texture: true },
+            { file: "plate001.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "plate.glb",  type: "plate", move: null, emissive: true },
-            { file: "led.glb",  type: "led", move: null },
-            { file: "fixed.glb",  type: "fixed", move: null }
+            { file: "led.glb",  type: "led", move: null }
         ],
         "YJ-M000B": [
             { file: "front.glb",  type: "front", move: { z: 20 } }, 
@@ -201,8 +202,42 @@
             { file: "plate01.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "back.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "led.glb",  type: "led", move: null },
-            { file: "fixed01.glb",  type: "fixed", move: null },
+            { file: "fixed01.glb",  type: "fixed", move: { z: -10 } },
             { file: "fixed.glb",  type: "fixed", move: null }
+        ],
+        "YJ-003": [
+            { file: "FRONT.glb",  type: "front", move: { z: 10 } },
+            { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
+            { file: "LED.glb",  type: "led", move: null },
+            { file: "FIXED.LED.glb",  type: "fixed", move: null },
+            { file: "FIXED.glb",  type: "fixed", move: { z: -10 } },
+            { file: "FIXED.FRONT2.glb",  type: "fixed", move: { z: 10 } },
+            { file: "FIXED.FRONT.glb",  type: "fixed", move: { z: 10 } }
+        ],
+        "YJ-004": [
+            { file: "FRONT.glb",  type: "front", move: { z: 10 } },
+            { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
+            { file: "LED.glb",  type: "led", move: null },
+            { file: "FIXED-LED.glb",  type: "fixed", move: null },
+            { file: "FIXED.glb",  type: "fixed", move: { z: -10 } },
+            { file: "FIXED-LED.glb",  type: "fixed", move: null }
+        ],
+        "YJ-002": [
+            { file: "front.glb",  type: "front", move: { z: 10 } },
+            { file: "plate.glb",  type: "plate", move: { z: 10 }, emissive: true },
+            { file: "LED.glb",  type: "led", move: null },
+            { file: "fixed.glb",  type: "fixed", move: null },
+            { file: "fixed-back.glb",  type: "fixed", move: { z: -10 } },
+            { file: "fixed-front.glb",  type: "fixed", move: { z: 10 } },
+            { file: "fixed-led.glb",  type: "fixed", move: null }
+        ],
+        "YJ-005A": [
+            { file: "FRONT.glb",  type: "front", move: { z: 10 } },
+            { file: "plate.glb",  type: "plate", move: { z: 10 }, emissive: false },
+            { file: "LED.glb",  type: "led", move: null },
+            { file: "FIXED.glb",  type: "fixed", move: null },
+            { file: "fixed-front.glb",  type: "fixed", move: { z: 10 } },
+            { file: "fixed-led.glb",  type: "fixed", move: null }
         ],
         /* === 自动插入点：新模型数据 === */
     };
