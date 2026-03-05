@@ -17,16 +17,10 @@ if (!fs.existsSync(IMAGE_DIR)) fs.mkdirSync(IMAGE_DIR);
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const productId = req.body.newId || req.body.productId || req.params.id;
-        
-        // --- 修改开始 ---
-        // 原代码：if (file.fieldname.includes('Image')) 
-        // 修改为：先转小写再判断，这样即支持 'imageFile' 也支持 'newImageFile'
         let isImageField = file.fieldname.toLowerCase().includes('image');
-        
         let targetDir = isImageField ? 
             path.join(__dirname, IMAGE_DIR) : 
             path.join(__dirname, UPLOAD_DIR, productId);
-        // --- 修改结束 ---
         
         if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
         cb(null, targetDir);
@@ -55,14 +49,12 @@ function getData() {
     return { products, indexContent, detailContent };
 }
 
-// --- 辅助函数：解析单个产品的部件列表 ---
 function parsePartsForId(id, detailContent) {
     const detailRegex = new RegExp(`"${id}":\\s*\\[([\\s\\S]*?)\\]`, 'g');
     const match = detailRegex.exec(detailContent);
     if (!match) return [];
 
     const parts = [];
-    // 正则：宽容匹配 { file: "...", type: "...", ... }
     const partRegex = /\{\s*file:\s*"([^"]+)",\s*type:\s*"([^"]+)",\s*([^}]+)\}/g;
     
     let pm;
@@ -71,7 +63,6 @@ function parsePartsForId(id, detailContent) {
         const type = pm[2];
         const restString = pm[3]; 
 
-        // 1. 解析 Move
         let axis = 'z';
         let dist = 0;
         const moveMatch = restString.match(/move:\s*\{\s*([xyz])\s*:\s*(-?\d+)/);
@@ -80,7 +71,6 @@ function parsePartsForId(id, detailContent) {
             dist = parseInt(moveMatch[2]);
         }
 
-        // 2. 解析 Plate 发光
         let isEmissive = true; 
         if (type === 'plate') {
             if (restString.includes('emissive: false')) isEmissive = false;
@@ -88,7 +78,6 @@ function parsePartsForId(id, detailContent) {
             isEmissive = false;
         }
 
-        // 3. 解析 Back 材质
         let isTexture = false;
         if (type === 'back') {
             isTexture = true; 
@@ -101,11 +90,9 @@ function parsePartsForId(id, detailContent) {
 }
 
 // --- 首页 ---
-// --- 首页 ---
 app.get('/', (req, res) => {
     const { products, detailContent } = getData();
     
-    // 生成现有列表的 HTML (保持不变)
     const listHtml = products.map(p => {
         const parts = parsePartsForId(p.id, detailContent);
         const typeCounters = { front: 0, back: 0, plate: 0, led: 0, fixed: 0 };
@@ -141,10 +128,8 @@ app.get('/', (req, res) => {
         `;
     }).join('');
 
-    // --- 核心修改：增加了 CSS 样式和增强的 JS 文件选择逻辑 ---
     res.send(getBaseHtml(`
         <style>
-            /* 新增样式：文件上传预览区 */
             .upload-zone { border: 1px dashed #444; padding: 10px; border-radius: 4px; background: #0f0f0f; transition: 0.3s; }
             .upload-zone:hover { border-color: #666; background: #1a1a1a; }
             .file-preview-box { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; min-height: 5px; }
@@ -155,10 +140,7 @@ app.get('/', (req, res) => {
                 animation: fadeIn 0.2s;
             }
             .file-chip span { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .chip-del { 
-                color: #e74c3c; cursor: pointer; font-weight: bold; padding: 0 2px;
-                transition: 0.2s;
-            }
+            .chip-del { color: #e74c3c; cursor: pointer; font-weight: bold; padding: 0 2px; transition: 0.2s; }
             .chip-del:hover { color: #ff6b6b; transform: scale(1.2); }
             .btn-select-file {
                 background: #333; color: #fff; border: 1px solid #555;
@@ -184,11 +166,9 @@ app.get('/', (req, res) => {
                         <div class="upload-zone" id="zone-${type}">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <label style="text-transform: capitalize; font-weight:bold; color:#aaa;">${type}</label>
-                                <!-- 隐藏真实的 input，通过按钮触发 -->
                                 <input type="file" name="${type}" id="input-${type}" multiple style="display:none" onchange="handleFileSelect('${type}')">
                                 <button type="button" class="btn-select-file" onclick="document.getElementById('input-${type}').click()">+ 添加文件</button>
                             </div>
-                            <!-- 预览区域 -->
                             <div class="file-preview-box" id="preview-${type}"></div>
                         </div>
                     `).join('')}
@@ -202,41 +182,25 @@ app.get('/', (req, res) => {
         <div class="box"><h3>📦 现有资产列表</h3>${listHtml || '<p>暂无产品</p>'}</div>
 
         <script>
-            // === 前端逻辑：管理文件列表 ===
-            // 存储每个分类的文件数据 (使用 DataTransfer 模拟 FileList)
             const fileStores = {
-                front: new DataTransfer(),
-                back: new DataTransfer(),
-                plate: new DataTransfer(),
-                led: new DataTransfer(),
-                fixed: new DataTransfer()
+                front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer()
             };
 
             function handleFileSelect(type) {
                 const input = document.getElementById('input-' + type);
                 const files = input.files;
-                
-                // 将新选的文件追加到我们的存储中
                 for (let i = 0; i < files.length; i++) {
-                    // (可选) 这里可以加排重逻辑，防止同名文件重复添加
                     fileStores[type].items.add(files[i]);
                 }
-
-                // 更新视图和真实的 Input
                 updateInputAndPreview(type);
             }
 
             function removeFile(type, index) {
-                // DataTransfer 的 items 列表没有直接 remove(index) 方法，需要重建
                 const newDt = new DataTransfer();
                 const oldFiles = fileStores[type].files;
-
                 for (let i = 0; i < oldFiles.length; i++) {
-                    if (i !== index) {
-                        newDt.items.add(oldFiles[i]);
-                    }
+                    if (i !== index) newDt.items.add(oldFiles[i]);
                 }
-                
                 fileStores[type] = newDt;
                 updateInputAndPreview(type);
             }
@@ -244,12 +208,7 @@ app.get('/', (req, res) => {
             function updateInputAndPreview(type) {
                 const input = document.getElementById('input-' + type);
                 const previewBox = document.getElementById('preview-' + type);
-                
-                // 1. 将 input 的 files 属性替换为我们内存中的列表
-                // 这样提交表单时，就会提交所有仍在列表中的文件
                 input.files = fileStores[type].files;
-
-                // 2. 重新渲染小方块
                 previewBox.innerHTML = '';
                 const files = fileStores[type].files;
 
@@ -262,21 +221,15 @@ app.get('/', (req, res) => {
                     const file = files[i];
                     const chip = document.createElement('div');
                     chip.className = 'file-chip';
-                    chip.innerHTML = \`
-                        <span>\${file.name}</span>
-                        <span class="chip-del" onclick="removeFile('\${type}', \${i})">×</span>
-                    \`;
+                    chip.innerHTML = \`<span>\${file.name}</span><span class="chip-del" onclick="removeFile('\${type}', \${i})">×</span>\`;
                     previewBox.appendChild(chip);
                 }
             }
-            
-            // 初始化显示状态
             ['front', 'back', 'plate', 'led', 'fixed'].forEach(t => updateInputAndPreview(t));
         </script>
     `));
 });
 
-// --- 编辑页 ---
 // --- 编辑页 ---
 app.get('/edit/:id', (req, res) => {
     const id = req.params.id;
@@ -300,11 +253,10 @@ app.get('/edit/:id', (req, res) => {
             <summary class="group-summary" style="border-left: 4px solid ${color}">
                 <span style="font-weight:bold; color:${color}">${type.toUpperCase()}</span>
                 <span class="badge" style="background:${color}">${count}</span>
-                <span class="summary-tip">${count > 0 ? '点击收起/展开编辑' : '暂无文件'}</span>
             </summary>
             
             <div class="group-content">
-                <!-- 1. 现有文件列表 (保持不变) -->
+                <!-- 1. 现有文件列表 -->
                 ${list.map((p, i) => `
                     <div class="part-row">
                         <div class="part-info">
@@ -322,12 +274,12 @@ app.get('/edit/:id', (req, res) => {
                         <div class="part-controls">
                             <div class="control-row">
                                 ${type === 'plate' ? `
-                                    <label class="emissive-toggle" title="是否发光"><input type="checkbox" name="emissive_${type}_${i}" ${p.isEmissive ? 'checked' : ''}> 💡</label>
+                                    <label class="emissive-toggle"><input type="checkbox" name="emissive_${type}_${i}" ${p.isEmissive ? 'checked' : ''}> 💡</label>
                                 ` : ''}
                                 ${type === 'back' ? `
-                                    <label class="texture-toggle" title="是否启用特殊材质"><input type="checkbox" name="texture_${type}_${i}" ${p.isTexture ? 'checked' : ''}> 🎨</label>
+                                    <label class="texture-toggle"><input type="checkbox" name="texture_${type}_${i}" ${p.isTexture ? 'checked' : ''}> 🎨</label>
                                 ` : ''}
-                                <label class="delete-toggle" title="勾选后保存，将彻底删除此文件"><input type="checkbox" name="delete_${type}_${i}"> 🗑️</label>
+                                <label class="delete-toggle"><input type="checkbox" name="delete_${type}_${i}"> 🗑️</label>
                             </div>
 
                             <div class="move-group">
@@ -336,22 +288,22 @@ app.get('/edit/:id', (req, res) => {
                                     <option value="y" ${p.axis==='y'?'selected':''}>Y</option>
                                     <option value="z" ${p.axis==='z'?'selected':''}>Z</option>
                                 </select>
-                                <input type="number" name="dist_${type}_${i}" value="${p.dist}" style="font-weight:bold; color:#f39c12">
+                                <input type="number" name="dist_${type}_${i}" value="${p.dist}">
                             </div>
                         </div>
                     </div>
                 `).join('')}
                 
-                <!-- 2. 新增文件区域 (核心修改部分) -->
-                <div class="append-section" style="border-top:1px dashed #333; margin-top:10px; padding-top:10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <label style="font-size:12px; color:#aaa;">➕ 追加到 ${type}: </label>
-                        <button type="button" class="btn-select-mini" onclick="document.getElementById('append-input-${type}').click()">选择文件...</button>
-                        <!-- 隐藏的真实 input -->
-                        <input type="file" id="append-input-${type}" name="append_${type}" multiple style="display:none" onchange="handleAppendSelect('${type}')">
+                <!-- 2. 动态新增文件预览区域 (会被JS填充) -->
+                <div id="new-rows-container-${type}"></div>
+
+                <!-- 3. 追加按钮 -->
+                <div class="append-section">
+                    <div class="append-trigger" onclick="document.getElementById('append-input-${type}').click()">
+                        <span>➕ 追加到 ${type}</span>
                     </div>
-                    <!-- 预览容器 -->
-                    <div class="append-preview-box" id="append-preview-${type}"></div>
+                    <!-- 隐藏的真实 input -->
+                    <input type="file" id="append-input-${type}" name="append_${type}" multiple style="display:none" onchange="handleAppendSelect('${type}')">
                 </div>
             </div>
         </details>
@@ -360,18 +312,17 @@ app.get('/edit/:id', (req, res) => {
 
     res.send(getBaseHtml(`
         <style>
-            /* 复用之前的 Chip 样式，微调以适应编辑页 */
-            .append-section { background: #0c0c0c; padding: 8px; border-radius: 4px; }
-            .btn-select-mini { background: #222; border: 1px solid #444; color: #bbb; font-size: 10px; padding: 3px 8px; border-radius: 3px; cursor: pointer; }
-            .btn-select-mini:hover { background: #333; color: #fff; }
-            .append-preview-box { display: flex; flex-wrap: wrap; gap: 5px; min-height: 5px; }
-            .mini-chip { 
-                background: #1e1e1e; border: 1px solid #333; color: #aaa; 
-                padding: 2px 6px; border-radius: 3px; font-size: 10px; 
-                display: flex; align-items: center; gap: 5px;
+            .append-section { margin-top: 10px; border-top: 1px dashed #333; padding-top: 8px; }
+            .append-trigger { 
+                background: #111; color: #888; border: 1px dashed #444; 
+                text-align: center; padding: 8px; border-radius: 4px; cursor: pointer; 
+                font-size: 12px; transition: 0.2s; 
             }
-            .mini-chip-del { color: #c0392b; cursor: pointer; font-weight: bold; }
-            .mini-chip-del:hover { color: #e74c3c; }
+            .append-trigger:hover { background: #1a1a1a; color: #fff; border-color: #666; }
+            
+            /* 新增行的样式，使其看起来像“新”的 */
+            .part-row.new-added { background: #101a10; border-bottom: 1px solid #1e3a1e; animation: fadeIn 0.3s; }
+            .new-badge { font-size: 9px; background: #27ae60; color: #fff; padding: 1px 4px; border-radius: 2px; margin-right: 4px; }
         </style>
 
         <div class="box" style="max-width: 700px;">
@@ -402,24 +353,24 @@ app.get('/edit/:id', (req, res) => {
         </div>
 
         <script>
-            // === 核心逻辑：编辑页面的多文件追加管理 ===
+            // === 核心修改：动态生成可编辑行 ===
             const appendStores = {
-                front: new DataTransfer(),
-                back: new DataTransfer(),
-                plate: new DataTransfer(),
-                led: new DataTransfer(),
-                fixed: new DataTransfer()
+                front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer()
             };
 
             function handleAppendSelect(type) {
                 const input = document.getElementById('append-input-' + type);
                 const files = input.files;
                 
-                // 将新文件追加到内存列表
                 for (let i = 0; i < files.length; i++) {
                     appendStores[type].items.add(files[i]);
                 }
-                updateAppendUI(type);
+                
+                // 立即渲染出“假”的编辑行，供用户配置
+                renderNewRows(type);
+                
+                // 同步回真实 Input，确保表单提交时文件存在
+                input.files = appendStores[type].files;
             }
 
             function removeAppendFile(type, index) {
@@ -431,35 +382,63 @@ app.get('/edit/:id', (req, res) => {
                 }
                 
                 appendStores[type] = newDt;
-                updateAppendUI(type);
+                renderNewRows(type);
+                document.getElementById('append-input-' + type).files = appendStores[type].files;
             }
 
-            function updateAppendUI(type) {
-                const input = document.getElementById('append-input-' + type);
-                const box = document.getElementById('append-preview-' + type);
-                
-                // 1. 同步回真实 Input
-                input.files = appendStores[type].files;
-
-                // 2. 渲染 UI
-                box.innerHTML = '';
+            function renderNewRows(type) {
+                const container = document.getElementById('new-rows-container-' + type);
                 const files = appendStores[type].files;
                 
-                if (files.length === 0) {
-                    // 空状态不显示任何东西，或者可以显示提示
-                    return;
-                }
+                let html = '';
+                
+                // 默认值逻辑
+                let defaultAxis = 'z';
+                let defaultDist = 0;
+                let defaultEmissive = false;
+                let defaultTexture = false;
+                
+                if (type === 'front') { defaultDist = 20; }
+                if (type === 'back') { defaultDist = -20; defaultTexture = true; }
+                if (type === 'plate') { defaultDist = 10; defaultEmissive = true; }
 
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
-                    const chip = document.createElement('div');
-                    chip.className = 'mini-chip';
-                    chip.innerHTML = \`
-                        <span style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">\${file.name}</span>
-                        <span class="mini-chip-del" onclick="removeAppendFile('\${type}', \${i})">×</span>
+                    
+                    // 生成与现有行几乎一样的 HTML，但名字带有 new_ 前缀，且基于 index 索引
+                    html += \`
+                    <div class="part-row new-added">
+                        <div class="part-info">
+                            <span class="new-badge">NEW</span>
+                            <div style="overflow:hidden;">
+                                <div class="file-name" style="color:#2ecc71">\${file.name}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="part-controls">
+                            <div class="control-row">
+                                \${type === 'plate' ? \`
+                                    <label class="emissive-toggle"><input type="checkbox" name="new_emissive_\${type}_\${i}" \${defaultEmissive ? 'checked' : ''}> 💡</label>
+                                \` : ''}
+                                \${type === 'back' ? \`
+                                    <label class="texture-toggle"><input type="checkbox" name="new_texture_\${type}_\${i}" \${defaultTexture ? 'checked' : ''}> 🎨</label>
+                                \` : ''}
+                                <span class="delete-toggle" onclick="removeAppendFile('\${type}', \${i})">❌ 取消</span>
+                            </div>
+
+                            <div class="move-group">
+                                <select name="new_axis_\${type}_\${i}">
+                                    <option value="x" \${defaultAxis==='x'?'selected':''}>X</option>
+                                    <option value="y" \${defaultAxis==='y'?'selected':''}>Y</option>
+                                    <option value="z" \${defaultAxis==='z'?'selected':''}>Z</option>
+                                </select>
+                                <input type="number" name="new_dist_\${type}_\${i}" value="\${defaultDist}">
+                            </div>
+                        </div>
+                    </div>
                     \`;
-                    box.appendChild(chip);
                 }
+                container.innerHTML = html;
             }
         </script>
     `));
@@ -491,7 +470,7 @@ app.post('/update/:id', upload.any(), (req, res) => {
     const types = ['front', 'back', 'plate', 'led', 'fixed'];
 
     types.forEach(type => {
-        // A. 处理已有文件
+        // A. 处理已有文件 (旧逻辑保持不变)
         for (let i = 0; i < 50; i++) {
             const oldFileKey = `old_${type}_${i}`;
             if (!req.body[oldFileKey]) continue; 
@@ -502,9 +481,7 @@ app.post('/update/:id', upload.any(), (req, res) => {
                 try {
                     const filePath = path.join(__dirname, UPLOAD_DIR, newId, oldFile);
                     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-                } catch (e) {
-                    console.error("删除文件失败:", e);
-                }
+                } catch (e) { console.error("删除文件失败:", e); }
                 continue; 
             }
 
@@ -515,9 +492,7 @@ app.post('/update/:id', upload.any(), (req, res) => {
             
             const replaceFile = req.files.find(f => f.fieldname === `replace_${type}_${i}`);
             const fileName = replaceFile ? replaceFile.originalname : oldFile;
-
             const moveStr = (dist === 0 || isNaN(dist)) ? "null" : `{ ${axis}: ${dist} }`;
-            
             let extraProps = "";
             if (type === 'plate') extraProps += `, emissive: ${isEmissive ? 'true' : 'false'}`;
             if (type === 'back') extraProps += `, texture: ${isTexture ? 'true' : 'false'}`;
@@ -525,20 +500,26 @@ app.post('/update/:id', upload.any(), (req, res) => {
             newParts.push(`            { file: "${fileName}",  type: "${type}", move: ${moveStr}${extraProps} }`);
         }
 
-        // B. 处理追加的文件
+        // B. 处理追加的文件 (修改后的逻辑)
+        // 这里的 req.files 会包含 append_front 等数组
         const appendFiles = req.files.filter(f => f.fieldname === `append_${type}`);
         if (appendFiles && appendFiles.length > 0) {
-            let defaultMove = "null";
-            if (type === 'front') defaultMove = "{ z: 20 }";
-            if (type === 'back') defaultMove = "{ z: -20 }";
-            if (type === 'plate') defaultMove = "{ z: 10 }";
+            appendFiles.forEach((f, index) => {
+                // 根据索引获取前端动态生成的配置值
+                const axis = req.body[`new_axis_${type}_${index}`] || 'z';
+                const distStr = req.body[`new_dist_${type}_${index}`];
+                const dist = distStr ? parseInt(distStr) : 0;
+                
+                const isEmissive = req.body[`new_emissive_${type}_${index}`] === 'on';
+                const isTexture = req.body[`new_texture_${type}_${index}`] === 'on';
 
-            appendFiles.forEach(f => {
+                const moveStr = (dist === 0 || isNaN(dist)) ? "null" : `{ ${axis}: ${dist} }`;
                 let extraProps = "";
-                if (type === 'plate') extraProps = `, emissive: true`; 
-                if (type === 'back') extraProps = `, texture: true`;   
+                // 注意：这里要基于用户勾选的值，而不是类型默认值，因为用户可能在UI上修改了
+                if (type === 'plate') extraProps += `, emissive: ${isEmissive ? 'true' : 'false'}`;
+                if (type === 'back') extraProps += `, texture: ${isTexture ? 'true' : 'false'}`;
 
-                newParts.push(`            { file: "${f.originalname}",  type: "${type}", move: ${defaultMove}${extraProps} }`);
+                newParts.push(`            { file: "${f.originalname}",  type: "${type}", move: ${moveStr}${extraProps} }`);
             });
         }
     });
@@ -624,7 +605,6 @@ function getBaseHtml(content) {
     .group-summary::-webkit-details-marker { display: none; } 
     .group-summary:hover { background: #161616; }
     .badge { color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 10px; margin-left: 8px; font-weight: bold; min-width:15px; text-align:center; }
-    .summary-tip { margin-left: auto; font-size: 11px; color: #555; }
     .group-content { padding: 10px; border-top: 1px solid #222; }
     .part-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #222; }
     .part-row:last-child { border-bottom: none; }
@@ -640,8 +620,6 @@ function getBaseHtml(content) {
     .emissive-toggle { font-size: 11px; color: #2ecc71; display: flex; align-items: center; gap: 3px; cursor: pointer; }
     .texture-toggle { font-size: 11px; color: #3498db; display: flex; align-items: center; gap: 3px; cursor: pointer; }
     .delete-toggle { font-size: 11px; color: #e74c3c; display: flex; align-items: center; gap: 3px; cursor: pointer; }
-    .append-row { margin-top: 10px; background: #111; padding: 8px; border-radius: 4px; border: 1px dashed #333; display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
-    .append-row input { font-size: 11px; }
     .img-edit-box { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; }
     .img-edit-box img { width: 80px; height: 80px; border-radius: 6px; object-fit: cover; border: 1px solid #333; }
     .file-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; margin-top: 10px; }
@@ -651,4 +629,4 @@ function getBaseHtml(content) {
     </head><body>${content}</body></html>`;
 }
 
-app.listen(3000, () => console.log('✅ 系统UI升级：编辑页现在直观显示并预填当前位移距离 http://localhost:3000'));
+app.listen(3000, () => console.log('✅ UI 升级完成：新增模型支持即时配置！http://localhost:3000'));
