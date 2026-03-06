@@ -126,10 +126,24 @@
     </div>
 
     <!-- 面壳漆色（保持不变） -->
-    <div>
-        <label>面壳漆色 (Front Paint)</label>
-        <input type="color" id="frontColorPicker" value="#ffffff">
+   <!-- 面壳漆色 -->
+   <div>
+    <label>面壳漆色 (Front Paint)</label>
+    <!-- 新增：颜色方块区域 -->
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+        <div class="color-swatch" style="background-color: #FFA500;" data-color="#FFA500" title="橘"></div>
+        <div class="color-swatch" style="background-color: #FFFF00;" data-color="#FFFF00" title="黄"></div>
+        <div class="color-swatch" style="background-color: #FFC0CB;" data-color="#FFC0CB" title="粉"></div>
+        <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF" title="蓝"></div>
+        <div class="color-swatch" style="background-color: #00FF00;" data-color="#00FF00" title="绿"></div>
+        <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000" title="红"></div>
+        <div class="color-swatch" style="background-color: #FFFFFF; border: 2px solid #888;" data-color="#FFFFFF" title="标准白"></div>
+        <div class="color-swatch" style="background-color: #F0F8FF; border: 2px solid #888;" data-color="#F0F8FF" title="高亮白（冷白）"></div>
+        <div class="color-swatch" style="background-color: #FAF0E6; border: 2px solid #888;" data-color="#FAF0E6" title="暗淡白（暖白）"></div>
     </div>
+    <input type="color" id="frontColorPicker" value="#ffffff">
+    <div id="frontColorHint" style="font-size: 12px; color: #bbb; margin-top: 5px;">当前颜色：</div>
+</div>
     <!-- 灯光颜色区域（添加预设色块） -->
     <div>
         <label style="display: block; margin-bottom: 5px;">灯光颜色 (LED Color)</label>
@@ -387,6 +401,41 @@
     const productId = urlParams.get('id') || 'YJ-M000B'; 
     const currentParts = PRODUCT_DB[productId];
     document.getElementById('pageTitle').innerText = productId;
+// === 新增：判断模型是否有 back 属性，如果没有则禁用背板材质UI ===
+// === 新增：动态禁用不存在部件的 UI 控件 ===
+// === 新增：动态禁用不存在部件的 UI 控件 ===
+if (currentParts) {
+        // 1. 背板材质 (Back)
+        const hasBack = currentParts.some(part => part.type === 'back');
+        if (!hasBack) {
+            const section = document.getElementById('materialOptions').parentElement;
+            section.style.opacity = '0.3';
+            section.style.pointerEvents = 'none';
+            document.getElementById('materialHint').textContent = '该模型无背板部件';
+        }
+
+        // 2. 面壳漆色 (Front) - 同时禁用选择器和颜色方块
+        const hasFront = currentParts.some(part => part.type === 'front');
+        if (!hasFront) {
+            const section = document.getElementById('frontColorPicker').parentElement;
+            section.style.opacity = '0.3';
+            section.style.pointerEvents = 'none';
+            section.querySelector('label').textContent = '面壳漆色 (该模型无面壳)';
+        }
+
+        // 3. 灯光颜色 (LED) - 同时禁用选择器和颜色方块
+        const hasLed = currentParts.some(part => part.type === 'led');
+        if (!hasLed) {
+            const section = document.getElementById('ledColorPicker').parentElement;
+            section.style.opacity = '0.3';
+            section.style.pointerEvents = 'none';
+            section.querySelector('label').textContent = '灯光颜色 (该模型无灯光部件)';
+            document.getElementById('ledColorHint').textContent = '无法调节颜色与亮度';
+        }
+    }
+
+
+
 
     gtag('event', 'view_item', {
         'item_name': productId,
@@ -616,10 +665,11 @@
                 modelGroup.add(object);
 
                 if (loadedCount === currentParts.length) {
-                    document.getElementById('loading').style.display = 'none';
-                    updateBrightness(15);
-                    centerAndFitCamera(); 
-                }
+    document.getElementById('loading').style.display = 'none';
+    console.log("模型已加载，当前网格数量:", sceneMeshes.length); // 加入这行调试
+    updateBrightness(15);
+    centerAndFitCamera(); 
+}
             };
 
             if (isGLB) gltfLoader.load(filePath, (g) => setupObject(g.scene), undefined, (e) => console.error(e));
@@ -706,9 +756,19 @@
     });
 
     // 面壳颜色
-    document.getElementById('frontColorPicker').addEventListener('input', (e) => {
-        const col = new THREE.Color(e.target.value);
-        sceneMeshes.forEach(obj => { if (obj.userData.type === 'front') obj.traverse(c => { if(c.isMesh) c.material.color.copy(col); }); });
+  // 面壳颜色监听
+  document.getElementById('frontColorPicker').addEventListener('input', (e) => {
+        const colorValue = e.target.value;
+        const col = new THREE.Color(colorValue);
+        
+        // 更新模型颜色
+        sceneMeshes.forEach(obj => { 
+            if (obj.userData.type === 'front') obj.traverse(c => { if(c.isMesh) c.material.color.copy(col); }); 
+        });
+
+        // 更新提示文字
+        const colorName = getColorName(colorValue);
+        document.getElementById('frontColorHint').textContent = `当前颜色：${colorName}`;
     });
 
     // 背板材质点击事件（扩展为所有新颜色）
@@ -763,31 +823,52 @@
     });
 
     // 颜色方块点击事件（新增）
+    // 颜色方块点击事件（统一处理 LED 和 Front）
     document.querySelectorAll('.color-swatch').forEach(swatch => {
         swatch.addEventListener('click', () => {
             const color = swatch.dataset.color;
-            const picker = document.getElementById('ledColorPicker');
-            picker.value = color;
-            // 直接更新灯光颜色提示文字
-            const colorName = getColorName(color);
-            document.getElementById('ledColorHint').textContent = `当前灯光颜色：${colorName}`;
-            // 触发颜色选择器事件以更新3D模型
-            picker.dispatchEvent(new Event('input', { bubbles: true }));
+            const section = swatch.closest('div[style*="display: flex"]')?.parentElement;
+            if (!section) return;
+
+            const ledPicker = section.querySelector('#ledColorPicker');
+            const frontPicker = section.querySelector('#frontColorPicker');
+
+            if (ledPicker) {
+                ledPicker.value = color;
+                const colorName = getColorName(color);
+                document.getElementById('ledColorHint').textContent = `当前灯光颜色：${colorName}`;
+                ledPicker.dispatchEvent(new Event('input', { bubbles: true }));
+            } 
+            else if (frontPicker) {
+                frontPicker.value = color;
+                // === 这里新增：更新面壳提示 ===
+                const colorName = getColorName(color);
+                document.getElementById('frontColorHint').textContent = `当前颜色：${colorName}`;
+                // ==========================
+                frontPicker.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         });
     });
 
+    // === 补回：一键解体功能逻辑 ===
     document.getElementById('decomposeBtn').addEventListener('click', () => {
         isDecomposed = !isDecomposed;
         sceneMeshes.forEach(obj => {
             const m = obj.userData.move;
             if (m) {
+                // 如果 isDecomposed 为 true，则移动到指定坐标；否则回到原点
                 const target = isDecomposed ? { x: m.x || 0, y: m.y || 0, z: m.z || 0 } : { x: 0, y: 0, z: 0 };
-                gsap.to(obj.position, { ...target, duration: 1, ease: "power2.inOut" });
+                gsap.to(obj.position, { 
+                    x: target.x, 
+                    y: target.y, 
+                    z: target.z, 
+                    duration: 1, 
+                    ease: "power2.inOut" 
+                });
             }
         });
         document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并' : '一键解体';
     });
-
     // 辉光渲染循环
     function darkenNonBloomed(obj) {
         if (bloomLayer.test(obj.layers) === false) {
