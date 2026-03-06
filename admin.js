@@ -95,7 +95,8 @@ app.get('/', (req, res) => {
     
     const listHtml = products.map(p => {
         const parts = parsePartsForId(p.id, detailContent);
-        const typeCounters = { front: 0, back: 0, plate: 0, led: 0, fixed: 0 };
+        // 新增 transparent 计数器
+        const typeCounters = { front: 0, back: 0, plate: 0, led: 0, fixed: 0, transparent: 0 };
         
         const tagsHtml = parts.map(part => {
             const t = part.type;
@@ -106,6 +107,7 @@ app.get('/', (req, res) => {
             if(t === 'front') colorClass = 'tag-blue';
             if(t === 'plate') colorClass = 'tag-green';
             if(t === 'back') colorClass = 'tag-red';
+            if(t === 'transparent') colorClass = 'tag-cyan'; // 为半透增加青色标签
 
             const label = t.charAt(0).toUpperCase() + typeCounters[t];
             return `<div class="file-tag ${colorClass}" title="文件名: ${part.file} (${part.type})">${label}</div>`;
@@ -162,7 +164,8 @@ app.get('/', (req, res) => {
                 </div>
 
                 <div class="file-grid">
-                    ${['front', 'back', 'plate', 'led', 'fixed'].map(type => `
+                    <!-- 新增 transparent 上传区 -->
+                    ${['front', 'back', 'plate', 'led', 'fixed', 'transparent'].map(type => `
                         <div class="upload-zone" id="zone-${type}">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <label style="text-transform: capitalize; font-weight:bold; color:#aaa;">${type}</label>
@@ -182,8 +185,9 @@ app.get('/', (req, res) => {
         <div class="box"><h3>📦 现有资产列表</h3>${listHtml || '<p>暂无产品</p>'}</div>
 
         <script>
+            // 状态机扩充 transparent
             const fileStores = {
-                front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer()
+                front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer(), transparent: new DataTransfer()
             };
 
             function handleFileSelect(type) {
@@ -225,7 +229,8 @@ app.get('/', (req, res) => {
                     previewBox.appendChild(chip);
                 }
             }
-            ['front', 'back', 'plate', 'led', 'fixed'].forEach(t => updateInputAndPreview(t));
+            // 扩充迭代初始化
+            ['front', 'back', 'plate', 'led', 'fixed', 'transparent'].forEach(t => updateInputAndPreview(t));
         </script>
     `));
 });
@@ -238,14 +243,16 @@ app.get('/edit/:id', (req, res) => {
     if (!product) return res.status(404).send('未找到产品');
 
     const allParts = parsePartsForId(id, detailContent);
-    const groups = { front: [], back: [], plate: [], led: [], fixed: [] };
+    // 新增 transparent 数组
+    const groups = { front: [], back: [], plate: [], led: [], fixed: [], transparent: [] };
     allParts.forEach(p => {
         if (groups[p.type]) groups[p.type].push(p);
     });
 
     const renderGroup = (type, list) => {
         const count = list.length;
-        const colorMap = { front: '#3498db', back: '#e74c3c', plate: '#2ecc71', led: '#f1c40f', fixed: '#95a5a6' };
+        // 配置 transparent 的主题色
+        const colorMap = { front: '#3498db', back: '#e74c3c', plate: '#2ecc71', led: '#f1c40f', fixed: '#95a5a6', transparent: '#00bcd4' };
         const color = colorMap[type] || '#ccc';
         
         return `
@@ -256,7 +263,6 @@ app.get('/edit/:id', (req, res) => {
             </summary>
             
             <div class="group-content">
-                <!-- 1. 现有文件列表 -->
                 ${list.map((p, i) => `
                     <div class="part-row">
                         <div class="part-info">
@@ -294,15 +300,12 @@ app.get('/edit/:id', (req, res) => {
                     </div>
                 `).join('')}
                 
-                <!-- 2. 动态新增文件预览区域 (会被JS填充) -->
                 <div id="new-rows-container-${type}"></div>
 
-                <!-- 3. 追加按钮 -->
                 <div class="append-section">
                     <div class="append-trigger" onclick="document.getElementById('append-input-${type}').click()">
                         <span>➕ 追加到 ${type}</span>
                     </div>
-                    <!-- 隐藏的真实 input -->
                     <input type="file" id="append-input-${type}" name="append_${type}" multiple style="display:none" onchange="handleAppendSelect('${type}')">
                 </div>
             </div>
@@ -319,8 +322,6 @@ app.get('/edit/:id', (req, res) => {
                 font-size: 12px; transition: 0.2s; 
             }
             .append-trigger:hover { background: #1a1a1a; color: #fff; border-color: #666; }
-            
-            /* 新增行的样式，使其看起来像“新”的 */
             .part-row.new-added { background: #101a10; border-bottom: 1px solid #1e3a1e; animation: fadeIn 0.3s; }
             .new-badge { font-size: 9px; background: #27ae60; color: #fff; padding: 1px 4px; border-radius: 2px; margin-right: 4px; }
         </style>
@@ -343,7 +344,8 @@ app.get('/edit/:id', (req, res) => {
 
                 <h3 style="margin: 20px 0 10px; color:#f39c12; border-bottom:1px solid #333; padding-bottom:5px;">📂 部件分组管理</h3>
                 
-                ${['front', 'back', 'plate', 'led', 'fixed'].map(t => renderGroup(t, groups[t])).join('')}
+                <!-- 扩充渲染透明组 -->
+                ${['front', 'back', 'plate', 'led', 'fixed', 'transparent'].map(t => renderGroup(t, groups[t])).join('')}
                 
                 <div class="sticky-footer">
                     <button type="submit" class="btn-main">💾 保存所有配置</button>
@@ -353,9 +355,9 @@ app.get('/edit/:id', (req, res) => {
         </div>
 
         <script>
-            // === 核心修改：动态生成可编辑行 ===
+            // 追加扩充 transparent 数据流
             const appendStores = {
-                front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer()
+                front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer(), transparent: new DataTransfer()
             };
 
             function handleAppendSelect(type) {
@@ -365,11 +367,7 @@ app.get('/edit/:id', (req, res) => {
                 for (let i = 0; i < files.length; i++) {
                     appendStores[type].items.add(files[i]);
                 }
-                
-                // 立即渲染出“假”的编辑行，供用户配置
                 renderNewRows(type);
-                
-                // 同步回真实 Input，确保表单提交时文件存在
                 input.files = appendStores[type].files;
             }
 
@@ -392,20 +390,18 @@ app.get('/edit/:id', (req, res) => {
                 
                 let html = '';
                 
-                // 默认值逻辑
                 let defaultAxis = 'z';
                 let defaultDist = 0;
                 let defaultEmissive = false;
                 let defaultTexture = false;
                 
-                if (type === 'front') { defaultDist = 20; }
+                // transparent 也默认往前拆解
+                if (type === 'front' || type === 'transparent') { defaultDist = 20; }
                 if (type === 'back') { defaultDist = -20; defaultTexture = true; }
                 if (type === 'plate') { defaultDist = 10; defaultEmissive = true; }
 
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
-                    
-                    // 生成与现有行几乎一样的 HTML，但名字带有 new_ 前缀，且基于 index 索引
                     html += \`
                     <div class="part-row new-added">
                         <div class="part-info">
@@ -467,10 +463,10 @@ app.post('/update/:id', upload.any(), (req, res) => {
     indexContent = indexContent.replace(indexRegex, `{ id: "${newId}", name: "${newName}", image: "${finalImg}" }`);
 
     let newParts = [];
-    const types = ['front', 'back', 'plate', 'led', 'fixed'];
+    // 增加处理 transparent 层
+    const types = ['front', 'back', 'plate', 'led', 'fixed', 'transparent'];
 
     types.forEach(type => {
-        // A. 处理已有文件 (旧逻辑保持不变)
         for (let i = 0; i < 50; i++) {
             const oldFileKey = `old_${type}_${i}`;
             if (!req.body[oldFileKey]) continue; 
@@ -500,12 +496,9 @@ app.post('/update/:id', upload.any(), (req, res) => {
             newParts.push(`            { file: "${fileName}",  type: "${type}", move: ${moveStr}${extraProps} }`);
         }
 
-        // B. 处理追加的文件 (修改后的逻辑)
-        // 这里的 req.files 会包含 append_front 等数组
         const appendFiles = req.files.filter(f => f.fieldname === `append_${type}`);
         if (appendFiles && appendFiles.length > 0) {
             appendFiles.forEach((f, index) => {
-                // 根据索引获取前端动态生成的配置值
                 const axis = req.body[`new_axis_${type}_${index}`] || 'z';
                 const distStr = req.body[`new_dist_${type}_${index}`];
                 const dist = distStr ? parseInt(distStr) : 0;
@@ -515,7 +508,6 @@ app.post('/update/:id', upload.any(), (req, res) => {
 
                 const moveStr = (dist === 0 || isNaN(dist)) ? "null" : `{ ${axis}: ${dist} }`;
                 let extraProps = "";
-                // 注意：这里要基于用户勾选的值，而不是类型默认值，因为用户可能在UI上修改了
                 if (type === 'plate') extraProps += `, emissive: ${isEmissive ? 'true' : 'false'}`;
                 if (type === 'back') extraProps += `, texture: ${isTexture ? 'true' : 'false'}`;
 
@@ -535,7 +527,8 @@ app.post('/update/:id', upload.any(), (req, res) => {
 });
 
 // --- 上架逻辑 ---
-app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back'},{name:'plate'},{name:'led'},{name:'fixed'}]), (req, res) => {
+// Multer 增加接收 name: 'transparent'
+app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back'},{name:'plate'},{name:'led'},{name:'fixed'},{name:'transparent'}]), (req, res) => {
     const { productId, productName } = req.body;
     const files = req.files || {};
     const imagePath = files.imageFile ? `images/${files.imageFile[0].originalname}` : "images/default.jpg";
@@ -555,6 +548,8 @@ app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back
     processFiles(files.led, 'led', 'null');
     processFiles(files.fixed, 'fixed', 'null');
     processFiles(files.back, 'back', '{ z: -20 }', ', texture: true'); 
+    // 处理上传时的 transparent 模型
+    processFiles(files.transparent, 'transparent', '{ z: 20 }'); 
 
     const detailEntry = `"${productId}": [\n${partEntries.join(',\n')}\n        ],`;
     
@@ -599,7 +594,7 @@ function getBaseHtml(content) {
     .name-text { font-size: 14px; color: #fff; font-weight: 500; }
     .tags-container { display: flex; gap: 4px; flex-wrap: wrap; }
     .file-tag { font-size: 10px; padding: 2px 5px; border-radius: 2px; color: #fff; cursor: help; min-width:14px; text-align:center; }
-    .tag-blue { background: #2980b9; } .tag-green { background: #27ae60; } .tag-red { background: #c0392b; } .tag-gray { background: #7f8c8d; }
+    .tag-blue { background: #2980b9; } .tag-green { background: #27ae60; } .tag-red { background: #c0392b; } .tag-gray { background: #7f8c8d; } .tag-cyan { background: #00bcd4; }
     .group-details { background: #080808; margin-bottom: 10px; border-radius: 4px; overflow: hidden; border: 1px solid #222; }
     .group-summary { padding: 12px 15px; cursor: pointer; background: #111; list-style: none; display: flex; align-items: center; user-select: none; }
     .group-summary::-webkit-details-marker { display: none; } 
@@ -629,4 +624,4 @@ function getBaseHtml(content) {
     </head><body>${content}</body></html>`;
 }
 
-app.listen(3000, () => console.log('✅ UI 升级完成：新增模型支持即时配置！http://localhost:3000'));
+app.listen(3000, () => console.log('✅ UI 升级完成：支持 Transparent 类别！http://localhost:3000'));
