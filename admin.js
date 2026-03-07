@@ -83,8 +83,11 @@ function parsePartsForId(id, detailContent) {
             isTexture = true; 
             if (restString.includes('texture: false')) isTexture = false;
         }
-
-        parts.push({ file, type, axis, dist, isEmissive, isTexture });
+        let isChange = false;
+        if (type === 'front') {
+            if (restString.includes('change: true')) isChange = true;
+        }
+        parts.push({ file, type, axis, dist, isEmissive, isTexture, isChange });
     }
     return parts;
 }
@@ -132,6 +135,8 @@ app.get('/', (req, res) => {
 
     res.send(getBaseHtml(`
         <style>
+        
+.change-toggle { font-size: 11px; color: #f39c12; display: flex; align-items: center; gap: 3px; cursor: pointer; }
             .upload-zone { border: 1px dashed #444; padding: 10px; border-radius: 4px; background: #0f0f0f; transition: 0.3s; }
             .upload-zone:hover { border-color: #666; background: #1a1a1a; }
             .file-preview-box { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; min-height: 5px; }
@@ -286,6 +291,13 @@ app.get('/edit/:id', (req, res) => {
                                     <label class="texture-toggle"><input type="checkbox" name="texture_${type}_${i}" ${p.isTexture ? 'checked' : ''}> 🎨</label>
                                 ` : ''}
                                 <label class="delete-toggle"><input type="checkbox" name="delete_${type}_${i}"> 🗑️</label>
+                                 ${type === 'front' ? `
+      <label class="change-toggle" title="允许换材质">
+          <!-- 注意：name 去掉 new_ 前缀，并增加了 checked 判断 -->
+          <input type="checkbox" name="change_${type}_${i}" ${p.isChange ? 'checked' : ''}> 🔄
+      </label>
+  ` : ''}
+
                             </div>
 
                             <div class="move-group">
@@ -485,14 +497,14 @@ app.post('/update/:id', upload.any(), (req, res) => {
             const dist = parseInt(req.body[`dist_${type}_${i}`]);
             const isEmissive = req.body[`emissive_${type}_${i}`] === 'on';
             const isTexture = req.body[`texture_${type}_${i}`] === 'on';
-            
+            const isChange = req.body[`change_${type}_${i}`] === 'on'; 
             const replaceFile = req.files.find(f => f.fieldname === `replace_${type}_${i}`);
             const fileName = replaceFile ? replaceFile.originalname : oldFile;
             const moveStr = (dist === 0 || isNaN(dist)) ? "null" : `{ ${axis}: ${dist} }`;
             let extraProps = "";
             if (type === 'plate') extraProps += `, emissive: ${isEmissive ? 'true' : 'false'}`;
             if (type === 'back') extraProps += `, texture: ${isTexture ? 'true' : 'false'}`;
-
+            if (type === 'front' && isChange) extraProps += `, change: true`; 
             newParts.push(`            { file: "${fileName}",  type: "${type}", move: ${moveStr}${extraProps} }`);
         }
 
@@ -505,12 +517,13 @@ app.post('/update/:id', upload.any(), (req, res) => {
                 
                 const isEmissive = req.body[`new_emissive_${type}_${index}`] === 'on';
                 const isTexture = req.body[`new_texture_${type}_${index}`] === 'on';
+                const isChange = req.body[`new_change_${type}_${index}`] === 'on';
 
                 const moveStr = (dist === 0 || isNaN(dist)) ? "null" : `{ ${axis}: ${dist} }`;
                 let extraProps = "";
                 if (type === 'plate') extraProps += `, emissive: ${isEmissive ? 'true' : 'false'}`;
                 if (type === 'back') extraProps += `, texture: ${isTexture ? 'true' : 'false'}`;
-
+  if (type === 'front' && isChange) extraProps += `, change: true`;
                 newParts.push(`            { file: "${f.originalname}",  type: "${type}", move: ${moveStr}${extraProps} }`);
             });
         }
