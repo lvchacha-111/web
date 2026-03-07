@@ -15,6 +15,7 @@
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         gtag('config', 'G-G8FLHCSSCW');
+        
     </script>
 
     <style>
@@ -120,7 +121,7 @@
                 <span style="font-size:10px; color:#333; font-weight:bold;">PAINT</span>
             </div>
             <!-- 基础银 -->
-            <div class="material-btn active" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg');" data-type="metal011" title="银色拉丝"></div>
+           <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg');" data-type="metal011" title="银色拉丝"></div>
             <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg');" data-type="metal049a" title="银色镜面"></div>
             <!-- 铜色 -->
             <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_brushed" title="铜色拉丝"></div>
@@ -396,38 +397,74 @@
         /* === 自动插入点：新模型数据 === */
     };
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const productId = urlParams.get('id') || 'YJ-M000B'; 
-    const currentParts = PRODUCT_DB[productId];
-    document.getElementById('pageTitle').innerText = productId;
-// === 新增：判断模型是否有 back 属性，如果没有则禁用背板材质UI ===
-// === 新增：动态禁用不存在部件的 UI 控件 ===
-// === 新增：动态禁用不存在部件的 UI 控件 ===
-// === 🌟 新增逻辑：如果当前模型带有 change: true，则显示 PAINT 按钮 ===
-if (currentParts) {
-        const hasChange = currentParts.some(part => part.change === true);
-        if (hasChange) {
-            // 等待 DOM 加载后显示 PAINT 按钮
-            setTimeout(() => {
-                const paintBtn = document.getElementById('btnPaintMode');
-                if (paintBtn) paintBtn.style.display = 'flex'; 
-            }, 100);
-        }
+   const urlParams = new URLSearchParams(window.location.search);
+const productId = urlParams.get('id') || 'YJ-M000B'; 
+const currentParts = PRODUCT_DB[productId];
+
+// 检测模型属性
+const hasFront  = currentParts?.some(p => p.type === 'front');
+const hasBack   = currentParts?.some(p => p.type === 'back');
+const hasChange = currentParts?.some(p => p.change === true);
+
+document.getElementById('pageTitle').innerText = productId;
+
+
+// ===== 默认 UI 状态 =====
+
+// 有 front → 可以改面壳颜色
+if (hasFront) {
+    const frontPicker = document.getElementById('frontColorPicker');
+    if (frontPicker) {
+        frontPicker.style.pointerEvents = 'auto';
+        frontPicker.style.opacity = '1';
+    }
+     document.getElementById('frontPaintSection').style.opacity = '1';
+}
+
+// 默认：背板材质不可点击
+document.querySelectorAll('#materialOptions .material-btn').forEach(btn=>{
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.4';
+});
+
+
+// ⭐ 在这里加 change 逻辑
+if (hasChange) {
+
+    // 禁用 front 颜色
+    const frontPicker = document.getElementById('frontColorPicker');
+    if(frontPicker){
+        frontPicker.style.pointerEvents = 'none';
+        frontPicker.style.opacity = '0.4';
     }
 
-
-
-    gtag('event', 'view_item', {
-        'item_name': productId,
-        'item_category': '3D_Model_Detail'
+    // 禁用颜色方块
+    document.querySelectorAll('#frontPaintSection .color-swatch').forEach(s=>{
+        s.classList.add('disabled');
     });
 
-    const container = document.getElementById('canvas-container');
-    const scene = new THREE.Scene();
-    const blenderBgColor = new THREE.Color('#393939');
-    scene.background = blenderBgColor;
-    scene.fog = new THREE.Fog(blenderBgColor, 100, 1000); 
+    // 启用背板材质
+    document.querySelectorAll('#materialOptions .material-btn').forEach(btn=>{
+        btn.style.pointerEvents = 'auto';
+        btn.style.opacity = '1';
+    });
 
+    // 显示 paint 按钮
+    const paintBtn = document.getElementById('btnPaintMode');
+    if (paintBtn) paintBtn.style.display = 'flex';
+}
+
+// 原本代码继续
+gtag('event', 'view_item', {
+    'item_name': productId,
+    'item_category': '3D_Model_Detail'
+});
+
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+const blenderBgColor = new THREE.Color('#393939');
+scene.background = blenderBgColor;
+scene.fog = new THREE.Fog(blenderBgColor, 100, 1000);
     // 网格和坐标轴
     const gridSize = 4000;
     const gridDivisions = 400;
@@ -693,106 +730,10 @@ if (productId === 'YJ-023A' || productId === 'YJ-023B') {
 // ==========================================
 // 🌟 统一材质切换逻辑 (修复 fixed 物体被误伤的问题)
 // ==========================================
-document.querySelectorAll('#materialOptions .material-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const currentBtn = e.currentTarget;
-        if (currentBtn.classList.contains('disabled')) return; 
 
-        // 切换 UI 激活状态
-        document.querySelectorAll('#materialOptions .material-btn').forEach(b => b.classList.remove('active'));
-        currentBtn.classList.add('active');
-        
-        const type = currentBtn.dataset.type;
-        const paintSection = document.getElementById('frontPaintSection');
-        
-        // --- 核心逻辑开始 ---
-        
-        // 🟥 如果点击的是 PAINT (喷漆模式)
-        if (type === 'paint') {
-            document.getElementById('materialHint').textContent = `当前材质：喷漆 (面壳可调色)`;
-            if (paintSection) paintSection.style.opacity = '1';
-
-            const color = new THREE.Color(document.getElementById('frontColorPicker').value);
-            
-            sceneMeshes.forEach(obj => {
-                // 【只影响】带有 change: true 的部件（通常是面壳）
-                if (obj.userData.change === true) {
-                    obj.traverse(c => {
-                        if(c.isMesh) {
-                            c.material.dispose();
-                            c.material = new THREE.MeshPhysicalMaterial({ 
-                                color: color, 
-                                roughness: 0.4, 
-                                metalness: 0.0, 
-                                side: THREE.DoubleSide 
-                            });
-                        }
-                    });
-                }
-                // 【背板保持】如果是 type 为 back，恢复默认金属，但不允许 fixed 随之改变
-                else if (obj.userData.type === 'back') {
-                    obj.traverse(c => { 
-                        if(c.isMesh) c.material = createBackMaterial('Metal011', true, 0xffffff); 
-                    });
-                }
-            });
-        } 
-        
-        // 🟦 如果点击的是 金属材质 (如：银色、金色等)
-        else {
-            if (paintSection) paintSection.style.opacity = '0.4';
-
-            // 解析金属参数
-            let texName = 'Metal011', isBrushed = true, tintColor = 0xffffff, materialName = '银色拉丝';
-            if (type === 'metal049a') { texName = 'Metal049A'; isBrushed = false; materialName = '银色镜面'; } 
-            else if (type === 'copper_brushed') { tintColor = 0xc07c51; materialName = '铜色拉丝'; }
-            else if (type === 'copper_mirror') { texName = 'Metal049A'; isBrushed = false; tintColor = 0xc07c51; materialName = '铜色镜面'; }
-            else if (type === 'rosegold_brushed') { tintColor = 0xb76e79; materialName = '玫瑰金拉丝'; }
-            else if (type === 'rosegold_mirror') { texName = 'Metal049A'; isBrushed = false; tintColor = 0xb76e79; materialName = '玫瑰金镜面'; }
-            else if (type === 'gold_brushed') { tintColor = 0xffd700; materialName = '金色拉丝'; }
-            else if (type === 'gold_mirror') { texName = 'Metal049A'; isBrushed = false; tintColor = 0xffd700; materialName = '金色镜面'; }
-            else if (type === 'black_brushed') { tintColor = 0x333333; materialName = '黑色拉丝'; }
-            else if (type === 'black_mirror') { texName = 'Metal049A'; isBrushed = false; tintColor = 0x333333; materialName = '黑色镜面'; }
-            else if (type === 'brown_brushed') { tintColor = 0x8b4513; materialName = '棕色拉丝'; }
-            else if (type === 'brown_mirror') { texName = 'Metal049A'; isBrushed = false; tintColor = 0x8b4513; materialName = '棕色镜面'; }
-
-            document.getElementById('materialHint').textContent = `当前材质：${materialName}`;
-
-            sceneMeshes.forEach(obj => { 
-                // 【只修改】背板(back) 或者 未开启喷漆模式时的面壳(front)
-                // ⚠️ 这里去掉了 obj.userData.type === 'fixed'，这样 fixed 部件就不会变了
-                if (obj.userData.type === 'back' || obj.userData.type === 'front') {
-                    obj.traverse(c => { 
-                        if(c.isMesh) { 
-                            c.material.dispose(); 
-                            c.material = createBackMaterial(texName, isBrushed, tintColor); 
-                        } 
-                    }); 
-                }
-            });
-        }
-    });
-});
-
+   
     // 🟥 颜色监听器：只在选中 PAINT 时生效
-    document.getElementById('frontColorPicker').addEventListener('input', (e) => {
-        const activeBtn = document.querySelector('#materialOptions .material-btn.active');
-        if (!activeBtn || activeBtn.dataset.type !== 'paint') return; // 不是 PAINT 模式则直接退出
-
-        const colorValue = e.target.value;
-        const col = new THREE.Color(colorValue);
-        
-        sceneMeshes.forEach(obj => { 
-            const partData = currentParts.find(p => p.type === obj.userData.type);
-            if (partData && partData.change === true) {
-                obj.traverse(c => { if(c.isMesh) c.material.color.copy(col); }); 
-            }
-        });
-
-        const colorName = getColorName(colorValue);
-        document.getElementById('frontColorHint').textContent = `当前颜色：${colorName}`;
-    });
-
+ 
     
 }
 
@@ -983,19 +924,27 @@ if (productId === 'YJ-007') {
     }
     
     // LED 颜色选择器
-    document.getElementById('ledColorPicker').addEventListener('input', (e) => {
-        if (productId === 'YJ-007') {
-            alert('YJ-007 模型颜色固定为自动调节模式。');
-            e.target.value = '#FFFFFF'; 
-            return;
-        }
-        const colorValue = e.target.value;
-        const col = new THREE.Color(colorValue);
-        ledMeshes.concat(plateMeshes).forEach(obj => obj.traverse(c => { 
-            if(c.isMesh) { c.material.color.copy(col); c.material.emissive.copy(col); } 
-        }));
-        document.getElementById('ledColorHint').textContent = `当前灯光颜色：${getColorName(colorValue)}`;
-    });
+   document.getElementById('ledColorPicker').addEventListener('input', (e) => {
+
+    if (productId === 'YJ-007') {
+        alert('YJ-007 模型颜色固定为自动调节模式。');
+        e.target.value = '#FFFFFF'; 
+        return;
+    }
+
+    const colorValue = e.target.value;
+    const col = new THREE.Color(colorValue);
+
+    ledMeshes.forEach(obj => obj.traverse(c => { 
+        if(c.isMesh) { 
+            c.material.color.copy(col); 
+            c.material.emissive.copy(col); 
+        } 
+    }));
+
+    document.getElementById('ledColorHint').textContent =
+        `当前灯光颜色：${getColorName(colorValue)}`;
+});
 
  
  // ==========================================
@@ -1023,8 +972,13 @@ if (productId === 'YJ-007') {
             // 🟥 【状态 A：Paint 模式】
             if (type === 'paint') {
                 document.getElementById('materialHint').textContent = `当前材质：喷漆 (面壳可调色)`;
-                if (paintSection) paintSection.style.opacity = '1';
                 
+                if (paintSection) paintSection.style.opacity = '1';
+                document.getElementById('frontColorPicker').style.pointerEvents = 'auto';
+
+document.querySelectorAll('#frontPaintSection .color-swatch').forEach(s=>{
+    s.classList.remove('disabled');
+});
                 const color = new THREE.Color(document.getElementById('frontColorPicker').value);
                 
                 // 只遍历 front
@@ -1039,7 +993,15 @@ if (productId === 'YJ-007') {
             } 
             // 🟦 【状态 B：金属模式】
             else {
+                 document.getElementById('materialHint').textContent =
+        `当前材质：${btn.textContent}`;
                 if (paintSection) paintSection.style.opacity = '0.4';
+                 const picker = document.getElementById('frontColorPicker');
+    if (picker) picker.style.pointerEvents = 'none';
+
+    document.querySelectorAll('#frontPaintSection .color-swatch').forEach(s=>{
+        s.classList.add('disabled');
+    });
                 document.getElementById('frontColorHint').textContent = `当前颜色：已恢复金属纹理`;
 
                 // 解析金属参数
@@ -1073,23 +1035,27 @@ if (productId === 'YJ-007') {
     // ==========================================
     // 🌟 核心 2：面壳颜色监听器 (自动唤醒 PAINT 模式)
     // ==========================================
-    document.getElementById('frontColorPicker').addEventListener('input', (e) => {
-        // 核心要求：如果当前不是 Paint 模式，强制点击 Paint 按钮，从而触发上面的“背板重置逻辑”
-        const paintBtn = document.getElementById('btnPaintMode');
-        if (paintBtn && !paintBtn.classList.contains('active')) {
-            paintBtn.click(); 
-        }
+document.getElementById('frontColorPicker').addEventListener('input', (e) => {
 
-        const colorValue = e.target.value;
-        const col = new THREE.Color(colorValue);
-        
-        sceneMeshes.forEach(obj => { 
-            if (obj.userData.change === true) {
-                obj.traverse(c => { if(c.isMesh) c.material.color.copy(col); }); 
-            }
-        });
-        document.getElementById('frontColorHint').textContent = `当前颜色：${getColorName(colorValue)}`;
+    if (hasChange) {
+        const activeBtn = document.querySelector('#materialOptions .material-btn.active');
+        if (!activeBtn || activeBtn.dataset.type !== 'paint') return;
+    }
+
+    const colorValue = e.target.value;
+    const col = new THREE.Color(colorValue);
+
+    sceneMeshes.forEach(obj => { 
+        if (obj.userData.type === 'front') {
+            obj.traverse(c => { 
+                if(c.isMesh) c.material.color.copy(col); 
+            }); 
+        }
     });
+
+    const colorName = getColorName(colorValue);
+    document.getElementById('frontColorHint').textContent = `当前颜色：${colorName}`;
+});
 
     // ==========================================
     // 🌟 核心 3：颜色方块点击事件 
