@@ -260,8 +260,9 @@
             { file: "fixed-led.glb",  type: "fixed", move: null }
         ],
         "YJ-005A": [
-            { file: "FRONT.glb",  type: "front", move: { z: 10 }, change: true },
-            { file: "plate.glb",  type: "front", move: { z: 10 }, change: true },
+            { file: "FRONT.glb",  type: "front", move: { z: 10 } },
+            { file: "plate.glb",  type: "front", move: { z: 10 } },
+            { file: "LED.glb",  type: "led", move: null },
             { file: "fixed-front.glb",  type: "fixed", move: { z: 10 } },
             { file: "fixed-led.glb",  type: "fixed", move: null }
         ],
@@ -672,7 +673,48 @@ scene.fog = new THREE.Fog(blenderBgColor, 100, 1000);
     let sceneMeshes = [], backMeshes = [], ledMeshes = [], plateMeshes = [];
     let isDecomposed = false;
 //特殊判断//
+// === 新增：YJ-M201 禁用面壳颜色与 LED 功能 ===
+if (productId === 'YJ-M201') {
+    // 1. 禁用面壳 (Front Paint) 区域
+    const frontSection = document.getElementById('frontPaintSection');
+    if (frontSection) {
+        frontSection.style.pointerEvents = 'none'; // 禁止所有鼠标点击
+        frontSection.style.opacity = '0.3';        // 变灰变暗
+        frontSection.title = "该模型不支持修改面壳颜色"; // 鼠标悬浮提示
+        
+        // 禁用里面的颜色方块
+        frontSection.querySelectorAll('.color-swatch').forEach(swatch => {
+            swatch.classList.add('disabled');
+        });
+        
+        // 禁用颜色选择器
+        const frontPicker = document.getElementById('frontColorPicker');
+        if (frontPicker) frontPicker.disabled = true;
+    }
 
+    // 2. 禁用 LED 颜色与亮度控制区域
+    const ledPicker = document.getElementById('ledColorPicker');
+    if (ledPicker) {
+        // 找到包裹 LED 功能的整个 div
+        const ledSection = ledPicker.closest('div');
+        ledSection.style.pointerEvents = 'none'; // 禁止鼠标点击
+        ledSection.style.opacity = '0.3';        // 变灰变暗
+        ledSection.title = "该模型不包含 LED 灯光功能"; // 鼠标悬浮提示
+        
+        // 禁用 LED 区域的颜色方块
+        ledSection.querySelectorAll('.color-swatch').forEach(swatch => {
+            swatch.classList.add('disabled');
+        });
+        
+        ledPicker.disabled = true;
+        
+        // 禁用亮度滑块
+        const brightnessSlider = document.getElementById('brightnessSlider');
+        if (brightnessSlider) {
+            brightnessSlider.disabled = true;
+        }
+    }
+}
 // === 新增：YJ-M002 颜色禁用逻辑 ===
 if (productId === 'YJ-M002') {
     const allowedColors = ['#FFFFFF', '#F0F8FF', '#FAF0E6'];
