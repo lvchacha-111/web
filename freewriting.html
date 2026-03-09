@@ -217,6 +217,7 @@
     <label style="display: block; margin-bottom: 5px;">🎨 预设颜色</label>
     <div class="color-swatch-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
         <!-- 彩色 -->
+         <div class="color-swatch" style="background: linear-gradient(135deg, red, orange, yellow, green, blue, purple);" data-color="RGB" title="RGB动态流水灯效"></div>
         <div class="color-swatch" style="background-color: #FFA500;" data-color="#FFA500" title="橘"></div>
             <div class="color-swatch" style="background-color: #FFFF00;" data-color="#FFFF00" title="黄"></div>
             <div class="color-swatch" style="background-color: #FFC0CB;" data-color="#FFC0CB" title="粉"></div>
@@ -280,6 +281,8 @@
     // ==========================================
     // 全局状态管理
     // ==========================================
+      let isRGBGlow = false; // <--- 补上这一句：是否开启 RGB 动态光效
+    let rgbHue = 0; 
     let currentTexName = 'Metal011';
     let currentIsBrushed = true;
     let currentTintColor = 0xffffff;
@@ -790,6 +793,7 @@
     document.getElementById('brightnessSlider').addEventListener('input', (e) => updateBrightness(e.target.value));
     
     document.getElementById('ledColorPicker').addEventListener('input', (e) => {
+         isRGBGlow = false; 
         const col = new THREE.Color(e.target.value);
         
         if (glowMode === 'boxLight') {
@@ -1012,21 +1016,43 @@
         }
     }
 
-    function animate() { 
-        requestAnimationFrame(animate); 
-        controls.update(); 
+   function animate() { 
+    requestAnimationFrame(animate); 
+    controls.update(); 
 
-        const originalBg = scene.background;
-        scene.background = new THREE.Color(0x000000);
-
-        scene.traverse(darkenNonBloomed);
-        bloomComposer.render();
-
-        scene.traverse(restoreMaterial);
-        scene.background = originalBg;
-
-        finalComposer.render();
+    // ====== 新增：处理 RGB 动态灯效 ======
+    if (isRGBGlow && glowMode !== 'metalCut') {
+        rgbHue += 0.002; // 调整这个数值可以改变变色速度
+        if (rgbHue > 1) rgbHue = 0;
+        
+        const dynamicColor = new THREE.Color().setHSL(rgbHue, 1.0, 0.5);
+        
+        if (glowMode === 'boxLight') {
+            backMeshes.forEach(obj => { 
+                obj.material.color.copy(dynamicColor); 
+                obj.material.emissive.copy(dynamicColor); 
+            });
+        } else if (glowMode === 'acrylicCut') {
+            if (singleMesh) singleMesh.material.color.copy(dynamicColor);
+        } else if (glowMode === 'backGlow') {
+            backMeshes.forEach(obj => { obj.material.color.copy(dynamicColor); obj.material.emissive.copy(dynamicColor); });
+        } else {
+            frontMeshes.forEach(obj => { obj.material.color.copy(dynamicColor); obj.material.emissive.copy(dynamicColor); });
+        }
     }
+    // =====================================
+
+    const originalBg = scene.background;
+    scene.background = new THREE.Color(0x000000);
+
+    scene.traverse(darkenNonBloomed);
+    bloomComposer.render();
+
+    scene.traverse(restoreMaterial);
+    scene.background = originalBg;
+
+    finalComposer.render();
+}
 
     window.addEventListener('resize', () => {
         camera.aspect = container.clientWidth / container.clientHeight;
@@ -1039,15 +1065,22 @@
     animate();
     // 颜色方块点击事件
 // 颜色方块点击事件
+// 颜色方块点击事件
 document.querySelectorAll('.color-swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
         // 金属字模式下不允许更改灯光颜色
         if (glowMode === 'metalCut') return;
 
         const color = swatch.dataset.color;
-        const picker = document.getElementById('ledColorPicker');
-        picker.value = color;
-        picker.dispatchEvent(new Event('input', { bubbles: true }));
+        
+        if (color === 'RGB') {
+            isRGBGlow = true; // 开启 RGB 动态效果
+        } else {
+            isRGBGlow = false; // 关闭 RGB 动态效果
+            const picker = document.getElementById('ledColorPicker');
+            picker.value = color;
+            picker.dispatchEvent(new Event('input', { bubbles: true }));
+        }
     });
 });
 </script>
