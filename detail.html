@@ -952,7 +952,7 @@ document.querySelectorAll('#materialOptions .material-btn').forEach(btn => {
         // 3. 动态决定操作对象
         let targetMeshes = hasChange 
             ? sceneMeshes.filter(obj => obj.userData.type === 'front' && obj.userData.change === true)
-            : sceneMeshes.filter(obj => obj.userData.type === 'back' || obj.userData.type === 'fixed');
+            : sceneMeshes.filter(obj => obj.userData.type === 'back' );
 
         if (targetMeshes.length === 0) return;
 
