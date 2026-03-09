@@ -431,20 +431,20 @@ document.querySelectorAll('#materialOptions .material-btn').forEach(btn=>{
 });
 
 // ⭐ change 逻辑调整：优先处理back材质
+// ⭐ change 逻辑调整
 if (hasChange) {
-    // 禁用 front 颜色
+    // 初始状态：虽然有 paint 模式，但先禁用颜色选择，直到用户点选 paint 按钮
     const frontPicker = document.getElementById('frontColorPicker');
-    if(frontPicker){
-        frontPicker.style.pointerEvents = 'none';
+    if (frontPicker) {
+        frontPicker.style.pointerEvents = 'none'; // 初始化禁用
         frontPicker.style.opacity = '0.4';
     }
 
     // 禁用颜色方块
-    document.querySelectorAll('#frontPaintSection .color-swatch').forEach(s=>{
+    document.querySelectorAll('#frontPaintSection .color-swatch').forEach(s => {
         s.classList.add('disabled');
     });
 
-    // 启用背板材质（已经在上面启用了，这里可以省略）
     // 显示 paint 按钮
     const paintBtn = document.getElementById('btnPaintMode');
     if (paintBtn) paintBtn.style.display = 'flex';
@@ -783,7 +783,11 @@ if (productId === 'YJ-007') {
                                 side: THREE.DoubleSide   
                             });
                         }
-
+// 在 loadSmartModel 中，确保添加这行日志调试
+if (part.type === 'back') {
+    backMeshes.push(object);
+    console.log("已收集到 Back 部件:", object);
+}
                         // === 2. 处理 STL 和 UV ===
                         if (isFromSTL) child.rotation.x = -Math.PI / 2;
                         
@@ -939,47 +943,59 @@ document.querySelectorAll('#materialOptions .material-btn').forEach(btn => {
         e.currentTarget.classList.add('active');
         
         const type = e.currentTarget.dataset.type;
-        const paintSection = document.getElementById('frontPaintSection');
-        const color = new THREE.Color(document.getElementById('frontColorPicker').value);
+        const currentColor = new THREE.Color(document.getElementById('frontColorPicker').value);
+        
+        // 2. 交互控制区 DOM
+        const frontPicker = document.getElementById('frontColorPicker');
+        const colorSwatches = document.querySelectorAll('#frontPaintSection .color-swatch');
 
-        // 2. 准备物体列表
-        const frontMeshes = sceneMeshes.filter(obj => obj.userData.type === 'front');
-        const backMeshesList = sceneMeshes.filter(obj => obj.userData.type === 'back');
+        // 3. 动态决定操作对象
+        let targetMeshes = hasChange 
+            ? sceneMeshes.filter(obj => obj.userData.type === 'front' && obj.userData.change === true)
+            : sceneMeshes.filter(obj => obj.userData.type === 'back' || obj.userData.type === 'fixed');
 
-        // 🟥 【状态 A：PAINT 模式】 Front 和 Back 一起变色
+        if (targetMeshes.length === 0) return;
+
+        // 4. 执行逻辑与交互反馈
         if (type === 'paint') {
-            document.getElementById('materialHint').textContent = `当前材质：喷漆 (面壳与背板可同调色)`;
-            if (paintSection) paintSection.style.opacity = '1';
-            document.getElementById('frontColorPicker').style.pointerEvents = 'auto';
+            document.getElementById('materialHint').textContent = `当前材质：喷漆模式`;
+            
+            // 启用颜色选择器和方块
+            if (frontPicker) {
+                frontPicker.style.pointerEvents = 'auto';
+                frontPicker.style.opacity = '1';
+            }
+            colorSwatches.forEach(s => {
+                s.classList.remove('disabled');
+                s.style.pointerEvents = 'auto';
+            });
 
-            document.querySelectorAll('#frontPaintSection .color-swatch').forEach(s => s.classList.remove('disabled'));
-
-            // 统一应用漆面材质
-            [...frontMeshes, ...backMeshesList].forEach(obj => {
+            // 应用喷漆材质
+            targetMeshes.forEach(obj => {
                 obj.traverse(c => {
                     if (c.isMesh) {
                         c.material.dispose();
                         c.material = new THREE.MeshPhysicalMaterial({ 
-                            color: color, 
+                            color: currentColor, 
                             roughness: 0.4, 
                             metalness: 0.0, 
                             side: THREE.DoubleSide 
                         });
+                        c.material.needsUpdate = true;
                     }
                 });
             });
-        } 
-        // 🟦 【状态 B：金属模式】 仅 Back 改变金属纹理，Front 不变或根据需求处理
-        else {
-            if (paintSection) paintSection.style.opacity = '0.4';
-            const picker = document.getElementById('frontColorPicker');
-            if (picker) picker.style.pointerEvents = 'none';
+        } else {
+            // 金属模式：禁用颜色选择器和方块
+            if (frontPicker) {
+                frontPicker.style.pointerEvents = 'none';
+                frontPicker.style.opacity = '0.4';
+            }
+            colorSwatches.forEach(s => {
+                s.classList.add('disabled');
+                s.style.pointerEvents = 'none';
+            });
 
-            document.querySelectorAll('#frontPaintSection .color-swatch').forEach(s => s.classList.add('disabled'));
-            document.getElementById('frontColorHint').textContent = `当前颜色：已恢复金属纹理`;
-
-            // 解析金属参数
-            let texName = 'Metal011', isBrushed = true, tintColor = 0xffffff, materialName = '银色拉丝';
             const metalMap = {
                 'metal011': ['Metal011', true, 0xffffff, '银色拉丝'],
                 'metal049a': ['Metal049A', false, 0xffffff, '银色镜面'],
@@ -995,24 +1011,18 @@ document.querySelectorAll('#materialOptions .material-btn').forEach(btn => {
                 'brown_mirror': ['Metal049A', false, 0x8b4513, '棕色镜面']
             };
 
-            if (metalMap[type]) {
-                [texName, isBrushed, tintColor, materialName] = metalMap[type];
-            }
+            const config = metalMap[type] || metalMap['metal011'];
+            document.getElementById('materialHint').textContent = `当前材质：${config[3]}`;
 
-            document.getElementById('materialHint').textContent = `当前材质：${materialName}`;
-
-            // 仅对 Back 类型的物体应用金属材质
-            backMeshesList.forEach(obj => {
+            targetMeshes.forEach(obj => {
                 obj.traverse(c => {
                     if (c.isMesh) {
-                        c.material.dispose();
-                        c.material = createBackMaterial(texName, isBrushed, tintColor);
+                        if (c.material) c.material.dispose();
+                        c.material = createBackMaterial(config[0], config[1], config[2]);
+                        c.material.needsUpdate = true;
                     }
                 });
             });
-            
-            // 如果你希望在切回金属时，Front 变成默认白色或恢复原厂材质，可以在这里写逻辑
-            // 例如：frontMeshes.forEach(obj => { /* 重置 front 材质 */ });
         }
     });
 });
