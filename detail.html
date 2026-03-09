@@ -985,16 +985,23 @@ document.querySelectorAll('#materialOptions .material-btn').forEach(btn => {
                     }
                 });
             });
-        } else {
-            // 金属模式：禁用颜色选择器和方块
-            if (frontPicker) {
-                frontPicker.style.pointerEvents = 'none';
-                frontPicker.style.opacity = '0.4';
+        }  else {
+            // === 🌟 核心修复点：判断是否应当禁用颜色选择器 ===
+            // 逻辑：如果模型拥有独立的面壳 (hasFront为true 且 hasChange为false)，
+            // 那么面壳颜色和背板材质是互相独立的，此时切金属材质不应该禁用面壳颜色。
+            const shouldDisableColor = !(hasFront && !hasChange);
+
+            if (shouldDisableColor) {
+                // 金属模式：禁用颜色选择器和方块
+                if (frontPicker) {
+                    frontPicker.style.pointerEvents = 'none';
+                    frontPicker.style.opacity = '0.4';
+                }
+                colorSwatches.forEach(s => {
+                    s.classList.add('disabled');
+                    s.style.pointerEvents = 'none';
+                });
             }
-            colorSwatches.forEach(s => {
-                s.classList.add('disabled');
-                s.style.pointerEvents = 'none';
-            });
 
             const metalMap = {
                 'metal011': ['Metal011', true, 0xffffff, '银色拉丝'],
