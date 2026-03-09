@@ -391,8 +391,8 @@
     light.position.set(50, 100, 50);
     scene.add(light);
 
-    // ==========================================
-    // 材质创建系统
+    
+    // 材质创建系统 (升级为高级竖向拉丝版)
     // ==========================================
     const textureLoader = new THREE.TextureLoader();
     
@@ -401,55 +401,95 @@
         const normalMap = textureLoader.load(`textures/${texName}_2K-JPG_NormalGl.jpg`);
         const roughnessMap = textureLoader.load(`textures/${texName}_2K-JPG_Roughness.jpg`);
 
+        // 【关键修复 1】必须设置重复模式，以支持独立拉伸的三平面映射
+        [map, normalMap, roughnessMap].forEach(t => {
+            t.wrapS = THREE.RepeatWrapping;
+            t.wrapT = THREE.RepeatWrapping;
+        });
+
         const mat = new THREE.MeshStandardMaterial({
             color: new THREE.Color(tintColor),
             map: map, 
             normalMap: isBrushed ? normalMap : null,
             roughnessMap: roughnessMap, 
             metalness: 1.0, 
-            roughness: isBrushed ? 0.5 : 0.5, 
-            envMapIntensity: isBrushed ? 0.5 : 0.5, 
+            roughness: 0.5, 
+            envMapIntensity: 0.5, 
             side: THREE.DoubleSide
         });
 
         if (isBrushed) {
             mat.onBeforeCompile = (shader) => {
-                shader.uniforms.uRepeat = { value: 0.05 };
-                shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nvarying vec3 vWorldPosition;\nvarying vec3 vWorldNormal;`);
-                shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvWorldNormal = normalize(mat3(modelMatrix) * normal);`);
+                // 【关键修复 2】分离横向与竖向缩放
+                // uRepeat 控制拉丝的密度（数字越小，线条越粗）
+                // uStretch 控制拉丝的长度（数字极小，使线条竖向无限拉长）
+                shader.uniforms.uRepeat = { value: 0.15 }; 
+                shader.uniforms.uStretch = { value: 0.02 }; 
+
+                shader.vertexShader = shader.vertexShader.replace('#include <common>', `
+                    #include <common>
+                    varying vec3 vWorldPosition;
+                    varying vec3 vWorldNormal;
+                `);
+                shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>', `
+                    #include <worldpos_vertex>
+                    vWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;
+                    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+                `);
+
                 shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `
                     #include <common>
                     varying vec3 vWorldPosition;
                     varying vec3 vWorldNormal;
                     uniform float uRepeat;
+                    uniform float uStretch;
+
                     vec3 getTriplanarBlend(vec3 normal) {
-                        vec3 blend = abs(normal); blend = pow(blend, vec3(4.0));
+                        vec3 blend = abs(normal);
+                        blend = pow(blend, vec3(4.0));
                         return blend / (blend.x + blend.y + blend.z);
                     }
-                    vec4 triplanarTexture(sampler2D tex, vec3 worldPos, vec3 normal, float scale) {
-                        // 竖直拉丝：Y作为U
-                        vec2 uvXY = vec2(worldPos.y, worldPos.x) * scale;
-                        vec2 uvZY = vec2(worldPos.y, worldPos.z) * scale;
-                        vec2 uvXZ = vec2(worldPos.z, worldPos.x) * scale;
+
+                    vec4 triplanarTexture(sampler2D tex, vec3 worldPos, vec3 normal) {
+                        // 在 XY 面（前后）和 ZY 面（左右），将 U 轴锁定为 Y (竖向)
+                        // 在 XZ 面（顶底），将 U 轴锁定为 Z (纵向)
+                        // 通过 uStretch 极大地拉伸 U 轴，使线条变长
+                        vec2 uvXY = vec2(worldPos.y * uStretch, worldPos.x * uRepeat);
+                        vec2 uvZY = vec2(worldPos.y * uStretch, worldPos.z * uRepeat);
+                        vec2 uvXZ = vec2(worldPos.z * uStretch, worldPos.x * uRepeat);
+
                         vec4 colX = texture2D(tex, uvZY);
                         vec4 colY = texture2D(tex, uvXZ);
                         vec4 colZ = texture2D(tex, uvXY);
+
                         vec3 blend = getTriplanarBlend(normal);
                         return colX * blend.x + colY * blend.y + colZ * blend.z;
                     }
                 `);
+
                 shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
                     #ifdef USE_MAP
-                        vec4 sampledColor = triplanarTexture(map, vWorldPosition, vWorldNormal, uRepeat);
-                        diffuseColor.rgb *= (sampledColor.rgb ); 
+                        vec4 sampledColor = triplanarTexture(map, vWorldPosition, vWorldNormal);
+                        diffuseColor.rgb *= sampledColor.rgb;
                     #endif
                 `);
+                
                 shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `
                     float roughnessFactor = roughness;
                     #ifdef USE_ROUGHNESSMAP
-                        roughnessFactor *= triplanarTexture(roughnessMap, vWorldPosition, vWorldNormal, uRepeat).r;
+                        roughnessFactor *= triplanarTexture(roughnessMap, vWorldPosition, vWorldNormal).r;
                     #endif
                 `);
+
+                // 【关键修复 3】混合三平面法线，这能赋予拉丝金属凹凸的光影质感
+                if (isBrushed) {
+                    shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>', `
+                        #ifdef USE_NORMALMAP
+                            vec3 normalSample = triplanarTexture(normalMap, vWorldPosition, vWorldNormal).xyz * 2.0 - 1.0;
+                            normal = normalize(normal + normalSample * 0.8); 
+                        #endif
+                    `);
+                }
             };
         }
         return mat;
