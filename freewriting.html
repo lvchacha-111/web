@@ -169,9 +169,10 @@
         <div>
             <label>🔤 字体选择</label>
             <select id="fontSelector">
-                <option value="helvetiker" selected>英文字体 Helvetiker (默认)</option>
+                <option value="helvetiker" selected>英文字体 Helvetiker</option>
                 <option value="Forte">forte常规字</option>
-                <option value="STXingkai_Regular">中文字体 行书 (需放置文件)</option>
+                <option value="STXingkai_Regular">中文字体 行书 </option>
+                 <option value="SimHei">中文字体 黑体</option> 
             </select>
         </div>
         
@@ -505,6 +506,7 @@
             case 'helvetiker': return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
             case 'Forte': return 'fonts/Forte_Regular.json'; 
             case 'STXingkai_Regular': return 'fonts/STXingkai_Regular.json';
+            case 'SimHei': return 'fonts/SimHei_Regular.json';
             default: return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
         }
     }
@@ -566,7 +568,7 @@
                 size: 26,
                 height: textThickness, // 使用变量
                 curveSegments: 6,
-                bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3
+                bevelEnabled: flse, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3
             };
             const textGeo = new TextGeometry(textString, textOpts);
             

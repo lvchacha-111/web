@@ -1,0 +1,6 @@
+{
+  "speed": 3.0,
+  "intensity": 2.5,
+  "frequency": 0.05,
+  "colors": ["#ff0000", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#ff00ff"]
+}
