@@ -4,25 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Yi Jiao · 自由书写 (支持中文)</title>
-       <!-- ==================== 开始：Google Analytics 基础代码 ==================== -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-G8FLHCSSCW"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    // 务必把这里的 G-XXXXXXXXXX 换成你的真实 ID ！！！
-    gtag('config', 'G-G8FLHCSSCW');
-  </script>
+    <!-- Google Analytics 基础代码 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-G8FLHCSSCW"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-G8FLHCSSCW');
+    </script>
     <style>
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #393939; font-family: 'Microsoft YaHei', sans-serif; color: white; }
         body { display: flex; flex-direction: row; }
         #sidebar { width: 320px; min-width: 320px; height: 100vh; background: #2c2c2c; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 20; box-shadow: 2px 0 10px rgba(0,0,0,0.5); overflow-y: auto; box-sizing: border-box; }
         #canvas-container { flex: 1; height: 100%; position: relative; background-color: #393939; min-width: 0; }
         .color-swatch-container.disabled {
-    opacity: 0.5;
-    pointer-events: none;
-}
+            opacity: 0.5;
+            pointer-events: none;
+        }
         .header-box { border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;}
         .header-box h1 { font-size: 18px; color: #f39c12; margin: 0; letter-spacing: 1px; }
         .back-btn { color: #aaa; text-decoration: none; font-size: 12px; padding: 4px 8px; background: #3d3d3d; border-radius: 3px; border: 1px solid #555;}
@@ -33,24 +31,48 @@
         .material-btn.active { border-color: #f39c12; box-shadow: 0 0 5px #f39c12; }
         .material-btn.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(100%); }
         .color-swatch {
-    width: 30px;
-    height: 30px;
-    border-radius: 4px;
-    cursor: pointer;
-    border: 2px solid #444;
-    transition: transform 0.1s, border-color 0.1s;
-    box-sizing: border-box;
-}
-.color-swatch:hover {
-    transform: scale(1.1);
-    border-color: #f39c12;
-}
-.color-swatch.active {
-    border-color: #f39c12;
-    box-shadow: 0 0 5px #f39c12;
-}
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid #444;
+            transition: transform 0.1s, border-color 0.1s;
+            box-sizing: border-box;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+            border-color: #f39c12;
+        }
+        .color-swatch.active {
+            border-color: #f39c12;
+            box-shadow: 0 0 5px #f39c12;
+        }
         #frontColorPicker, #ledColorPicker { width: 100%; height: 35px; border: 1px solid #444; background: none; cursor: pointer; padding: 0; border-radius: 3px; }
-        
+        /* 跑马灯动画 - 给预设颜色色块加流光效果 */
+@keyframes marquee-swatch {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+/* RGB流水灯色块的跑马灯效果 */
+.color-swatch[data-color="FLOWRGB"] {
+    background: linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, white);
+    background-size: 200% 100%; /* 扩展背景尺寸用于滚动 */
+    animation: marquee-swatch 3s linear infinite; /* 3秒一轮，匀速循环 */
+}
+
+/* RGB呼吸灯色块的呼吸效果 */
+.color-swatch[data-color="RGB"] {
+    background: linear-gradient(135deg, red, orange, yellow, green, blue, purple);
+    background-size: 200% 200%;
+    animation: marquee-swatch 4s linear infinite alternate; /* 4秒一轮，往返滚动 */
+}
+
+/* 选中状态强化 */
+.color-swatch.active.marquee-active {
+    border-color: #f39c12;
+    box-shadow: 0 0 8px #f39c12, 0 0 12px rgba(243, 156, 18, 0.5);
+}
         #textInput { 
             width: 100%; padding: 12px; background: #eee; border: none; 
             color: #000; font-size: 20px; border-radius: 4px; outline: none;
@@ -92,7 +114,7 @@
             margin-top: 0;
         }
 
-        /* 禁用状态的遮罩层 *//*hahohdaiwdhiawndiawhniodna*/
+        /* 禁用状态的遮罩层 */
         .disabled-overlay { position: relative; opacity: 0.4; pointer-events: none; }
         .disabled-picker { opacity: 0.3; pointer-events: none; filter: grayscale(100%); }
         
@@ -109,40 +131,33 @@
             } 
         }
     </script>
-    <!-- 1. 告诉浏览器这是个 PWA -->
-<link rel="manifest" href="manifest.json">
-
-<!-- 2. 专门针对苹果 iPhone 的优化（必须加，否则没图标） -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="3D展示">
-<link rel="apple-touch-icon" href="logo.png">
-
-<!-- 3. 注册 Service Worker 脚本 -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('sw.js').then(function(registration) {
-        console.log('PWA 注册成功！范围: ', registration.scope);
-      }, function(err) {
-        console.log('PWA 注册失败: ', err);
-      });
-    });
-  }
-</script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  // 这里的 G-XXXXXXXXXX 换成你刚才申请到的 ID
-  gtag('config', 'G-XXXXXXXXXX');
-</script>
+    <!-- PWA 配置 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="3D展示">
+    <link rel="apple-touch-icon" href="logo.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(function(registration) {
+                    console.log('PWA 注册成功！范围: ', registration.scope);
+                }, function(err) {
+                    console.log('PWA 注册失败: ', err);
+                });
+            });
+        }
+    </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX');
+    </script>
 </head>
 <body>
-
     <div id="sidebar">
         <div class="header-box">
             <h1 id="pageTitle">自由书写 · 中文支持</h1>
@@ -172,7 +187,7 @@
                 <option value="helvetiker" selected>英文字体 Helvetiker</option>
                 <option value="Forte">forte常规字</option>
                 <option value="STXingkai_Regular">中文字体 行书 </option>
-                 <option value="SimHei">中文字体 黑体</option> 
+                <option value="SimHei">中文字体 黑体</option> 
             </select>
         </div>
         
@@ -184,27 +199,25 @@
                 <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_brushed" title="铜色拉丝"></div>
                 <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_mirror" title="铜色镜面"></div>
                 <!-- 白银色拉丝 -->
-
-
-<!-- 玫瑰金拉丝 -->
-<div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #b76e79; background-blend-mode: multiply;" data-type="rosegold_brushed" title="玫瑰金拉丝"></div>
-<!-- 玫瑰金镜面 -->
-<div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #b76e79; background-blend-mode: multiply;" data-type="rosegold_mirror" title="玫瑰金镜面"></div>
-
-<!-- 金色拉丝 -->
-<div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #ffd700; background-blend-mode: multiply;" data-type="gold_brushed" title="金色拉丝"></div>
-<!-- 金色镜面 -->
-<div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #ffd700; background-blend-mode: multiply;" data-type="gold_mirror" title="金色镜面"></div>
-
-<!-- 黑色拉丝 -->
-<div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #333333; background-blend-mode: multiply;" data-type="black_brushed" title="黑色拉丝"></div>
-<!-- 黑色镜面 -->
-<div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #333333; background-blend-mode: multiply;" data-type="black_mirror" title="黑色镜面"></div>
-
-<!-- 棕色拉丝 -->
-<div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_brushed" title="棕色拉丝"></div>
-<!-- 棕色镜面 -->
-<div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_mirror" title="棕色镜面"></div>
+                <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #e0e0e0; background-blend-mode: multiply;" data-type="silver_brushed" title="白银色拉丝"></div>
+                <!-- 白银色镜面 -->
+                <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #e0e0e0; background-blend-mode: multiply;" data-type="silver_mirror" title="白银色镜面"></div>
+                <!-- 玫瑰金拉丝 -->
+                <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #b76e79; background-blend-mode: multiply;" data-type="rosegold_brushed" title="玫瑰金拉丝"></div>
+                <!-- 玫瑰金镜面 -->
+                <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #b76e79; background-blend-mode: multiply;" data-type="rosegold_mirror" title="玫瑰金镜面"></div>
+                <!-- 金色拉丝 -->
+                <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #ffd700; background-blend-mode: multiply;" data-type="gold_brushed" title="金色拉丝"></div>
+                <!-- 金色镜面 -->
+                <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #ffd700; background-blend-mode: multiply;" data-type="gold_mirror" title="金色镜面"></div>
+                <!-- 黑色拉丝 -->
+                <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #333333; background-blend-mode: multiply;" data-type="black_brushed" title="黑色拉丝"></div>
+                <!-- 黑色镜面 -->
+                <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #333333; background-blend-mode: multiply;" data-type="black_mirror" title="黑色镜面"></div>
+                <!-- 棕色拉丝 -->
+                <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_brushed" title="棕色拉丝"></div>
+                <!-- 棕色镜面 -->
+                <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg'); background-color: #8b4513; background-blend-mode: multiply;" data-type="brown_mirror" title="棕色镜面"></div>
             </div>
         </div>
 
@@ -215,21 +228,22 @@
 
         <div id="ledSection">
             <div style="margin-bottom: 10px;">
-    <label style="display: block; margin-bottom: 5px;">🎨 预设颜色</label>
-    <div class="color-swatch-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
-        <!-- 彩色 -->
-         <div class="color-swatch" style="background: linear-gradient(135deg, red, orange, yellow, green, blue, purple);" data-color="RGB" title="RGB动态流水灯效"></div>
-        <div class="color-swatch" style="background-color: #FFA500;" data-color="#FFA500" title="橘"></div>
-            <div class="color-swatch" style="background-color: #FFFF00;" data-color="#FFFF00" title="黄"></div>
-            <div class="color-swatch" style="background-color: #FFC0CB;" data-color="#FFC0CB" title="粉"></div>
-            <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF" title="蓝"></div>
-            <div class="color-swatch" style="background-color: #00FF00;" data-color="#00FF00" title="绿"></div>
-            <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000" title="红"></div>
-            <div class="color-swatch" style="background-color: #FFFFFF; border: 2px solid #888;" data-color="#FFFFFF" title="标准白"></div>
-            <div class="color-swatch" style="background-color: #F0F8FF; border: 2px solid #888;" data-color="#F0F8FF" title="高亮白（冷白）"></div>
-            <div class="color-swatch" style="background-color: #FAF0E6; border: 2px solid #888;" data-color="#FAF0E6" title="暗淡白（暖白）"></div>
-    </div>
-</div>
+                <label style="display: block; margin-bottom: 5px;">🎨 预设颜色</label>
+                <div class="color-swatch-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <!-- 彩色 -->
+                    <div class="color-swatch" style="background: linear-gradient(135deg, red, orange, yellow, green, blue, purple);" data-color="RGB" title="RGB呼吸灯效"></div>
+                    <div class="color-swatch" style="background: linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, white);" data-color="FLOWRGB" title="RGBW流水灯"></div>
+                    <div class="color-swatch" style="background-color: #FFA500;" data-color="#FFA500" title="橘"></div>
+                    <div class="color-swatch" style="background-color: #FFFF00;" data-color="#FFFF00" title="黄"></div>
+                    <div class="color-swatch" style="background-color: #FFC0CB;" data-color="#FFC0CB" title="粉"></div>
+                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF" title="蓝"></div>
+                    <div class="color-swatch" style="background-color: #00FF00;" data-color="#00FF00" title="绿"></div>
+                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000" title="红"></div>
+                    <div class="color-swatch" style="background-color: #FFFFFF; border: 2px solid #888;" data-color="#FFFFFF" title="标准白"></div>
+                    <div class="color-swatch" style="background-color: #F0F8FF; border: 2px solid #888;" data-color="#F0F8FF" title="高亮白（冷白）"></div>
+                    <div class="color-swatch" style="background-color: #FAF0E6; border: 2px solid #888;" data-color="#FAF0E6" title="暗淡白（暖白）"></div>
+                </div>
+            </div>
             <label id="ledColorLabel">💡 灯光颜色 (LED Color)</label>
             <input type="color" id="ledColorPicker" value="#ffffff">
             
@@ -282,8 +296,14 @@
     // ==========================================
     // 全局状态管理
     // ==========================================
-      let isRGBGlow = false; // <--- 补上这一句：是否开启 RGB 动态光效
+    let isRGBGlow = false; // 是否开启 RGB 动态光效
     let rgbHue = 0; 
+    // 流水灯相关全局变量
+    let isFlowRGB = false; // 是否开启RGBW流水灯
+    let flowTime = 0; // 流水灯时间控制
+    let flowDirection = 1; // 流水灯方向 (1: 从左到右, -1: 从右到左)
+    let ledPixels = []; // 存储灯光像素点（用于流水灯效果）
+    
     let currentTexName = 'Metal011';
     let currentIsBrushed = true;
     let currentTintColor = 0xffffff;
@@ -292,7 +312,6 @@
     let glowMode = 'backGlow'; 
 
     // 尺寸控制
-    // 注意：在普通模式下 front/back 为厚度；在 boxLight 模式下，它们被映射为 长度扩展 和 高度扩展
     let frontThickness = 5.0; // 映射为 Box Length Padding
     let backThickness = 5.0;  // 映射为 Box Height Padding
     let boxDepth = 10.0;      // 仅用于 boxLight
@@ -402,7 +421,6 @@
         const normalMap = textureLoader.load(`textures/${texName}_2K-JPG_NormalGl.jpg`);
         const roughnessMap = textureLoader.load(`textures/${texName}_2K-JPG_Roughness.jpg`);
 
-        // 【关键修复 1】必须设置重复模式，以支持独立拉伸的三平面映射
         [map, normalMap, roughnessMap].forEach(t => {
             t.wrapS = THREE.RepeatWrapping;
             t.wrapT = THREE.RepeatWrapping;
@@ -421,9 +439,6 @@
 
         if (isBrushed) {
             mat.onBeforeCompile = (shader) => {
-                // 【关键修复 2】分离横向与竖向缩放
-                // uRepeat 控制拉丝的密度（数字越小，线条越粗）
-                // uStretch 控制拉丝的长度（数字极小，使线条竖向无限拉长）
                 shader.uniforms.uRepeat = { value: 0.15 }; 
                 shader.uniforms.uStretch = { value: 0.02 }; 
 
@@ -452,9 +467,6 @@
                     }
 
                     vec4 triplanarTexture(sampler2D tex, vec3 worldPos, vec3 normal) {
-                        // 在 XY 面（前后）和 ZY 面（左右），将 U 轴锁定为 Y (竖向)
-                        // 在 XZ 面（顶底），将 U 轴锁定为 Z (纵向)
-                        // 通过 uStretch 极大地拉伸 U 轴，使线条变长
                         vec2 uvXY = vec2(worldPos.y * uStretch, worldPos.x * uRepeat);
                         vec2 uvZY = vec2(worldPos.y * uStretch, worldPos.z * uRepeat);
                         vec2 uvXZ = vec2(worldPos.z * uStretch, worldPos.x * uRepeat);
@@ -482,7 +494,6 @@
                     #endif
                 `);
 
-                // 【关键修复 3】混合三平面法线，这能赋予拉丝金属凹凸的光影质感
                 if (isBrushed) {
                     shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>', `
                         #ifdef USE_NORMALMAP
@@ -530,13 +541,14 @@
         });
     }
 
-   // 生成3D文字
-   function generate3DText(textString, adjustCamera = true) {
+    // 生成3D文字
+    function generate3DText(textString, adjustCamera = true) {
         if (!currentFont) {
             loadFontAndGenerate('helvetiker', textString, adjustCamera);
             return;
         }
 
+        // 清空之前的模型
         while(textGroup.children.length > 0){ 
             const obj = textGroup.children[0];
             if(obj.geometry) obj.geometry.dispose();
@@ -550,15 +562,11 @@
         frontMeshes = [];
         backMeshes = [];
         singleMesh = null;
+        ledPixels = []; // 清空流水灯像素点
 
         if (!textString.trim()) return;
 
-        // ============================
         // 模式: 方体灯箱 (Box Light)
-        // ============================
-      // ============================
-        // 模式: 方体灯箱 (Box Light)
-        // ============================
         if (glowMode === 'boxLight') {
             const textThickness = 2; // 定义文字厚度
             
@@ -566,20 +574,19 @@
             const textOpts = {
                 font: currentFont, 
                 size: 26,
-                height: textThickness, // 使用变量
+                height: textThickness,
                 curveSegments: 6,
-                bevelEnabled: flse, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3
+                bevelEnabled: false, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3 // 修复拼写错误 flse -> false
             };
             const textGeo = new TextGeometry(textString, textOpts);
             
-            // 居中文字 (注意：Z轴不要在这里偏移，改为后面用 position 控制)
+            // 居中文字
             textGeo.computeBoundingBox();
             const textWidth = textGeo.boundingBox.max.x - textGeo.boundingBox.min.x;
             const textHeight = textGeo.boundingBox.max.y - textGeo.boundingBox.min.y;
             const centerOffsetX = -0.5 * textWidth;
             const centerOffsetY = -0.5 * textHeight;
             
-            // 【修改点1】这里 Z 轴设为 0，不再是 -1
             textGeo.translate(centerOffsetX, centerOffsetY, 0); 
 
             // 2. 准备尺寸数据
@@ -591,11 +598,7 @@
             const metalMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
             const innerMesh = new THREE.Mesh(textGeo, metalMat);
             
-            // 【修改点2】计算文字位置
-            // 灯箱中心在0，前表面在 boxD / 2。
-            // 我们让文字稍微嵌入一点点 (-0.2)，防止悬空，剩下的部分凸起
             innerMesh.position.z = (boxD / 2) - 0.2; 
-            
             textGroup.add(innerMesh);
             frontMeshes.push(innerMesh); 
 
@@ -624,13 +627,14 @@
             textGroup.add(boxMesh);
             backMeshes.push(boxMesh); 
 
+            // 创建流水灯像素点（用于RGBW流水效果）
+            createLEDMatrix(boxW, boxH, boxD);
+
             // 更新亮度
             updateBrightness(document.getElementById('brightnessSlider').value);
         }
 
-        // ============================
         // 模式: 单体 (亚克力 / 金属字)
-        // ============================
         else if (glowMode === 'acrylicCut' || glowMode === 'metalCut') {
             const totalThickness = frontThickness + backThickness;
             const opts = {
@@ -663,9 +667,7 @@
             singleMesh = mesh;
         } 
         
-        // ============================
         // 模式: 双层 (金属发光字)
-        // ============================
         else {
             const isBackGlow = (glowMode === 'backGlow');
             const frontOpts = { font: currentFont, size: 26, height: frontThickness, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3 };
@@ -703,6 +705,9 @@
             textGroup.add(backMesh);
             backMeshes.push(backMesh);
             
+            // 创建流水灯像素点
+            createLEDMatrixFromText(frontGeo, frontZ, backZ);
+            
             updateBrightness(document.getElementById('brightnessSlider').value);
         }
 
@@ -715,6 +720,66 @@
         const isSingle = (glowMode === 'acrylicCut' || glowMode === 'metalCut' || glowMode === 'boxLight');
         document.getElementById('decomposeBtn').disabled = isSingle;
         document.getElementById('decomposeBtn').innerText = isSingle ? '不可解体 (Single Object)' : '一键解体 (Explode)';
+    }
+
+    // 创建LED像素矩阵（用于流水灯效果）
+    function createLEDMatrix(boxW, boxH, boxD) {
+        ledPixels = [];
+        const pixelCount = 50; // 像素点数量
+        const pixelSize = 0.8; // 像素点大小
+        
+        // 创建水平排列的LED像素点
+        for (let i = 0; i < pixelCount; i++) {
+            const x = (i / (pixelCount - 1)) * boxW - boxW/2;
+            const y = 0;
+            const z = boxD/2 - 0.1; // 稍微向内偏移
+            
+            const geo = new THREE.PlaneGeometry(pixelSize, boxH * 0.8);
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            
+            const pixel = new THREE.Mesh(geo, mat);
+            pixel.position.set(x, y, z);
+            pixel.layers.enable(BLOOM_SCENE); // 开启辉光
+            textGroup.add(pixel);
+            ledPixels.push(pixel);
+        }
+    }
+
+    // 为双层发光字创建LED像素矩阵
+    function createLEDMatrixFromText(textGeo, frontZ, backZ) {
+        ledPixels = [];
+        const pixelCount = 50; // 像素点数量
+        const pixelSize = 1.5; // 像素点大小
+        
+        // 获取文字边界
+        const textWidth = textGeo.boundingBox.max.x - textGeo.boundingBox.min.x;
+        const textHeight = textGeo.boundingBox.max.y - textGeo.boundingBox.min.y;
+        
+        // 创建水平排列的LED像素点
+        for (let i = 0; i < pixelCount; i++) {
+            const x = (i / (pixelCount - 1)) * textWidth - textWidth/2;
+            const y = 0;
+            const z = (frontZ + backZ) / 2; // 居中
+            
+            const geo = new THREE.PlaneGeometry(pixelSize, textHeight * 0.8);
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            
+            const pixel = new THREE.Mesh(geo, mat);
+            pixel.position.set(x, y, z);
+            pixel.layers.enable(BLOOM_SCENE); // 开启辉光
+            textGroup.add(pixel);
+            ledPixels.push(pixel);
+        }
     }
 
     function centerAndFitCamera() {
@@ -759,13 +824,14 @@
         const backDesc = document.getElementById('backDesc');
         const depthControl = document.getElementById('depthControl');
         const swatchContainer = document.querySelector('.color-swatch-container');
-    if (swatchContainer) {
-        if (glowMode === 'metalCut') {
-            swatchContainer.classList.add('disabled');
-        } else {
-            swatchContainer.classList.remove('disabled');
+        
+        if (swatchContainer) {
+            if (glowMode === 'metalCut') {
+                swatchContainer.classList.add('disabled');
+            } else {
+                swatchContainer.classList.remove('disabled');
+            }
         }
-    }
 
         // 重置通用状态
         matSection.classList.remove('disabled-overlay');
@@ -775,7 +841,7 @@
         brightDiv.style.opacity = '1';
         document.getElementById('brightnessSlider').disabled = false;
         ledLabel.innerText = '💡 灯光颜色 (LED Color)';
-        depthControl.classList.add('hidden'); // 默认隐藏宽度控制
+        depthControl.classList.add('hidden');
         
         // 恢复滑块默认标签
         frontLabel.innerHTML = '📏 正面厚度 (<span id="frontThicknessValue">' + frontThickness.toFixed(1) + '</span>)';
@@ -798,17 +864,10 @@
             ledLabel.innerText = '💡 灯光 (不可用)';
         }
         else if (glowMode === 'boxLight') {
-            // 方体灯箱模式
-            // 材质/Tint控制金属字 (启用)
-            // LED控制灯箱颜色 (启用)
-            
-            // 标签更名
             frontLabel.innerHTML = '📏 控制灯箱长 (<span id="frontThicknessValue">' + frontThickness.toFixed(1) + '</span>)';
             backLabel.innerHTML = '📏 控制灯箱高 (<span id="backThicknessValue">' + backThickness.toFixed(1) + '</span>)';
             frontDesc.innerText = 'X轴方向扩展';
             backDesc.innerText = 'Y轴方向扩展';
-            
-            // 显示宽度控制
             depthControl.classList.remove('hidden');
         }
     }
@@ -823,23 +882,29 @@
         document.getElementById('brightnessValue').textContent = `${Math.round(percent)}%`;
         
         if (glowMode === 'boxLight') {
-            // 灯箱模式：改变 backMeshes (存储的是box) 的发光
             backMeshes.forEach(obj => obj.material.emissiveIntensity = ledIntensity);
         } else if (glowMode === 'backGlow') {
             backMeshes.forEach(obj => obj.material.emissiveIntensity = ledIntensity);
         } else {
             frontMeshes.forEach(obj => obj.material.emissiveIntensity = ledIntensity);
         }
+        
+        // 更新流水灯像素点亮度
+        ledPixels.forEach(pixel => {
+            if (pixel.material.emissiveIntensity !== undefined) {
+                pixel.material.emissiveIntensity = ledIntensity;
+            }
+        });
     }
 
     document.getElementById('brightnessSlider').addEventListener('input', (e) => updateBrightness(e.target.value));
     
     document.getElementById('ledColorPicker').addEventListener('input', (e) => {
-         isRGBGlow = false; 
+        isRGBGlow = false; 
+        isFlowRGB = false; // 关闭流水灯
         const col = new THREE.Color(e.target.value);
         
         if (glowMode === 'boxLight') {
-            // 灯箱：改变 Box 颜色 (Box 存储在 backMeshes)
             backMeshes.forEach(obj => { 
                 obj.material.color.copy(col); 
                 obj.material.emissive.copy(col); 
@@ -855,6 +920,14 @@
                 frontMeshes.forEach(obj => { obj.material.color.copy(col); obj.material.emissive.copy(col); });
             }
         }
+        
+        // 更新LED像素点颜色
+        ledPixels.forEach(pixel => {
+            pixel.material.color.copy(col);
+            if (pixel.material.emissive) {
+                pixel.material.emissive.copy(col);
+            }
+        });
     });
 
     document.getElementById('frontColorPicker').addEventListener('input', (e) => {
@@ -863,7 +936,6 @@
         if (glowMode === 'acrylicCut') return;
         
         if (glowMode === 'boxLight') {
-            // 灯箱：改变内部金属字 (存储在 frontMeshes)
             frontMeshes.forEach(obj => {
                 obj.material.dispose();
                 obj.material = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
@@ -905,35 +977,32 @@
                 currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xc07c51;
             } else if (type === 'copper_mirror') {
                 currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xc07c51;
+            } else if (type === 'silver_brushed') {
+                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xe0e0e0;
+            } else if (type === 'silver_mirror') {
+                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xe0e0e0;
+            } else if (type === 'rosegold_brushed') {
+                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xb76e79;
+            } else if (type === 'rosegold_mirror') {
+                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xb76e79;
+            } else if (type === 'gold_brushed') {
+                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xffd700;
+            } else if (type === 'gold_mirror') {
+                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xffd700;
+            } else if (type === 'black_brushed') {
+                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0x333333;
+            } else if (type === 'black_mirror') {
+                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0x333333;
+            } else if (type === 'brown_brushed') {
+                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0x8b4513;
+            } else if (type === 'brown_mirror') {
+                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0x8b4513;
             }
-
-            else if (type === 'silver_brushed') {
-    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xe0e0e0;
-} else if (type === 'silver_mirror') {
-    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xe0e0e0;
-} else if (type === 'rosegold_brushed') {
-    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xb76e79;
-} else if (type === 'rosegold_mirror') {
-    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xb76e79;
-} else if (type === 'gold_brushed') {
-    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xffd700;
-} else if (type === 'gold_mirror') {
-    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xffd700;
-} else if (type === 'black_brushed') {
-    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0x333333;
-} else if (type === 'black_mirror') {
-    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0x333333;
-} else if (type === 'brown_brushed') {
-    currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0x8b4513;
-} else if (type === 'brown_mirror') {
-    currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0x8b4513;
-}
 
             const hexColor = '#' + new THREE.Color(currentTintColor).getHexString();
             document.getElementById('frontColorPicker').value = hexColor;
 
             if (glowMode === 'boxLight') {
-                // 灯箱内部金属字
                 frontMeshes.forEach(obj => {
                     obj.material.dispose();
                     obj.material = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
@@ -962,7 +1031,6 @@
         updateUIState(); 
         generate3DText(document.getElementById('textInput').value, true);
         
-        // 恢复亮度显示
         if (glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
             updateBrightness(document.getElementById('brightnessSlider').value);
         }
@@ -974,8 +1042,6 @@
         const val = parseFloat(e.target.value);
         frontSpan.textContent = val.toFixed(1);
         frontThickness = val;
-        // 实时更新 geometry 需要重新生成，为了性能如果是boxLight只缩放Mesh可能更好，
-        // 但为了简单统一，直接调用 generate3DText
         generate3DText(document.getElementById('textInput').value, false);
     });
 
@@ -988,7 +1054,7 @@
         generate3DText(document.getElementById('textInput').value, false);
     });
     
-    // 新增：灯箱宽度滑块
+    // 灯箱宽度滑块
     const depthSlider = document.getElementById('depthSlider');
     const depthSpan = document.getElementById('depthValue');
     depthSlider.addEventListener('input', (e) => {
@@ -1032,6 +1098,43 @@
         loadFontAndGenerate(selected, currentText, true);
     });
 
+    // 颜色方块点击事件
+   document.querySelectorAll('.color-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+        if (glowMode === 'metalCut') return;
+
+        // 移除所有色块的active状态
+        document.querySelectorAll('.color-swatch').forEach(s => {
+            s.classList.remove('active', 'marquee-active');
+        });
+        
+        // 给当前点击的色块添加active状态
+        swatch.classList.add('active');
+
+        const color = swatch.dataset.color;
+
+        if (color === 'FLOWRGB') {
+            // 开启RGBW流水灯 - 给色块加跑马灯激活状态
+            swatch.classList.add('marquee-active');
+            isFlowRGB = true;
+            isRGBGlow = false;
+        } else if (color === 'RGB') {
+            // 开启RGB呼吸灯 - 给色块加跑马灯激活状态
+            swatch.classList.add('marquee-active');
+            isRGBGlow = true;
+            isFlowRGB = false;
+        } else {
+            // 普通颜色 - 关闭所有动态效果
+            isFlowRGB = false;
+            isRGBGlow = false;
+
+            const picker = document.getElementById('ledColorPicker');
+            picker.value = color;
+            picker.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+});
+
     // 初始化
     updateUIState();
     loadFontAndGenerate('helvetiker', document.getElementById('textInput').value, true);
@@ -1058,43 +1161,77 @@
         }
     }
 
-   function animate() { 
-    requestAnimationFrame(animate); 
-    controls.update(); 
+    function animate() { 
+        requestAnimationFrame(animate); 
+        controls.update(); 
+        
+        // RGBW流水灯效果
+        if (isFlowRGB && ledPixels.length > 0) {
+            flowTime += 0.04 * flowDirection;
 
-    // ====== 新增：处理 RGB 动态灯效 ======
-    if (isRGBGlow && glowMode !== 'metalCut') {
-        rgbHue += 0.002; // 调整这个数值可以改变变色速度
-        if (rgbHue > 1) rgbHue = 0;
-        
-        const dynamicColor = new THREE.Color().setHSL(rgbHue, 1.0, 0.5);
-        
-        if (glowMode === 'boxLight') {
-            backMeshes.forEach(obj => { 
-                obj.material.color.copy(dynamicColor); 
-                obj.material.emissive.copy(dynamicColor); 
+            // 到达边界时反向
+            if (flowTime > 10 || flowTime < -10) {
+                flowDirection *= -1;
+            }
+
+            // 更新每个像素点的颜色
+            ledPixels.forEach((pixel, index) => {
+                // 计算相位，创建流动效果
+                const phase = flowTime + index * 0.3;
+                
+                // RGBW颜色计算（使用正弦函数生成平滑的颜色过渡）
+                const r = Math.sin(phase) * 0.5 + 0.5;
+                const g = Math.sin(phase + 2) * 0.5 + 0.5;
+                const b = Math.sin(phase + 4) * 0.5 + 0.5;
+                const w = Math.abs(Math.sin(phase + 1)) * 0.5 + 0.3; // 白色通道
+                
+                // 混合RGBW颜色
+                const color = new THREE.Color(
+                    r * (1 - w) + w, 
+                    g * (1 - w) + w, 
+                    b * (1 - w) + w
+                );
+                
+                pixel.material.color.copy(color);
+                if (pixel.material.emissive) {
+                    pixel.material.emissive.copy(color);
+                }
             });
-        } else if (glowMode === 'acrylicCut') {
-            if (singleMesh) singleMesh.material.color.copy(dynamicColor);
-        } else if (glowMode === 'backGlow') {
-            backMeshes.forEach(obj => { obj.material.color.copy(dynamicColor); obj.material.emissive.copy(dynamicColor); });
-        } else {
-            frontMeshes.forEach(obj => { obj.material.color.copy(dynamicColor); obj.material.emissive.copy(dynamicColor); });
         }
+        
+        // RGB呼吸灯效果
+        if (isRGBGlow && glowMode !== 'metalCut') {
+            rgbHue += 0.002;
+            if (rgbHue > 1) rgbHue = 0;
+            
+            const dynamicColor = new THREE.Color().setHSL(rgbHue, 1.0, 0.5);
+            
+            if (glowMode === 'boxLight') {
+                backMeshes.forEach(obj => { 
+                    obj.material.color.copy(dynamicColor); 
+                    obj.material.emissive.copy(dynamicColor); 
+                });
+            } else if (glowMode === 'acrylicCut') {
+                if (singleMesh) singleMesh.material.color.copy(dynamicColor);
+            } else if (glowMode === 'backGlow') {
+                backMeshes.forEach(obj => { obj.material.color.copy(dynamicColor); obj.material.emissive.copy(dynamicColor); });
+            } else {
+                frontMeshes.forEach(obj => { obj.material.color.copy(dynamicColor); obj.material.emissive.copy(dynamicColor); });
+            }
+        }
+
+        // 后处理渲染
+        const originalBg = scene.background;
+        scene.background = new THREE.Color(0x000000);
+
+        scene.traverse(darkenNonBloomed);
+        bloomComposer.render();
+
+        scene.traverse(restoreMaterial);
+        scene.background = originalBg;
+
+        finalComposer.render();
     }
-    // =====================================
-
-    const originalBg = scene.background;
-    scene.background = new THREE.Color(0x000000);
-
-    scene.traverse(darkenNonBloomed);
-    bloomComposer.render();
-
-    scene.traverse(restoreMaterial);
-    scene.background = originalBg;
-
-    finalComposer.render();
-}
 
     window.addEventListener('resize', () => {
         camera.aspect = container.clientWidth / container.clientHeight;
@@ -1105,28 +1242,6 @@
     });
     
     animate();
-    // 颜色方块点击事件
-// 颜色方块点击事件
-// 颜色方块点击事件
-document.querySelectorAll('.color-swatch').forEach(swatch => {
-    swatch.addEventListener('click', () => {
-        // 金属字模式下不允许更改灯光颜色
-        if (glowMode === 'metalCut') return;
-
-        const color = swatch.dataset.color;
-        
-        if (color === 'RGB') {
-            isRGBGlow = true; // 开启 RGB 动态效果
-        } else {
-            isRGBGlow = false; // 关闭 RGB 动态效果
-            const picker = document.getElementById('ledColorPicker');
-            picker.value = color;
-            picker.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    });
-});
 </script>
-<!-- <script src="auth.js"></script> -->
-
 </body>
 </html>
