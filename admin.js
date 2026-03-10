@@ -29,13 +29,12 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- 工具：数据读取与解析 ---
 function getData() {
     const indexPath = path.join(__dirname, 'index.html');
     const detailPath = path.join(__dirname, 'detail.html');
     
     if (!fs.existsSync(indexPath)) fs.writeFileSync(indexPath, 'const models = [\n/* === 自动插入点：新产品数组 === */\n];');
-    if (!fs.existsSync(detailPath)) fs.writeFileSync(detailPath, 'const parts = {\n/* === 自动插入点：新模型数据 === */\n};');
+    if (!fs.existsSync(detailPath)) fs.writeFileSync(detailPath, 'const NOTES_DB = {\n/* === 自动插入点：注意事项 === */\n};\nconst parts = {\n/* === 自动插入点：新模型数据 === */\n};');
 
     const indexContent = fs.readFileSync(indexPath, 'utf8');
     const detailContent = fs.readFileSync(detailPath, 'utf8');
@@ -92,13 +91,11 @@ function parsePartsForId(id, detailContent) {
     return parts;
 }
 
-// --- 首页 ---
 app.get('/', (req, res) => {
     const { products, detailContent } = getData();
     
     const listHtml = products.map(p => {
         const parts = parsePartsForId(p.id, detailContent);
-        // 新增 transparent 计数器
         const typeCounters = { front: 0, back: 0, plate: 0, led: 0, fixed: 0, transparent: 0 };
         
         const tagsHtml = parts.map(part => {
@@ -110,7 +107,7 @@ app.get('/', (req, res) => {
             if(t === 'front') colorClass = 'tag-blue';
             if(t === 'plate') colorClass = 'tag-green';
             if(t === 'back') colorClass = 'tag-red';
-            if(t === 'transparent') colorClass = 'tag-cyan'; // 为半透增加青色标签
+            if(t === 'transparent') colorClass = 'tag-cyan';
 
             const label = t.charAt(0).toUpperCase() + typeCounters[t];
             return `<div class="file-tag ${colorClass}" title="文件名: ${part.file} (${part.type})">${label}</div>`;
@@ -135,26 +132,13 @@ app.get('/', (req, res) => {
 
     res.send(getBaseHtml(`
         <style>
-        
-.change-toggle { font-size: 11px; color: #f39c12; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+            .change-toggle { font-size: 11px; color: #f39c12; display: flex; align-items: center; gap: 3px; cursor: pointer; }
             .upload-zone { border: 1px dashed #444; padding: 10px; border-radius: 4px; background: #0f0f0f; transition: 0.3s; }
             .upload-zone:hover { border-color: #666; background: #1a1a1a; }
             .file-preview-box { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; min-height: 5px; }
-            .file-chip { 
-                background: #222; border: 1px solid #444; color: #ccc; 
-                padding: 4px 8px; border-radius: 4px; font-size: 11px; 
-                display: flex; align-items: center; gap: 6px; 
-                animation: fadeIn 0.2s;
-            }
-            .file-chip span { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .chip-del { color: #e74c3c; cursor: pointer; font-weight: bold; padding: 0 2px; transition: 0.2s; }
-            .chip-del:hover { color: #ff6b6b; transform: scale(1.2); }
-            .btn-select-file {
-                background: #333; color: #fff; border: 1px solid #555;
-                padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px;
-            }
-            .btn-select-file:hover { background: #444; }
-            @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+            .file-chip { background: #222; border: 1px solid #444; color: #ccc; padding: 4px 8px; border-radius: 4px; font-size: 11px; display: flex; align-items: center; gap: 6px; }
+            .chip-del { color: #e74c3c; cursor: pointer; font-weight: bold; padding: 0 2px; }
+            .btn-select-file { background: #333; color: #fff; border: 1px solid #555; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
         </style>
 
         <div class="box">
@@ -167,21 +151,25 @@ app.get('/', (req, res) => {
                     <label>封面图 (必填):</label>
                     <input type="file" name="imageFile" accept="image/*" required>
                 </div>
+                
+                <div style="margin: 10px 0; background: #1a1a1a; padding: 10px; border: 1px solid #333; border-radius: 4px;">
+                    <label style="color:#f39c12;">📝 注意事项图片 (最多可选2张):</label>
+                    <input type="file" name="notesImage" accept="image/*" multiple style="margin-top:5px; width:100%;">
+                    <div style="font-size:11px; color:#888; margin-top:5px;">按住 Ctrl / Cmd 键可同时选择两张图片</div>
+                </div>
 
                 <div class="file-grid">
-                    <!-- 新增 transparent 上传区 -->
                     ${['front', 'back', 'plate', 'led', 'fixed', 'transparent'].map(type => `
                         <div class="upload-zone" id="zone-${type}">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <label style="text-transform: capitalize; font-weight:bold; color:#aaa;">${type}</label>
                                 <input type="file" name="${type}" id="input-${type}" multiple style="display:none" onchange="handleFileSelect('${type}')">
-                                <button type="button" class="btn-select-file" onclick="document.getElementById('input-${type}').click()">+ 添加文件</button>
+                                <button type="button" class="btn-select-file" onclick="document.getElementById('input-${type}').click()">+ 添加</button>
                             </div>
                             <div class="file-preview-box" id="preview-${type}"></div>
                         </div>
                     `).join('')}
                 </div>
-                
                 <br>
                 <button type="submit" class="btn-main">执行一键上架</button>
             </form>
@@ -190,83 +178,62 @@ app.get('/', (req, res) => {
         <div class="box"><h3>📦 现有资产列表</h3>${listHtml || '<p>暂无产品</p>'}</div>
 
         <script>
-            // 状态机扩充 transparent
-            const fileStores = {
-                front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer(), transparent: new DataTransfer()
-            };
-
+            const fileStores = { front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer(), transparent: new DataTransfer() };
             function handleFileSelect(type) {
-                const input = document.getElementById('input-' + type);
-                const files = input.files;
-                for (let i = 0; i < files.length; i++) {
-                    fileStores[type].items.add(files[i]);
-                }
+                const files = document.getElementById('input-' + type).files;
+                for (let i = 0; i < files.length; i++) fileStores[type].items.add(files[i]);
                 updateInputAndPreview(type);
             }
-
             function removeFile(type, index) {
                 const newDt = new DataTransfer();
                 const oldFiles = fileStores[type].files;
-                for (let i = 0; i < oldFiles.length; i++) {
-                    if (i !== index) newDt.items.add(oldFiles[i]);
-                }
+                for (let i = 0; i < oldFiles.length; i++) if (i !== index) newDt.items.add(oldFiles[i]);
                 fileStores[type] = newDt;
                 updateInputAndPreview(type);
             }
-
             function updateInputAndPreview(type) {
                 const input = document.getElementById('input-' + type);
                 const previewBox = document.getElementById('preview-' + type);
                 input.files = fileStores[type].files;
                 previewBox.innerHTML = '';
-                const files = fileStores[type].files;
-
-                if (files.length === 0) {
-                    previewBox.innerHTML = '<span style="font-size:10px; color:#444; padding:4px;">未选择文件</span>';
-                    return;
-                }
-
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
+                if (fileStores[type].files.length === 0) { previewBox.innerHTML = '<span style="font-size:10px; color:#444;">未选择文件</span>'; return; }
+                Array.from(fileStores[type].files).forEach((file, i) => {
                     const chip = document.createElement('div');
                     chip.className = 'file-chip';
                     chip.innerHTML = \`<span>\${file.name}</span><span class="chip-del" onclick="removeFile('\${type}', \${i})">×</span>\`;
                     previewBox.appendChild(chip);
-                }
+                });
             }
-            // 扩充迭代初始化
             ['front', 'back', 'plate', 'led', 'fixed', 'transparent'].forEach(t => updateInputAndPreview(t));
         </script>
     `));
 });
 
-// --- 编辑页 ---
 app.get('/edit/:id', (req, res) => {
     const id = req.params.id;
     const { products, detailContent } = getData();
     const product = products.find(p => p.id === id);
     if (!product) return res.status(404).send('未找到产品');
 
+    // 解析现有的多个注意事项图片
+    const notesRegex = new RegExp(`"${id}":\\s*"([^"]+)",?\\s*//notes`);
+    const notesMatch = detailContent.match(notesRegex);
+    const currentNotesStr = notesMatch ? notesMatch[1] : null;
+    const currentNoteImages = currentNotesStr ? currentNotesStr.split('|') : [];
+
     const allParts = parsePartsForId(id, detailContent);
-    // 新增 transparent 数组
     const groups = { front: [], back: [], plate: [], led: [], fixed: [], transparent: [] };
-    allParts.forEach(p => {
-        if (groups[p.type]) groups[p.type].push(p);
-    });
+    allParts.forEach(p => { if (groups[p.type]) groups[p.type].push(p); });
 
     const renderGroup = (type, list) => {
         const count = list.length;
-        // 配置 transparent 的主题色
         const colorMap = { front: '#3498db', back: '#e74c3c', plate: '#2ecc71', led: '#f1c40f', fixed: '#95a5a6', transparent: '#00bcd4' };
         const color = colorMap[type] || '#ccc';
-        
         return `
         <details class="group-details" ${count > 0 ? 'open' : ''}>
             <summary class="group-summary" style="border-left: 4px solid ${color}">
-                <span style="font-weight:bold; color:${color}">${type.toUpperCase()}</span>
-                <span class="badge" style="background:${color}">${count}</span>
+                <span style="font-weight:bold; color:${color}">${type.toUpperCase()}</span><span class="badge" style="background:${color}">${count}</span>
             </summary>
-            
             <div class="group-content">
                 ${list.map((p, i) => `
                     <div class="part-row">
@@ -276,68 +243,42 @@ app.get('/edit/:id', (req, res) => {
                                 <div class="file-name" title="${p.file}">${p.file}</div>
                                 <input type="hidden" name="old_${type}_${i}" value="${p.file}">
                                 <div style="display:flex; align-items:center; gap:5px; margin-top:2px;">
-                                    <span style="font-size:10px; color:#555;">替换:</span>
-                                    <input type="file" name="replace_${type}_${i}" class="mini-file-input">
+                                    <span style="font-size:10px; color:#555;">替换:</span><input type="file" name="replace_${type}_${i}" class="mini-file-input">
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="part-controls">
                             <div class="control-row">
-                                ${type === 'plate' ? `
-                                    <label class="emissive-toggle"><input type="checkbox" name="emissive_${type}_${i}" ${p.isEmissive ? 'checked' : ''}> 💡</label>
-                                ` : ''}
-                                ${type === 'back' ? `
-                                    <label class="texture-toggle"><input type="checkbox" name="texture_${type}_${i}" ${p.isTexture ? 'checked' : ''}> 🎨</label>
-                                ` : ''}
+                                ${type === 'plate' ? `<label class="emissive-toggle"><input type="checkbox" name="emissive_${type}_${i}" ${p.isEmissive ? 'checked' : ''}> 💡</label>` : ''}
+                                ${type === 'back' ? `<label class="texture-toggle"><input type="checkbox" name="texture_${type}_${i}" ${p.isTexture ? 'checked' : ''}> 🎨</label>` : ''}
                                 <label class="delete-toggle"><input type="checkbox" name="delete_${type}_${i}"> 🗑️</label>
-                                 ${type === 'front' ? `
-      <label class="change-toggle" title="允许换材质">
-          <!-- 注意：name 去掉 new_ 前缀，并增加了 checked 判断 -->
-          <input type="checkbox" name="change_${type}_${i}" ${p.isChange ? 'checked' : ''}> 🔄
-      </label>
-  ` : ''}
-
+                                 ${type === 'front' ? `<label class="change-toggle"><input type="checkbox" name="change_${type}_${i}" ${p.isChange ? 'checked' : ''}> 🔄</label>` : ''}
                             </div>
-
                             <div class="move-group">
-                                <select name="axis_${type}_${i}">
-                                    <option value="x" ${p.axis==='x'?'selected':''}>X</option>
-                                    <option value="y" ${p.axis==='y'?'selected':''}>Y</option>
-                                    <option value="z" ${p.axis==='z'?'selected':''}>Z</option>
-                                </select>
+                                <select name="axis_${type}_${i}"><option value="x" ${p.axis==='x'?'selected':''}>X</option><option value="y" ${p.axis==='y'?'selected':''}>Y</option><option value="z" ${p.axis==='z'?'selected':''}>Z</option></select>
                                 <input type="number" name="dist_${type}_${i}" value="${p.dist}">
                             </div>
                         </div>
                     </div>
                 `).join('')}
-                
                 <div id="new-rows-container-${type}"></div>
-
                 <div class="append-section">
-                    <div class="append-trigger" onclick="document.getElementById('append-input-${type}').click()">
-                        <span>➕ 追加到 ${type}</span>
-                    </div>
+                    <div class="append-trigger" onclick="document.getElementById('append-input-${type}').click()"><span>➕ 追加到 ${type}</span></div>
                     <input type="file" id="append-input-${type}" name="append_${type}" multiple style="display:none" onchange="handleAppendSelect('${type}')">
                 </div>
             </div>
-        </details>
-        `;
+        </details>`;
     };
 
     res.send(getBaseHtml(`
         <style>
             .append-section { margin-top: 10px; border-top: 1px dashed #333; padding-top: 8px; }
-            .append-trigger { 
-                background: #111; color: #888; border: 1px dashed #444; 
-                text-align: center; padding: 8px; border-radius: 4px; cursor: pointer; 
-                font-size: 12px; transition: 0.2s; 
-            }
+            .append-trigger { background: #111; color: #888; border: 1px dashed #444; text-align: center; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
             .append-trigger:hover { background: #1a1a1a; color: #fff; border-color: #666; }
-            .part-row.new-added { background: #101a10; border-bottom: 1px solid #1e3a1e; animation: fadeIn 0.3s; }
+            .part-row.new-added { background: #101a10; border-bottom: 1px solid #1e3a1e; }
             .new-badge { font-size: 9px; background: #27ae60; color: #fff; padding: 1px 4px; border-radius: 2px; margin-right: 4px; }
+            .notes-edit-box { border: 1px solid #444; padding: 15px; border-radius: 6px; background: #111; margin-bottom: 20px; }
         </style>
-
         <div class="box" style="max-width: 700px;">
             <h2>⚙️ 配置中心: ${id}</h2>
             <form action="/update/${id}" method="post" enctype="multipart/form-data">
@@ -354,61 +295,56 @@ app.get('/edit/:id', (req, res) => {
                     </div>
                 </div>
 
+                <div class="notes-edit-box">
+                    <h4 style="margin: 0 0 10px 0; color: #f39c12;">📝 注意事项图片 (最多2张)</h4>
+                    ${currentNoteImages.length > 0 ? `
+                        <div style="display:flex; flex-direction: column; gap: 10px;">
+                            <div style="display:flex; gap: 10px;">
+                                ${currentNoteImages.map(img => `<img src="/${img}" style="height:60px; border-radius:4px; border:1px solid #555; object-fit: cover;">`).join('')}
+                            </div>
+                            <div>
+                                <label class="delete-toggle" style="margin-bottom:8px;"><input type="checkbox" name="deleteNotes"> 🗑️ 勾选删除所有注意事项图</label>
+                                <div style="font-size:11px; color:#888;">或者重新上传覆盖（可多选）：</div>
+                                <input type="file" name="newNotesImage" accept="image/*" multiple class="mini-file-input">
+                                <input type="hidden" name="oldNotesImage" value="${currentNotesStr}">
+                            </div>
+                        </div>
+                    ` : `
+                        <input type="file" name="newNotesImage" accept="image/*" multiple style="width:100%;">
+                        <div style="font-size:11px; color:#888; margin-top:5px;">按住 Ctrl / Cmd 键可同时选择最多 2 张图片</div>
+                    `}
+                </div>
+
                 <h3 style="margin: 20px 0 10px; color:#f39c12; border-bottom:1px solid #333; padding-bottom:5px;">📂 部件分组管理</h3>
-                
-                <!-- 扩充渲染透明组 -->
                 ${['front', 'back', 'plate', 'led', 'fixed', 'transparent'].map(t => renderGroup(t, groups[t])).join('')}
-                
                 <div class="sticky-footer">
                     <button type="submit" class="btn-main">💾 保存所有配置</button>
                     <button type="button" onclick="location.href='/'" class="btn-sec">取消</button>
                 </div>
             </form>
         </div>
-
         <script>
-            // 追加扩充 transparent 数据流
-            const appendStores = {
-                front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer(), transparent: new DataTransfer()
-            };
-
+            const appendStores = { front: new DataTransfer(), back: new DataTransfer(), plate: new DataTransfer(), led: new DataTransfer(), fixed: new DataTransfer(), transparent: new DataTransfer() };
             function handleAppendSelect(type) {
-                const input = document.getElementById('append-input-' + type);
-                const files = input.files;
-                
-                for (let i = 0; i < files.length; i++) {
-                    appendStores[type].items.add(files[i]);
-                }
+                const files = document.getElementById('append-input-' + type).files;
+                for (let i = 0; i < files.length; i++) appendStores[type].items.add(files[i]);
                 renderNewRows(type);
-                input.files = appendStores[type].files;
+                document.getElementById('append-input-' + type).files = appendStores[type].files;
             }
-
             function removeAppendFile(type, index) {
                 const newDt = new DataTransfer();
                 const oldFiles = appendStores[type].files;
-                
-                for (let i = 0; i < oldFiles.length; i++) {
-                    if (i !== index) newDt.items.add(oldFiles[i]);
-                }
-                
+                for (let i = 0; i < oldFiles.length; i++) if (i !== index) newDt.items.add(oldFiles[i]);
                 appendStores[type] = newDt;
                 renderNewRows(type);
                 document.getElementById('append-input-' + type).files = appendStores[type].files;
             }
-
             function renderNewRows(type) {
                 const container = document.getElementById('new-rows-container-' + type);
                 const files = appendStores[type].files;
-                
                 let html = '';
-                
-                let defaultAxis = 'z';
-                let defaultDist = 0;
-                let defaultEmissive = false;
-                let defaultTexture = false;
-                
-                // transparent 也默认往前拆解
-                if (type === 'front' || type === 'transparent') { defaultDist = 20; }
+                let defaultAxis = 'z', defaultDist = 0, defaultEmissive = false, defaultTexture = false;
+                if (type === 'front' || type === 'transparent') defaultDist = 20;
                 if (type === 'back') { defaultDist = -20; defaultTexture = true; }
                 if (type === 'plate') { defaultDist = 10; defaultEmissive = true; }
 
@@ -416,35 +352,19 @@ app.get('/edit/:id', (req, res) => {
                     const file = files[i];
                     html += \`
                     <div class="part-row new-added">
-                        <div class="part-info">
-                            <span class="new-badge">NEW</span>
-                            <div style="overflow:hidden;">
-                                <div class="file-name" style="color:#2ecc71">\${file.name}</div>
-                            </div>
-                        </div>
-                        
+                        <div class="part-info"><span class="new-badge">NEW</span><div style="overflow:hidden;"><div class="file-name" style="color:#2ecc71">\${file.name}</div></div></div>
                         <div class="part-controls">
                             <div class="control-row">
-                                \${type === 'plate' ? \`
-                                    <label class="emissive-toggle"><input type="checkbox" name="new_emissive_\${type}_\${i}" \${defaultEmissive ? 'checked' : ''}> 💡</label>
-                                \` : ''}
-                                \${type === 'back' ? \`
-                                    <label class="texture-toggle"><input type="checkbox" name="new_texture_\${type}_\${i}" \${defaultTexture ? 'checked' : ''}> 🎨</label>
-                                \` : ''}
+                                \${type === 'plate' ? \`<label class="emissive-toggle"><input type="checkbox" name="new_emissive_\${type}_\${i}" \${defaultEmissive ? 'checked' : ''}> 💡</label>\` : ''}
+                                \${type === 'back' ? \`<label class="texture-toggle"><input type="checkbox" name="new_texture_\${type}_\${i}" \${defaultTexture ? 'checked' : ''}> 🎨</label>\` : ''}
                                 <span class="delete-toggle" onclick="removeAppendFile('\${type}', \${i})">❌ 取消</span>
                             </div>
-
                             <div class="move-group">
-                                <select name="new_axis_\${type}_\${i}">
-                                    <option value="x" \${defaultAxis==='x'?'selected':''}>X</option>
-                                    <option value="y" \${defaultAxis==='y'?'selected':''}>Y</option>
-                                    <option value="z" \${defaultAxis==='z'?'selected':''}>Z</option>
-                                </select>
+                                <select name="new_axis_\${type}_\${i}"><option value="x" \${defaultAxis==='x'?'selected':''}>X</option><option value="y" \${defaultAxis==='y'?'selected':''}>Y</option><option value="z" \${defaultAxis==='z'?'selected':''}>Z</option></select>
                                 <input type="number" name="new_dist_\${type}_\${i}" value="\${defaultDist}">
                             </div>
                         </div>
-                    </div>
-                    \`;
+                    </div>\`;
                 }
                 container.innerHTML = html;
             }
@@ -452,7 +372,6 @@ app.get('/edit/:id', (req, res) => {
     `));
 });
 
-// --- 更新逻辑 ---
 app.post('/update/:id', upload.any(), (req, res) => {
     const oldId = req.params.id;
     const { newId, newName, oldImage } = req.body;
@@ -474,25 +393,41 @@ app.post('/update/:id', upload.any(), (req, res) => {
     const indexRegex = new RegExp(`\\{ id: "${oldId}", name: "[^"]+", image: "[^"]+" \\}`, 'g');
     indexContent = indexContent.replace(indexRegex, `{ id: "${newId}", name: "${newName}", image: "${finalImg}" }`);
 
+    // 处理注意事项多图更新
+    const isDeleteNotes = req.body.deleteNotes === 'on';
+    const newNotesFiles = req.files.filter(f => f.fieldname === 'newNotesImage');
+    const oldNotesImage = req.body.oldNotesImage;
+    
+    // 清理旧纪录
+    detailContent = detailContent.replace(new RegExp(`"${oldId}":\\s*"[^"]*",?\\s*//notes\\n?`, 'g'), '');
+    
+    if (!isDeleteNotes) {
+        let finalNotesStr = oldNotesImage;
+        if (newNotesFiles && newNotesFiles.length > 0) {
+            // 限制最多处理2张图片
+            finalNotesStr = newNotesFiles.slice(0, 2).map(f => `images/${f.originalname}`).join('|');
+        }
+        if (finalNotesStr) {
+            detailContent = detailContent.replace('/* === 自动插入点：注意事项 === */', `"${newId}": "${finalNotesStr}", //notes\n        /* === 自动插入点：注意事项 === */`);
+        }
+    }
+
     let newParts = [];
-    // 增加处理 transparent 层
     const types = ['front', 'back', 'plate', 'led', 'fixed', 'transparent'];
 
     types.forEach(type => {
         for (let i = 0; i < 50; i++) {
             const oldFileKey = `old_${type}_${i}`;
             if (!req.body[oldFileKey]) continue; 
-
             const oldFile = req.body[oldFileKey];
             const isDelete = req.body[`delete_${type}_${i}`] === 'on';
             if (isDelete) {
                 try {
                     const filePath = path.join(__dirname, UPLOAD_DIR, newId, oldFile);
                     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-                } catch (e) { console.error("删除文件失败:", e); }
+                } catch (e) {}
                 continue; 
             }
-
             const axis = req.body[`axis_${type}_${i}`];
             const dist = parseInt(req.body[`dist_${type}_${i}`]);
             const isEmissive = req.body[`emissive_${type}_${i}`] === 'on';
@@ -514,16 +449,14 @@ app.post('/update/:id', upload.any(), (req, res) => {
                 const axis = req.body[`new_axis_${type}_${index}`] || 'z';
                 const distStr = req.body[`new_dist_${type}_${index}`];
                 const dist = distStr ? parseInt(distStr) : 0;
-                
                 const isEmissive = req.body[`new_emissive_${type}_${index}`] === 'on';
                 const isTexture = req.body[`new_texture_${type}_${index}`] === 'on';
                 const isChange = req.body[`new_change_${type}_${index}`] === 'on';
-
                 const moveStr = (dist === 0 || isNaN(dist)) ? "null" : `{ ${axis}: ${dist} }`;
                 let extraProps = "";
                 if (type === 'plate') extraProps += `, emissive: ${isEmissive ? 'true' : 'false'}`;
                 if (type === 'back') extraProps += `, texture: ${isTexture ? 'true' : 'false'}`;
-  if (type === 'front' && isChange) extraProps += `, change: true`;
+                if (type === 'front' && isChange) extraProps += `, change: true`;
                 newParts.push(`            { file: "${f.originalname}",  type: "${type}", move: ${moveStr}${extraProps} }`);
             });
         }
@@ -539,9 +472,7 @@ app.post('/update/:id', upload.any(), (req, res) => {
     res.send(`<script>alert("配置更新成功！"); location.href="/";</script>`);
 });
 
-// --- 上架逻辑 ---
-// Multer 增加接收 name: 'transparent'
-app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back'},{name:'plate'},{name:'led'},{name:'fixed'},{name:'transparent'}]), (req, res) => {
+app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back'},{name:'plate'},{name:'led'},{name:'fixed'},{name:'transparent'},{name:'notesImage'}]), (req, res) => {
     const { productId, productName } = req.body;
     const files = req.files || {};
     const imagePath = files.imageFile ? `images/${files.imageFile[0].originalname}` : "images/default.jpg";
@@ -561,12 +492,19 @@ app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back
     processFiles(files.led, 'led', 'null');
     processFiles(files.fixed, 'fixed', 'null');
     processFiles(files.back, 'back', '{ z: -20 }', ', texture: true'); 
-    // 处理上传时的 transparent 模型
     processFiles(files.transparent, 'transparent', '{ z: 20 }'); 
 
     const detailEntry = `"${productId}": [\n${partEntries.join(',\n')}\n        ],`;
     
     let { indexContent, detailContent } = getData();
+    
+    // 如果有多张注意事项图片，限制2张拼接起来
+    const notesFiles = files.notesImage;
+    if (notesFiles && notesFiles.length > 0) {
+        const notesStr = notesFiles.slice(0, 2).map(f => `images/${f.originalname}`).join('|');
+        detailContent = detailContent.replace('/* === 自动插入点：注意事项 === */', `"${productId}": "${notesStr}", //notes\n        /* === 自动插入点：注意事项 === */`);
+    }
+
     indexContent = indexContent.replace('/* === 自动插入点：新产品数组 === */', `/* === 自动插入点：新产品数组 === */\n            ${entry},`);
     detailContent = detailContent.replace('/* === 自动插入点：新模型数据 === */', `${detailEntry}\n        /* === 自动插入点：新模型数据 === */`);
     fs.writeFileSync(path.join(__dirname, 'index.html'), indexContent);
@@ -579,6 +517,7 @@ app.delete('/delete/:id', (req, res) => {
     let { indexContent, detailContent } = getData();
     indexContent = indexContent.replace(new RegExp(`\\{ id: "${id}",[^}]*\\},?\\n?`, 'g'), '');
     detailContent = detailContent.replace(new RegExp(`"${id}":\\s*\\[[\\s\\S]*?\\],?\\n?`, 'g'), '');
+    detailContent = detailContent.replace(new RegExp(`"${id}":\\s*"[^"]*",?\\s*//notes\\n?`, 'g'), '');
     fs.writeFileSync(path.join(__dirname, 'index.html'), indexContent);
     fs.writeFileSync(path.join(__dirname, 'detail.html'), detailContent);
     const dir = path.join(__dirname, UPLOAD_DIR, id);
@@ -606,7 +545,7 @@ function getBaseHtml(content) {
     .id-tag { font-size: 11px; color: #000; background: #f39c12; padding: 2px 6px; border-radius: 3px; font-weight:bold; margin-right:8px; }
     .name-text { font-size: 14px; color: #fff; font-weight: 500; }
     .tags-container { display: flex; gap: 4px; flex-wrap: wrap; }
-    .file-tag { font-size: 10px; padding: 2px 5px; border-radius: 2px; color: #fff; cursor: help; min-width:14px; text-align:center; }
+    .file-tag { font-size: 10px; padding: 2px 5px; border-radius: 2px; color: #fff; min-width:14px; text-align:center; }
     .tag-blue { background: #2980b9; } .tag-green { background: #27ae60; } .tag-red { background: #c0392b; } .tag-gray { background: #7f8c8d; } .tag-cyan { background: #00bcd4; }
     .group-details { background: #080808; margin-bottom: 10px; border-radius: 4px; overflow: hidden; border: 1px solid #222; }
     .group-summary { padding: 12px 15px; cursor: pointer; background: #111; list-style: none; display: flex; align-items: center; user-select: none; }
@@ -637,4 +576,4 @@ function getBaseHtml(content) {
     </head><body>${content}</body></html>`;
 }
 
-app.listen(3000, () => console.log('✅ UI 升级完成：支持 Transparent 类别！http://localhost:3000'));
+app.listen(3000, () => console.log('✅ UI 升级完成：支持多图轮播！http://localhost:3000'));
