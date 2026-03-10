@@ -411,7 +411,29 @@
     light.position.set(50, 100, 50);
     scene.add(light);
 
+    let flowTexture = null;
+
+function getFlowTexture() {
+    if (flowTexture) return flowTexture;
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 256, 0);
+    gradient.addColorStop(0, "red");
+    gradient.addColorStop(0.2, "yellow");
+    gradient.addColorStop(0.4, "lime");
+    gradient.addColorStop(0.6, "cyan");
+    gradient.addColorStop(0.8, "blue");
+    gradient.addColorStop(1, "red");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 256, 1);
     
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping; // 允许横向循环
+    flowTexture = tex;
+    return flowTexture;
+}
     // 材质创建系统 (升级为高级竖向拉丝版)
     // ==========================================
     const textureLoader = new THREE.TextureLoader();
@@ -628,7 +650,7 @@
             backMeshes.push(boxMesh); 
 
             // 创建流水灯像素点（用于RGBW流水效果）
-            createLEDMatrix(boxW, boxH, boxD);
+          
 
             // 更新亮度
             updateBrightness(document.getElementById('brightnessSlider').value);
@@ -706,8 +728,7 @@
             backMeshes.push(backMesh);
             
             // 创建流水灯像素点
-            createLEDMatrixFromText(frontGeo, frontZ, backZ);
-            
+         
             updateBrightness(document.getElementById('brightnessSlider').value);
         }
 
@@ -723,65 +744,10 @@
     }
 
     // 创建LED像素矩阵（用于流水灯效果）
-    function createLEDMatrix(boxW, boxH, boxD) {
-        ledPixels = [];
-        const pixelCount = 50; // 像素点数量
-        const pixelSize = 0.8; // 像素点大小
-        
-        // 创建水平排列的LED像素点
-        for (let i = 0; i < pixelCount; i++) {
-            const x = (i / (pixelCount - 1)) * boxW - boxW/2;
-            const y = 0;
-            const z = boxD/2 - 0.1; // 稍微向内偏移
-            
-            const geo = new THREE.PlaneGeometry(pixelSize, boxH * 0.8);
-            const mat = new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                transparent: true,
-                opacity: 0.8,
-                side: THREE.DoubleSide
-            });
-            
-            const pixel = new THREE.Mesh(geo, mat);
-            pixel.position.set(x, y, z);
-            pixel.layers.enable(BLOOM_SCENE); // 开启辉光
-            textGroup.add(pixel);
-            ledPixels.push(pixel);
-        }
-    }
+  
 
     // 为双层发光字创建LED像素矩阵
-    function createLEDMatrixFromText(textGeo, frontZ, backZ) {
-        ledPixels = [];
-        const pixelCount = 50; // 像素点数量
-        const pixelSize = 1.5; // 像素点大小
-        
-        // 获取文字边界
-        const textWidth = textGeo.boundingBox.max.x - textGeo.boundingBox.min.x;
-        const textHeight = textGeo.boundingBox.max.y - textGeo.boundingBox.min.y;
-        
-        // 创建水平排列的LED像素点
-        for (let i = 0; i < pixelCount; i++) {
-            const x = (i / (pixelCount - 1)) * textWidth - textWidth/2;
-            const y = 0;
-            const z = (frontZ + backZ) / 2; // 居中
-            
-            const geo = new THREE.PlaneGeometry(pixelSize, textHeight * 0.8);
-            const mat = new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                transparent: true,
-                opacity: 0.8,
-                side: THREE.DoubleSide
-            });
-            
-            const pixel = new THREE.Mesh(geo, mat);
-            pixel.position.set(x, y, z);
-            pixel.layers.enable(BLOOM_SCENE); // 开启辉光
-            textGroup.add(pixel);
-            ledPixels.push(pixel);
-        }
-    }
-
+   
     function centerAndFitCamera() {
         if (textGroup.children.length === 0) return;
         const box = new THREE.Box3().setFromObject(textGroup);
@@ -960,68 +926,40 @@
         }
     });
 
-    document.querySelectorAll('#materialOptions .material-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            if (glowMode === 'acrylicCut') return; 
+   // 颜色方块点击事件
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            if (glowMode === 'metalCut') return;
 
-            document.querySelectorAll('.material-btn').forEach(b => b.classList.remove('active'));
-            e.currentTarget.classList.add('active');
-            
-            const type = e.currentTarget.dataset.type;
-            
-            if (type === 'metal011') {
-                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xffffff;
-            } else if (type === 'metal049a') {
-                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xffffff;
-            } else if (type === 'copper_brushed') {
-                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xc07c51;
-            } else if (type === 'copper_mirror') {
-                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xc07c51;
-            } else if (type === 'silver_brushed') {
-                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xe0e0e0;
-            } else if (type === 'silver_mirror') {
-                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xe0e0e0;
-            } else if (type === 'rosegold_brushed') {
-                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xb76e79;
-            } else if (type === 'rosegold_mirror') {
-                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xb76e79;
-            } else if (type === 'gold_brushed') {
-                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0xffd700;
-            } else if (type === 'gold_mirror') {
-                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0xffd700;
-            } else if (type === 'black_brushed') {
-                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0x333333;
-            } else if (type === 'black_mirror') {
-                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0x333333;
-            } else if (type === 'brown_brushed') {
-                currentTexName = 'Metal011'; currentIsBrushed = true; currentTintColor = 0x8b4513;
-            } else if (type === 'brown_mirror') {
-                currentTexName = 'Metal049A'; currentIsBrushed = false; currentTintColor = 0x8b4513;
-            }
+            // 1. UI 状态切换
+            document.querySelectorAll('.color-swatch').forEach(s => {
+                s.classList.remove('active', 'marquee-active');
+            });
+            swatch.classList.add('active');
 
-            const hexColor = '#' + new THREE.Color(currentTintColor).getHexString();
-            document.getElementById('frontColorPicker').value = hexColor;
+            const color = swatch.dataset.color;
 
-            if (glowMode === 'boxLight') {
-                frontMeshes.forEach(obj => {
-                    obj.material.dispose();
-                    obj.material = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
-                });
-            } else if (glowMode === 'metalCut') {
-                if (singleMesh) {
-                    singleMesh.material.dispose();
-                    singleMesh.material = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
-                }
-            } else if (glowMode === 'backGlow') {
-                frontMeshes.forEach(obj => { 
-                    obj.material.dispose(); 
-                    obj.material = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor); 
-                });
-            } else {
-                backMeshes.forEach(obj => { 
-                    obj.material.dispose(); 
-                    obj.material = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor); 
-                });
+            // 2. 逻辑处理
+           if (color === 'FLOWRGB') {
+        swatch.classList.add('marquee-active');
+        isFlowRGB = true;
+        isRGBGlow = false;
+         backMeshes.concat(frontMeshes).forEach(m => {
+            m.material.needsUpdate = true;
+        });
+    } else {
+        isFlowRGB = false;
+        isRGBGlow = false;
+        // 切换回普通颜色时，清理发光贴图
+        backMeshes.concat(frontMeshes).forEach(m => {
+            if (m.material) m.material.emissiveMap = null;
+        });
+
+                // --- 修正：手动同步颜色选择器并触发更新 ---
+                const picker = document.getElementById('ledColorPicker');
+                picker.value = color; 
+                // 手动触发 input 事件以更新模型颜色
+                picker.dispatchEvent(new Event('input', { bubbles: true }));
             }
         });
     });
@@ -1114,10 +1052,10 @@
         const color = swatch.dataset.color;
 
         if (color === 'FLOWRGB') {
-            // 开启RGBW流水灯 - 给色块加跑马灯激活状态
-            swatch.classList.add('marquee-active');
-            isFlowRGB = true;
-            isRGBGlow = false;
+             swatch.classList.add('marquee-active');
+        isFlowRGB = true;
+        isRGBGlow = false;
+        updateBrightness(80); // 跑马灯通常需要高亮度
         } else if (color === 'RGB') {
             // 开启RGB呼吸灯 - 给色块加跑马灯激活状态
             swatch.classList.add('marquee-active');
@@ -1128,9 +1066,9 @@
             isFlowRGB = false;
             isRGBGlow = false;
 
-            const picker = document.getElementById('ledColorPicker');
-            picker.value = color;
-            picker.dispatchEvent(new Event('input', { bubbles: true }));
+              backMeshes.concat(frontMeshes).forEach(m => {
+            m.material.emissiveMap = null;
+        });
         }
     });
 });
@@ -1161,78 +1099,100 @@
         }
     }
 
-    function animate() { 
-        requestAnimationFrame(animate); 
+    let scanX = 0; // 全局扫描位置
+
+     function animate() { 
+          requestAnimationFrame(animate); 
         controls.update(); 
         
-        // RGBW流水灯效果
-        if (isFlowRGB && ledPixels.length > 0) {
-            flowTime += 0.04 * flowDirection;
+        if (isFlowRGB) {
+            flowTime += 0.015; 
 
-            // 到达边界时反向
-            if (flowTime > 10 || flowTime < -10) {
-                flowDirection *= -1;
-            }
+            let targetMeshes = (glowMode === 'frontGlow') ? frontMeshes : backMeshes;
+            if (glowMode === 'boxLight') targetMeshes = backMeshes;
 
-            // 更新每个像素点的颜色
-            ledPixels.forEach((pixel, index) => {
-                // 计算相位，创建流动效果
-                const phase = flowTime + index * 0.3;
-                
-                // RGBW颜色计算（使用正弦函数生成平滑的颜色过渡）
-                const r = Math.sin(phase) * 0.5 + 0.5;
-                const g = Math.sin(phase + 2) * 0.5 + 0.5;
-                const b = Math.sin(phase + 4) * 0.5 + 0.5;
-                const w = Math.abs(Math.sin(phase + 1)) * 0.5 + 0.3; // 白色通道
-                
-                // 混合RGBW颜色
-                const color = new THREE.Color(
-                    r * (1 - w) + w, 
-                    g * (1 - w) + w, 
-                    b * (1 - w) + w
-                );
-                
-                pixel.material.color.copy(color);
-                if (pixel.material.emissive) {
-                    pixel.material.emissive.copy(color);
+            targetMeshes.forEach(mesh => {
+                // 1. 初始化 Shader (只在第一次执行)
+                if (!mesh.material.userData.isCOBShader) {
+                    mesh.material.onBeforeCompile = (shader) => {
+                        shader.uniforms.uTime = { value: 0 };
+                        shader.uniforms.uIntensity = { value: 2.0 }; 
+
+                        shader.vertexShader = shader.vertexShader.replace('#include <common>', `
+                            #include <common>
+                            varying vec3 vWorldPos;
+                        `);
+                        shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>', `
+                            #include <worldpos_vertex>
+                            vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+                        `);
+
+                        shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `
+                            #include <common>
+                            varying vec3 vWorldPos;
+                            uniform float uTime;
+                            uniform float uIntensity;
+                            vec3 hsv2rgb(vec3 c) {
+                                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                            }
+                        `);
+
+                        shader.fragmentShader = shader.fragmentShader.replace('#include <dithering_fragment>', `
+                            #include <dithering_fragment>
+                            float hue = fract(vWorldPos.x * 0.02 - uTime * 0.5);
+                            vec3 rainbow = hsv2rgb(vec3(hue, 0.9, 1.0));
+                            gl_FragColor.rgb += rainbow * uIntensity;
+                        `);
+                        mesh.material.userData.shader = shader;
+                    };
+                    mesh.material.userData.isCOBShader = true;
+                }
+
+                // 2. 关键修复：确保每次进入模式都重置 Uniform 值
+                if (mesh.material.userData.shader) {
+                    mesh.material.userData.shader.uniforms.uTime.value = flowTime;
+                    mesh.material.userData.shader.uniforms.uIntensity.value = 2.0; // 强制设为发光
+                    
+                    // 额外优化：进入彩虹模式时，把原来的 emissive 颜色设为黑色
+                    // 否则如果你之前点了红色，彩虹会和红色混合
+                    mesh.material.emissive.set(0x000000); 
                 }
             });
-        }
-        
-        // RGB呼吸灯效果
-        if (isRGBGlow && glowMode !== 'metalCut') {
+        } else {
+            // 退出模式
+            const allMeshes = backMeshes.concat(frontMeshes);
+            allMeshes.forEach(m => {
+                if (m.material.userData.shader) {
+                    m.material.userData.shader.uniforms.uIntensity.value = 0;
+                    // 恢复亮度
+                    const baseBright = document.getElementById('brightnessSlider').value / 100 * 3.0;
+                    m.material.emissiveIntensity = baseBright;
+                }
+            });
+        } 
+        // --- 呼吸灯和其他逻辑保持不变 ---
+        if (isRGBGlow && !isFlowRGB && glowMode !== 'metalCut') {
             rgbHue += 0.002;
             if (rgbHue > 1) rgbHue = 0;
-            
             const dynamicColor = new THREE.Color().setHSL(rgbHue, 1.0, 0.5);
-            
-            if (glowMode === 'boxLight') {
-                backMeshes.forEach(obj => { 
-                    obj.material.color.copy(dynamicColor); 
-                    obj.material.emissive.copy(dynamicColor); 
-                });
-            } else if (glowMode === 'acrylicCut') {
-                if (singleMesh) singleMesh.material.color.copy(dynamicColor);
-            } else if (glowMode === 'backGlow') {
+            if (glowMode === 'boxLight' || glowMode === 'backGlow') {
                 backMeshes.forEach(obj => { obj.material.color.copy(dynamicColor); obj.material.emissive.copy(dynamicColor); });
-            } else {
+            } else if (glowMode === 'frontGlow') {
                 frontMeshes.forEach(obj => { obj.material.color.copy(dynamicColor); obj.material.emissive.copy(dynamicColor); });
             }
         }
 
-        // 后处理渲染
+        // 渲染...
         const originalBg = scene.background;
         scene.background = new THREE.Color(0x000000);
-
         scene.traverse(darkenNonBloomed);
         bloomComposer.render();
-
         scene.traverse(restoreMaterial);
         scene.background = originalBg;
-
         finalComposer.render();
     }
-
     window.addEventListener('resize', () => {
         camera.aspect = container.clientWidth / container.clientHeight;
         camera.updateProjectionMatrix();
