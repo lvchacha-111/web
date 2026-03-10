@@ -297,21 +297,14 @@
   <!-- 纵向拉伸倍率 (Scale Y) -->
 <div class="thickness-control">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <label>📏 字体高度（单位cm）</label>
-        <input type="number" id="yScaleInput" class="num-input" value="1.0" step="0.1">
-    </div>
-    <input type="range" id="yScaleSlider" min="0.5" max="3.0" step="0.1" value="1.0">
-    <div style="font-size:11px; color:#aaa;">仅拉伸高度，宽度/厚度不变</div>
-</div>
-
-<!-- 文字基准大小 (Size) -->
-<div class="thickness-control">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <label>📏 文字基准大小</label>
+        <label>📏 字体高度 (单位cm)</label>
         <input type="number" id="textSizeInput" class="num-input" value="26" step="1">
     </div>
     <input type="range" id="textSizeSlider" min="10" max="100" step="1" value="26">
+    <div style="font-size:11px; color:#aaa;">控制文字的整体显示高度</div>
 </div>
+
+
         <!-- 3. 灯箱宽 (新增) -->
         <div class="thickness-control hidden" id="depthControl">
             <label>📏 控制灯箱宽 (<span id="depthValue">10.0</span>)</label>
@@ -882,7 +875,44 @@ function getFlowTexture() {
             }
         });
     });
+// --- 材质切换逻辑 ---
+    document.querySelectorAll('.material-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // 1. 切换按钮的激活状态样式
+            document.querySelectorAll('.material-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
 
+            // 2. 获取点击的材质类型
+            const type = btn.dataset.type;
+            
+            // 3. 根据类型设置材质属性
+            // 判断是否为拉丝(brushed)还是镜面(mirror)
+            currentIsBrushed = type.includes('brushed') || type === 'metal011';
+            
+            // 设置基础纹理图名称
+            if (type.includes('mirror') || type === 'metal049a') {
+                currentTexName = 'Metal049A';
+            } else {
+                currentTexName = 'Metal011';
+            }
+
+            // 4. 特殊处理预设颜色的 Tint Color
+            const colorPicker = document.getElementById('frontColorPicker');
+            if (type.includes('copper')) colorPicker.value = '#c07c51';
+            else if (type.includes('gold')) colorPicker.value = '#ffd700';
+            else if (type.includes('silver')) colorPicker.value = '#e0e0e0';
+            else if (type.includes('rosegold')) colorPicker.value = '#b76e79';
+            else if (type.includes('black')) colorPicker.value = '#333333';
+            else if (type.includes('brown')) colorPicker.value = '#8b4513';
+            else colorPicker.value = '#ffffff';
+
+            // 同步全局颜色变量
+            currentTintColor = new THREE.Color(colorPicker.value);
+
+            // 5. 重新生成文字模型以应用新材质
+            generate3DText(document.getElementById('textInput').value, false);
+        });
+    });
     document.getElementById('frontColorPicker').addEventListener('input', (e) => {
         currentTintColor = new THREE.Color(e.target.value);
         
@@ -1103,27 +1133,8 @@ function getFlowTexture() {
     });
 });
 // --- 纵向拉伸倍率联动 (Scale Y) ---
-    const yScaleSlider = document.getElementById('yScaleSlider');
-    const yScaleInput = document.getElementById('yScaleInput');
-
-    yScaleSlider.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        if(yScaleInput) yScaleInput.value = val.toFixed(1); // 同步数字框
-        yScale = val;
-        generate3DText(document.getElementById('textInput').value, false);
-    });
-
-    if(yScaleInput) {
-        yScaleInput.addEventListener('change', (e) => {
-            let val = parseFloat(e.target.value);
-            if (isNaN(val)) val = 1.0;
-            val = Math.max(0.5, Math.min(3.0, val)); // 限制范围 0.5~3.0
-            yScaleInput.value = val.toFixed(1);
-            yScaleSlider.value = val; // 同步滑块
-            yScale = val;
-            generate3DText(document.getElementById('textInput').value, false);
-        });
-    }
+    
+  
 
     // --- 文字基准大小联动 (Size) ---
     const textSizeSlider = document.getElementById('textSizeSlider');
