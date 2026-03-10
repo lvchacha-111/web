@@ -113,7 +113,27 @@
         .thickness-control label {
             margin-top: 0;
         }
-
+/* 数字输入框的样式 */
+.num-input {
+    width: 50px;
+    background: #4a4a4a;
+    border: 1px solid #555;
+    color: #f39c12; /* 橙色文字 */
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 13px;
+    text-align: center;
+    outline: none;
+}
+/* 鼠标点击输入框时的效果 */
+.num-input:focus {
+    border-color: #f39c12;
+    background: #555;
+}
+/* 隐藏数字调节的小箭头（可选，为了美观） */
+.num-input::-webkit-inner-spin-button {
+    display: none;
+}
         /* 禁用状态的遮罩层 */
         .disabled-overlay { position: relative; opacity: 0.4; pointer-events: none; }
         .disabled-picker { opacity: 0.3; pointer-events: none; filter: grayscale(100%); }
@@ -253,29 +273,43 @@
             </div>
         </div>
 
-        <!-- 1. 正面厚度 / 灯箱长 -->
-        <div class="thickness-control">
-            <label id="frontLabel">📏 正面厚度 (<span id="frontThicknessValue">5.0</span>)</label>
-            <input type="range" id="frontThicknessSlider" min="0.5" max="25" step="0.1" value="5">
-            <div id="frontDesc" style="font-size:11px; color:#aaa;">向前凸起</div>
-        </div>
-
-        <!-- 2. 背面厚度 / 灯箱高 -->
-        <div class="thickness-control">
-            <label id="backLabel">📏 背面厚度 (<span id="backThicknessValue">5.0</span>)</label>
-            <input type="range" id="backThicknessSlider" min="0.5" max="25" step="0.1" value="5">
-            <div id="backDesc" style="font-size:11px; color:#aaa;">向后凸起</div>
-        </div>
-      <!-- 新增：纵向拉伸倍率 (只改变高度) -->
+     <!-- 1. 正面厚度 -->
 <div class="thickness-control">
-    <label>📏 纵向拉伸倍率 (Scale Y: <span id="yScaleValue">1.0</span>)</label>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label id="frontLabel" style="margin:0;">📏 正面厚度</label>
+        <!-- 将 span 换成了 input 框 -->
+        <input type="number" id="frontThicknessInput" class="num-input" value="5.0" step="0.1">
+    </div>
+    <input type="range" id="frontThicknessSlider" min="0.5" max="25" step="0.1" value="5">
+    <div id="frontDesc" style="font-size:11px; color:#aaa;">向前凸起</div>
+</div>
+
+<!-- 2. 背面厚度 -->
+<div class="thickness-control">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label id="backLabel" style="margin:0;">📏 背面厚度</label>
+        <!-- 将 span 换成了 input 框 -->
+        <input type="number" id="backThicknessInput" class="num-input" value="5.0" step="0.1">
+    </div>
+    <input type="range" id="backThicknessSlider" min="0.5" max="25" step="0.1" value="5">
+    <div id="backDesc" style="font-size:11px; color:#aaa;">向后凸起</div>
+</div>
+  <!-- 纵向拉伸倍率 (Scale Y) -->
+<div class="thickness-control">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label>📏 字体高度（单位cm）</label>
+        <input type="number" id="yScaleInput" class="num-input" value="1.0" step="0.1">
+    </div>
     <input type="range" id="yScaleSlider" min="0.5" max="3.0" step="0.1" value="1.0">
     <div style="font-size:11px; color:#aaa;">仅拉伸高度，宽度/厚度不变</div>
 </div>
 
-<!-- 文字基准大小 (如果要彻底锁定宽度，这个滑块可以保持在26) -->
+<!-- 文字基准大小 (Size) -->
 <div class="thickness-control">
-    <label>📏 文字基准大小 (Size: <span id="textSizeValue">26</span>)</label>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label>📏 文字基准大小</label>
+        <input type="number" id="textSizeInput" class="num-input" value="26" step="1">
+    </div>
     <input type="range" id="textSizeSlider" min="10" max="100" step="1" value="26">
 </div>
         <!-- 3. 灯箱宽 (新增) -->
@@ -394,15 +428,9 @@ let yScale = 1.0; // 纵向拉伸倍率
     bloomComposer.renderToScreen = false;
     bloomComposer.addPass(renderScene);
     bloomComposer.addPass(bloomPass);
-const textSizeSlider = document.getElementById('textSizeSlider');
-const textSizeSpan = document.getElementById('textSizeValue');
 
-textSizeSlider.addEventListener('input', (e) => {
-    const val = parseInt(e.target.value);
-    textSizeSpan.textContent = val;
-    textSize = val; // 更新外部变量
-    generate3DText(document.getElementById('textInput').value, false); // 重新生成，不重置相机
-});
+
+
     const mixPass = new ShaderPass(
         new THREE.ShaderMaterial({
             uniforms: {
@@ -769,8 +797,8 @@ function getFlowTexture() {
         depthControl.classList.add('hidden');
         
         // 恢复滑块默认标签
-        frontLabel.innerHTML = '📏 正面厚度 (<span id="frontThicknessValue">' + frontThickness.toFixed(1) + '</span>)';
-        backLabel.innerHTML = '📏 背面厚度 (<span id="backThicknessValue">' + backThickness.toFixed(1) + '</span>)';
+       frontLabel.innerText = '📏 正面厚度 (单位cm)';
+      backLabel.innerText = '📏 背面厚度 (单位cm)';
         frontDesc.innerText = '向前凸起';
         backDesc.innerText = '向后凸起';
 
@@ -933,36 +961,80 @@ function getFlowTexture() {
         }
     });
 
+   // --- 1. 正面厚度控制 (滑块 + 输入框) ---
     const frontSlider = document.getElementById('frontThicknessSlider');
-    const frontSpan = document.getElementById('frontThicknessValue');
+    const frontInput = document.getElementById('frontThicknessInput'); // 对应新HTML里的Input
+
     frontSlider.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value);
-        frontSpan.textContent = val.toFixed(1);
+        if(frontInput) frontInput.value = val.toFixed(1);
         frontThickness = val;
         generate3DText(document.getElementById('textInput').value, false);
     });
 
+    if(frontInput) {
+        frontInput.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) val = 5.0;
+            val = Math.max(0.5, Math.min(25, val)); // 限制范围
+            frontInput.value = val.toFixed(1);
+            frontSlider.value = val;
+            frontThickness = val;
+            generate3DText(document.getElementById('textInput').value, false);
+        });
+    }
+
+    // --- 2. 背面厚度控制 (滑块 + 输入框) ---
     const backSlider = document.getElementById('backThicknessSlider');
-    const backSpan = document.getElementById('backThicknessValue');
+    const backInput = document.getElementById('backThicknessInput');
+
     backSlider.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value);
-        backSpan.textContent = val.toFixed(1);
+        if(backInput) backInput.value = val.toFixed(1);
         backThickness = val;
         generate3DText(document.getElementById('textInput').value, false);
     });
-    
-    // 灯箱宽度滑块
+
+    if(backInput) {
+        backInput.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) val = 5.0;
+            val = Math.max(0.5, Math.min(25, val));
+            backInput.value = val.toFixed(1);
+            backSlider.value = val;
+            backThickness = val;
+            generate3DText(document.getElementById('textInput').value, false);
+        });
+    }
+
+    // --- 3. 灯箱深度控制 (针对 boxLight 模式) ---
     const depthSlider = document.getElementById('depthSlider');
-    const depthSpan = document.getElementById('depthValue');
+    const depthInput = document.getElementById('depthInput');
+
     depthSlider.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value);
-        depthSpan.textContent = val.toFixed(1);
+        if(depthInput) depthInput.value = val.toFixed(1);
         boxDepth = val;
         if (glowMode === 'boxLight') {
             generate3DText(document.getElementById('textInput').value, false);
         }
     });
 
+    if(depthInput) {
+        depthInput.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) val = 10.0;
+            val = Math.max(5, Math.min(40, val));
+            depthInput.value = val.toFixed(1);
+            depthSlider.value = val;
+            boxDepth = val;
+            if (glowMode === 'boxLight') {
+                generate3DText(document.getElementById('textInput').value, false);
+            }
+        });
+    }
+
+    // --- 4. 一键解体按钮 ---
     document.getElementById('decomposeBtn').addEventListener('click', () => {
         if (glowMode === 'acrylicCut' || glowMode === 'metalCut' || glowMode === 'boxLight') return; 
 
@@ -981,10 +1053,10 @@ function getFlowTexture() {
                 gsap.to(bMesh.position, { z: bMesh.userData.baseZ, duration: 1, ease: "power2.inOut" });
             }
         }
-        
         document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并' : '一键解体 (Explode)';
     });
 
+    // --- 5. 文字和字体输入监听 ---
     document.getElementById('textInput').addEventListener('input', (e) => {
         if (currentFont) generate3DText(e.target.value, true);
     });
@@ -994,7 +1066,6 @@ function getFlowTexture() {
         const currentText = document.getElementById('textInput').value;
         loadFontAndGenerate(selected, currentText, true);
     });
-
     // 颜色方块点击事件
    document.querySelectorAll('.color-swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
@@ -1031,16 +1102,58 @@ function getFlowTexture() {
         }
     });
 });
-document.getElementById('yScaleSlider').addEventListener('input', (e) => {
-    const val = parseFloat(e.target.value);
-    document.getElementById('yScaleValue').textContent = val.toFixed(1);
-    yScale = val;
-    generate3DText(document.getElementById('textInput').value, false);
-});
-    // 初始化
+// --- 纵向拉伸倍率联动 (Scale Y) ---
+    const yScaleSlider = document.getElementById('yScaleSlider');
+    const yScaleInput = document.getElementById('yScaleInput');
+
+    yScaleSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if(yScaleInput) yScaleInput.value = val.toFixed(1); // 同步数字框
+        yScale = val;
+        generate3DText(document.getElementById('textInput').value, false);
+    });
+
+    if(yScaleInput) {
+        yScaleInput.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) val = 1.0;
+            val = Math.max(0.5, Math.min(3.0, val)); // 限制范围 0.5~3.0
+            yScaleInput.value = val.toFixed(1);
+            yScaleSlider.value = val; // 同步滑块
+            yScale = val;
+            generate3DText(document.getElementById('textInput').value, false);
+        });
+    }
+
+    // --- 文字基准大小联动 (Size) ---
+    const textSizeSlider = document.getElementById('textSizeSlider');
+    const textSizeInput = document.getElementById('textSizeInput');
+
+    // 这里注意：要删掉你代码里之前可能存在的旧 textSizeSlider 监听器
+    if(textSizeSlider) {
+        textSizeSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if(textSizeInput) textSizeInput.value = val; // 同步数字框
+            textSize = val;
+            generate3DText(document.getElementById('textInput').value, false);
+        });
+    }
+
+    if(textSizeInput) {
+        textSizeInput.addEventListener('change', (e) => {
+            let val = parseInt(e.target.value);
+            if (isNaN(val)) val = 26;
+            val = Math.max(10, Math.min(100, val)); // 限制范围 10~100
+            textSizeInput.value = val;
+            textSizeSlider.value = val; // 同步滑块
+            textSize = val;
+            generate3DText(document.getElementById('textInput').value, false);
+        });
+    }
+
+    // --- 以下是原本就有的初始化代码，保持不动 ---
     updateUIState();
     loadFontAndGenerate('helvetiker', document.getElementById('textInput').value, true);
-
     // ==========================================
     // 渲染循环
     // ==========================================
