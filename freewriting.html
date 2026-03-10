@@ -266,7 +266,18 @@
             <input type="range" id="backThicknessSlider" min="0.5" max="25" step="0.1" value="5">
             <div id="backDesc" style="font-size:11px; color:#aaa;">向后凸起</div>
         </div>
-        
+      <!-- 新增：纵向拉伸倍率 (只改变高度) -->
+<div class="thickness-control">
+    <label>📏 纵向拉伸倍率 (Scale Y: <span id="yScaleValue">1.0</span>)</label>
+    <input type="range" id="yScaleSlider" min="0.5" max="3.0" step="0.1" value="1.0">
+    <div style="font-size:11px; color:#aaa;">仅拉伸高度，宽度/厚度不变</div>
+</div>
+
+<!-- 文字基准大小 (如果要彻底锁定宽度，这个滑块可以保持在26) -->
+<div class="thickness-control">
+    <label>📏 文字基准大小 (Size: <span id="textSizeValue">26</span>)</label>
+    <input type="range" id="textSizeSlider" min="10" max="100" step="1" value="26">
+</div>
         <!-- 3. 灯箱宽 (新增) -->
         <div class="thickness-control hidden" id="depthControl">
             <label>📏 控制灯箱宽 (<span id="depthValue">10.0</span>)</label>
@@ -326,7 +337,8 @@
     let singleMesh = null;   // 单体模式
     let isDecomposed = false;
     let textGroup = new THREE.Group();
-    
+    let textSize = 26; // 默认文字大小/高度
+let yScale = 1.0; // 纵向拉伸倍率
     // 场景基础
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -382,7 +394,15 @@
     bloomComposer.renderToScreen = false;
     bloomComposer.addPass(renderScene);
     bloomComposer.addPass(bloomPass);
+const textSizeSlider = document.getElementById('textSizeSlider');
+const textSizeSpan = document.getElementById('textSizeValue');
 
+textSizeSlider.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    textSizeSpan.textContent = val;
+    textSize = val; // 更新外部变量
+    generate3DText(document.getElementById('textInput').value, false); // 重新生成，不重置相机
+});
     const mixPass = new ShaderPass(
         new THREE.ShaderMaterial({
             uniforms: {
@@ -564,185 +584,124 @@ function getFlowTexture() {
     }
 
     // 生成3D文字
-    function generate3DText(textString, adjustCamera = true) {
-        if (!currentFont) {
-            loadFontAndGenerate('helvetiker', textString, adjustCamera);
-            return;
-        }
-
-        // 清空之前的模型
-        while(textGroup.children.length > 0){ 
-            const obj = textGroup.children[0];
-            if(obj.geometry) obj.geometry.dispose();
-            if(obj.material) {
-                if(Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-                else obj.material.dispose();
-            }
-            textGroup.remove(obj); 
-        }
-        
-        frontMeshes = [];
-        backMeshes = [];
-        singleMesh = null;
-        ledPixels = []; // 清空流水灯像素点
-
-        if (!textString.trim()) return;
-
-        // 模式: 方体灯箱 (Box Light)
-        if (glowMode === 'boxLight') {
-            const textThickness = 2; // 定义文字厚度
-            
-            // 1. 生成内部金属字 (实心)
-            const textOpts = {
-                font: currentFont, 
-                size: 26,
-                height: textThickness,
-                curveSegments: 6,
-                bevelEnabled: false, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3 // 修复拼写错误 flse -> false
-            };
-            const textGeo = new TextGeometry(textString, textOpts);
-            
-            // 居中文字
-            textGeo.computeBoundingBox();
-            const textWidth = textGeo.boundingBox.max.x - textGeo.boundingBox.min.x;
-            const textHeight = textGeo.boundingBox.max.y - textGeo.boundingBox.min.y;
-            const centerOffsetX = -0.5 * textWidth;
-            const centerOffsetY = -0.5 * textHeight;
-            
-            textGeo.translate(centerOffsetX, centerOffsetY, 0); 
-
-            // 2. 准备尺寸数据
-            const boxW = textWidth + (frontThickness * 4); // 宽度扩展 (Padding X)
-            const boxH = textHeight + (backThickness * 4); // 高度扩展 (Padding Y)
-            const boxD = boxDepth; // 深度 (Z轴厚度)
-
-            // 金属材质
-            const metalMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
-            const innerMesh = new THREE.Mesh(textGeo, metalMat);
-            
-            innerMesh.position.z = (boxD / 2) - 0.2; 
-            textGroup.add(innerMesh);
-            frontMeshes.push(innerMesh); 
-
-            // 3. 生成外部发光方体 (Box)
-            const boxGeo = new THREE.BoxGeometry(boxW, boxH, boxD);
-            
-            // 发光半透明材质
-            const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
-            const boxMat = new THREE.MeshPhysicalMaterial({
-                color: ledColor,
-                emissive: ledColor,
-                emissiveIntensity: 0, 
-                transmission: 0.6,    
-                opacity: 0.6,
-                transparent: true,
-                roughness: 0.2,
-                metalness: 0.1,
-                side: THREE.FrontSide
-            });
-
-            const boxMesh = new THREE.Mesh(boxGeo, boxMat);
-            boxMesh.position.set(0, 0, 0); // 盒子保持在中心
-            
-            // 开启辉光
-            boxMesh.layers.enable(BLOOM_SCENE);
-            textGroup.add(boxMesh);
-            backMeshes.push(boxMesh); 
-
-            // 创建流水灯像素点（用于RGBW流水效果）
-          
-
-            // 更新亮度
-            updateBrightness(document.getElementById('brightnessSlider').value);
-        }
-
-        // 模式: 单体 (亚克力 / 金属字)
-        else if (glowMode === 'acrylicCut' || glowMode === 'metalCut') {
-            const totalThickness = frontThickness + backThickness;
-            const opts = {
-                font: currentFont, 
-                size: 26,
-                height: totalThickness,
-                curveSegments: 6,
-                bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3
-            };
-            const geo = new TextGeometry(textString, opts);
-            
-            geo.computeBoundingBox();
-            const centerOffset = -0.5 * (geo.boundingBox.max.x - geo.boundingBox.min.x);
-            const centerY = -0.5 * (geo.boundingBox.max.y - geo.boundingBox.min.y);
-            geo.translate(centerOffset, centerY, 0);
-
-            const matType = glowMode;
-            let mat;
-            if (matType === 'acrylicCut') {
-                const col = new THREE.Color(document.getElementById('ledColorPicker').value);
-                mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.2, metalness: 0.0, side: THREE.DoubleSide });
-            } else {
-                mat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
-            }
-
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.z = -backThickness;
-            mesh.userData.baseZ = -backThickness;
-            textGroup.add(mesh);
-            singleMesh = mesh;
-        } 
-        
-        // 模式: 双层 (金属发光字)
-        else {
-            const isBackGlow = (glowMode === 'backGlow');
-            const frontOpts = { font: currentFont, size: 26, height: frontThickness, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3 };
-            const backOpts = { font: currentFont, size: 26, height: backThickness, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3 };
-            
-            const frontGeo = new TextGeometry(textString, frontOpts);
-            const backGeo = new TextGeometry(textString, backOpts);
-            
-            frontGeo.computeBoundingBox();
-            const centerOffset = -0.5 * (frontGeo.boundingBox.max.x - frontGeo.boundingBox.min.x);
-            const centerY = -0.5 * (frontGeo.boundingBox.max.y - frontGeo.boundingBox.min.y);
-            frontGeo.translate(centerOffset, centerY, 0);
-            backGeo.translate(centerOffset, centerY, 0);
-            frontGeo.computeBoundingBox();
-            backGeo.computeBoundingBox();
-
-            const frontZ = -frontGeo.boundingBox.min.z; 
-            const backZ = -backGeo.boundingBox.max.z;
-
-            const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
-            const ledMat = new THREE.MeshStandardMaterial({ color: ledColor, emissive: ledColor, emissiveIntensity: 0, toneMapped: false });
-            const capMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
-
-            const frontMesh = new THREE.Mesh(frontGeo, isBackGlow ? capMat : ledMat);
-            frontMesh.position.z = frontZ;
-            frontMesh.userData.baseZ = frontZ; 
-            if (!isBackGlow) frontMesh.layers.enable(BLOOM_SCENE);
-            textGroup.add(frontMesh);
-            frontMeshes.push(frontMesh);
-
-            const backMesh = new THREE.Mesh(backGeo, isBackGlow ? ledMat : capMat);
-            backMesh.position.z = backZ;
-            backMesh.userData.baseZ = backZ;
-            if (isBackGlow) backMesh.layers.enable(BLOOM_SCENE);
-            textGroup.add(backMesh);
-            backMeshes.push(backMesh);
-            
-            // 创建流水灯像素点
-         
-            updateBrightness(document.getElementById('brightnessSlider').value);
-        }
-
-        if (adjustCamera) {
-            centerAndFitCamera();
-        }
-
-        // 解体按钮逻辑
-        isDecomposed = false;
-        const isSingle = (glowMode === 'acrylicCut' || glowMode === 'metalCut' || glowMode === 'boxLight');
-        document.getElementById('decomposeBtn').disabled = isSingle;
-        document.getElementById('decomposeBtn').innerText = isSingle ? '不可解体 (Single Object)' : '一键解体 (Explode)';
+  function generate3DText(textString, adjustCamera = true) {
+    if (!currentFont) {
+        loadFontAndGenerate('helvetiker', textString, adjustCamera);
+        return;
     }
 
+    // 清理旧模型... (保持原有逻辑)
+    while(textGroup.children.length > 0){ 
+        const obj = textGroup.children[0];
+        if(obj.geometry) obj.geometry.dispose();
+        if(obj.material) {
+            if(Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+            else obj.material.dispose();
+        }
+        textGroup.remove(obj); 
+    }
+    
+    frontMeshes = [];
+    backMeshes = [];
+    singleMesh = null;
+    ledPixels = []; 
+
+    if (!textString.trim()) return;
+
+    // --- 这里修正：使用外部的 textSize 变量，而不是固定 26 ---
+    const commonOpts = {
+        font: currentFont, 
+        size: textSize, 
+        curveSegments: 6,
+        bevelEnabled: true,
+        bevelThickness: 0.5,
+        bevelSize: 0.3,
+        bevelOffset: 0,
+        bevelSegments: 3
+    };
+
+    if (glowMode === 'boxLight') {
+        const textGeo = new TextGeometry(textString, { ...commonOpts, height: 2, bevelEnabled: false });
+        textGeo.scale(1, yScale, 1); // 纵向拉伸
+        
+        textGeo.computeBoundingBox();
+        const tW = textGeo.boundingBox.max.x - textGeo.boundingBox.min.x;
+        const tH = textGeo.boundingBox.max.y - textGeo.boundingBox.min.y;
+        textGeo.translate(-0.5 * tW, -0.5 * tH, 0); 
+
+        const boxW = tW + (frontThickness * 4);
+        const boxH = tH + (backThickness * 4);
+        const boxD = boxDepth;
+
+        const metalMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
+        const innerMesh = new THREE.Mesh(textGeo, metalMat);
+        innerMesh.position.z = (boxD / 2) - 0.2; 
+        textGroup.add(innerMesh);
+        frontMeshes.push(innerMesh); 
+
+        const boxGeo = new THREE.BoxGeometry(boxW, boxH, boxD);
+        const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
+        const boxMat = new THREE.MeshPhysicalMaterial({
+            color: ledColor, emissive: ledColor, emissiveIntensity: 0, 
+            transmission: 0.6, opacity: 0.6, transparent: true, roughness: 0.2, metalness: 0.1
+        });
+        const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+        boxMesh.layers.enable(BLOOM_SCENE);
+        textGroup.add(boxMesh);
+        backMeshes.push(boxMesh);
+    } 
+    else if (glowMode === 'acrylicCut' || glowMode === 'metalCut') {
+        const geo = new TextGeometry(textString, { ...commonOpts, height: frontThickness + backThickness });
+        geo.scale(1, yScale, 1); // 纵向拉伸
+
+        geo.computeBoundingBox();
+        geo.translate(-0.5 * (geo.boundingBox.max.x - geo.boundingBox.min.x), -0.5 * (geo.boundingBox.max.y - geo.boundingBox.min.y), 0);
+
+        let mat = (glowMode === 'acrylicCut') ? new THREE.MeshStandardMaterial({color: document.getElementById('ledColorPicker').value, roughness:0.2}) : createBackMaterial(currentTexName, true, currentTintColor);
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.z = -backThickness;
+        mesh.userData.baseZ = -backThickness; // 记录位置
+        textGroup.add(mesh);
+        singleMesh = mesh;
+    } 
+    else {
+        // 双层发光字模式
+        const isBackGlow = (glowMode === 'backGlow');
+        const fGeo = new TextGeometry(textString, { ...commonOpts, height: frontThickness });
+        const bGeo = new TextGeometry(textString, { ...commonOpts, height: backThickness });
+        
+        fGeo.scale(1, yScale, 1);
+        bGeo.scale(1, yScale, 1);
+
+        fGeo.computeBoundingBox();
+        const cX = -0.5 * (fGeo.boundingBox.max.x - fGeo.boundingBox.min.x);
+        const cY = -0.5 * (fGeo.boundingBox.max.y - fGeo.boundingBox.min.y);
+        fGeo.translate(cX, cY, 0);
+        bGeo.translate(cX, cY, 0);
+
+        const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
+        const ledMat = new THREE.MeshStandardMaterial({ color: ledColor, emissive: ledColor, emissiveIntensity: 0 });
+        const capMat = createBackMaterial(currentTexName, true, currentTintColor);
+
+        const fMesh = new THREE.Mesh(fGeo, isBackGlow ? capMat : ledMat);
+        fMesh.userData.baseZ = 0; 
+        if (!isBackGlow) fMesh.layers.enable(BLOOM_SCENE);
+        textGroup.add(fMesh);
+        frontMeshes.push(fMesh);
+
+        const bMesh = new THREE.Mesh(bGeo, isBackGlow ? ledMat : capMat);
+        const bBaseZ = -backThickness;
+        bMesh.position.z = bBaseZ;
+        bMesh.userData.baseZ = bBaseZ; // 用于一键解体
+        if (isBackGlow) bMesh.layers.enable(BLOOM_SCENE);
+        textGroup.add(bMesh);
+        backMeshes.push(bMesh);
+    }
+
+    updateBrightness(document.getElementById('brightnessSlider').value);
+    if (adjustCamera) centerAndFitCamera();
+    isDecomposed = false;
+}
     // 创建LED像素矩阵（用于流水灯效果）
   
 
@@ -1072,7 +1031,12 @@ function getFlowTexture() {
         }
     });
 });
-
+document.getElementById('yScaleSlider').addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    document.getElementById('yScaleValue').textContent = val.toFixed(1);
+    yScale = val;
+    generate3DText(document.getElementById('textInput').value, false);
+});
     // 初始化
     updateUIState();
     loadFontAndGenerate('helvetiker', document.getElementById('textInput').value, true);
