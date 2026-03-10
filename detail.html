@@ -259,9 +259,8 @@
     import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
    const NOTES_DB = {
-        "YJ-M000A": "images/000a.jpg", //notes
-        "YJ-M002": "images/m002.jpg|images/m002c2.jpg", //notes
-        "YJ-005A": "images/m005a.jpg", //notes
+        
+                "YJ-005A": "images/m005a.jpg", //notes
         "YJ-005B": "images/m005b.jpg", //notes
                 "YJ-005C": "images/12.jpg", //notes
         "YJ-006": "images/13.jpg", //notes
@@ -280,6 +279,8 @@
         "YJ-018": "images/24.jpg", //notes
         "YJ-019": "images/25.jpg", //notes
         "YJ-020": "images/26.jpg|images/27.jpg", //notes
+        "YJ-M002": "images/QL9A0071.JPG", //notes
+        "YJ-M000A": "images/000a.jpg", //notes
         /* === 自动插入点：注意事项 === */
     };
 
@@ -476,7 +477,7 @@
             { file: "FIXED-LED.glb",  type: "fixed", move: null }
         ],
         "YJ-M000A": [
-            { file: "front.glb",  type: "front", move: { z: 10 } },
+            { file: "front.glb",  type: "front", move: { z: 10 }, change: true },
             { file: "plate.glb",  type: "plate", move: { z: 25 }, emissive: true },
             { file: "led.glb",  type: "led", move: null },
             { file: "FIXED-frpnt.glb",  type: "fixed", move: { z: 10 } },

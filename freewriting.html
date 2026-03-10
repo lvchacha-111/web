@@ -67,7 +67,23 @@
     background-size: 200% 200%;
     animation: marquee-swatch 4s linear infinite alternate; /* 4秒一轮，往返滚动 */
 }
-
+/* 新增：右上角 SVG 上传控件样式 */
+#svg-upload-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    background: rgba(44, 44, 44, 0.9);
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.svg-note { font-size: 11px; color: #aaa; margin-top: 2px; }
 /* 选中状态强化 */
 .color-swatch.active.marquee-active {
     border-color: #f39c12;
@@ -325,7 +341,16 @@
         
         <button class="action-btn" id="decomposeBtn">一键解体 (Explode)</button>
     </div>
-
+<!-- 新增：右上角 SVG 上传面板 -->
+<div id="svg-upload-container">
+    <div style="font-size: 13px; font-weight: bold; color: #f39c12;">📤 上传矢量轮廓 (SVG)</div>
+    <div style="display: flex; gap: 8px;">
+        <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin: 0;" onclick="document.getElementById('svgInput').click()">选择 SVG 文件</button>
+        <input type="file" id="svgInput" accept=".svg" style="display: none;">
+        <button class="action-btn hidden" id="clearSvgBtn" style="padding: 6px 12px; font-size: 12px; background: #c0392b; border-color: #a93226; margin: 0;">移除图纸</button>
+    </div>
+    <div class="svg-note">注：上传后将自动挤压为 3D 发光字</div>
+</div>
     <div id="canvas-container">
         <div id="loading"><div class="spinner"></div><span>加载字体库...</span></div>
     </div>
@@ -341,7 +366,7 @@
     import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
     import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
     // ==========================================
     // 全局状态管理
     // ==========================================
@@ -614,15 +639,16 @@ function getFlowTexture() {
             });
         });
     }
-
+let isSvgMode = false;
+let svgPaths = null;
     // 生成3D文字
-  function generate3DText(textString, adjustCamera = true) {
-    if (!currentFont) {
+ function generate3DText(textString, adjustCamera = true) {
+    if (!isSvgMode && !currentFont) {
         loadFontAndGenerate('helvetiker', textString, adjustCamera);
         return;
     }
 
-    // 清理旧模型... (保持原有逻辑)
+    // 1. 清理旧模型
     while(textGroup.children.length > 0){ 
         const obj = textGroup.children[0];
         if(obj.geometry) obj.geometry.dispose();
@@ -638,40 +664,73 @@ function getFlowTexture() {
     singleMesh = null;
     ledPixels = []; 
 
-    if (!textString.trim()) return;
+    if (!isSvgMode && !textString.trim()) return;
 
-    // --- 这里修正：使用外部的 textSize 变量，而不是固定 26 ---
-    const commonOpts = {
-        font: currentFont, 
-        size: textSize, 
-        curveSegments: 6,
-        bevelEnabled: true,
-        bevelThickness: 0.5,
-        bevelSize: 0.3,
-        bevelOffset: 0,
-        bevelSegments: 3
-    };
+    let fGeo, bGeo, singleGeo, innerGeo;
+    let tW, tH;
 
+    // 2. 几何体生成逻辑 (分支: SVG图纸 or 文本)
+    if (isSvgMode && svgPaths) {
+        const shapes = [];
+        svgPaths.forEach(path => {
+            shapes.push(...SVGLoader.createShapes(path));
+        });
+
+        // 设定厚度倒角参数
+        const extF = { depth: frontThickness, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelSegments: 3 };
+        const extB = { depth: backThickness, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelSegments: 3 };
+        const extSingle = { depth: frontThickness + backThickness, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelSegments: 3 };
+        const extInner = { depth: 2, bevelEnabled: false };
+
+        fGeo = new THREE.ExtrudeGeometry(shapes, extF);
+        bGeo = new THREE.ExtrudeGeometry(shapes, extB);
+        singleGeo = new THREE.ExtrudeGeometry(shapes, extSingle);
+        innerGeo = new THREE.ExtrudeGeometry(shapes, extInner);
+
+        // 居中与缩放适配 (SVG的Y轴是反的，需要翻转)
+        [fGeo, bGeo, singleGeo, innerGeo].forEach(geo => {
+            geo.computeBoundingBox();
+            const h = geo.boundingBox.max.y - geo.boundingBox.min.y;
+            const scale = textSize / h; // 自动缩放到设定的字体高度
+            geo.applyMatrix4(new THREE.Matrix4().makeScale(scale, -scale * yScale, 1)); 
+            geo.computeBoundingBox();
+            const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
+            const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
+            geo.translate(cx, cy, 0);
+        });
+
+        tW = fGeo.boundingBox.max.x - fGeo.boundingBox.min.x;
+        tH = fGeo.boundingBox.max.y - fGeo.boundingBox.min.y;
+
+    } else {
+        const commonOpts = { font: currentFont, size: textSize, curveSegments: 6, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.3, bevelOffset: 0, bevelSegments: 3 };
+
+        fGeo = new TextGeometry(textString, { ...commonOpts, height: frontThickness });
+        bGeo = new TextGeometry(textString, { ...commonOpts, height: backThickness });
+        singleGeo = new TextGeometry(textString, { ...commonOpts, height: frontThickness + backThickness });
+        innerGeo = new TextGeometry(textString, { ...commonOpts, height: 2, bevelEnabled: false });
+
+        [fGeo, bGeo, singleGeo, innerGeo].forEach(geo => {
+            geo.scale(1, yScale, 1);
+            geo.computeBoundingBox();
+            const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
+            const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
+            geo.translate(cx, cy, 0);
+        });
+
+        tW = fGeo.boundingBox.max.x - fGeo.boundingBox.min.x;
+        tH = fGeo.boundingBox.max.y - fGeo.boundingBox.min.y;
+    }
+
+    // 3. 材质与网格装配逻辑 (继承了你原有的完美材质配置)
     if (glowMode === 'boxLight') {
-        const textGeo = new TextGeometry(textString, { ...commonOpts, height: 2, bevelEnabled: false });
-        textGeo.scale(1, yScale, 1); // 纵向拉伸
-        
-        textGeo.computeBoundingBox();
-        const tW = textGeo.boundingBox.max.x - textGeo.boundingBox.min.x;
-        const tH = textGeo.boundingBox.max.y - textGeo.boundingBox.min.y;
-        textGeo.translate(-0.5 * tW, -0.5 * tH, 0); 
-
-        const boxW = tW + (frontThickness * 4);
-        const boxH = tH + (backThickness * 4);
-        const boxD = boxDepth;
-
         const metalMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
-        const innerMesh = new THREE.Mesh(textGeo, metalMat);
-        innerMesh.position.z = (boxD / 2) - 0.2; 
+        const innerMesh = new THREE.Mesh(innerGeo, metalMat);
+        innerMesh.position.z = (boxDepth / 2) - 0.2; 
         textGroup.add(innerMesh);
         frontMeshes.push(innerMesh); 
 
-        const boxGeo = new THREE.BoxGeometry(boxW, boxH, boxD);
+        const boxGeo = new THREE.BoxGeometry(tW + (frontThickness * 4), tH + (backThickness * 4), boxDepth);
         const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
         const boxMat = new THREE.MeshPhysicalMaterial({
             color: ledColor, emissive: ledColor, emissiveIntensity: 0, 
@@ -681,36 +740,22 @@ function getFlowTexture() {
         boxMesh.layers.enable(BLOOM_SCENE);
         textGroup.add(boxMesh);
         backMeshes.push(boxMesh);
+
+        // 释放未使用内存
+        fGeo.dispose(); bGeo.dispose(); singleGeo.dispose();
     } 
     else if (glowMode === 'acrylicCut' || glowMode === 'metalCut') {
-        const geo = new TextGeometry(textString, { ...commonOpts, height: frontThickness + backThickness });
-        geo.scale(1, yScale, 1); // 纵向拉伸
-
-        geo.computeBoundingBox();
-        geo.translate(-0.5 * (geo.boundingBox.max.x - geo.boundingBox.min.x), -0.5 * (geo.boundingBox.max.y - geo.boundingBox.min.y), 0);
-
         let mat = (glowMode === 'acrylicCut') ? new THREE.MeshStandardMaterial({color: document.getElementById('ledColorPicker').value, roughness:0.2}) : createBackMaterial(currentTexName, true, currentTintColor);
-        const mesh = new THREE.Mesh(geo, mat);
+        const mesh = new THREE.Mesh(singleGeo, mat);
         mesh.position.z = -backThickness;
-        mesh.userData.baseZ = -backThickness; // 记录位置
+        mesh.userData.baseZ = -backThickness;
         textGroup.add(mesh);
         singleMesh = mesh;
+
+        fGeo.dispose(); bGeo.dispose(); innerGeo.dispose();
     } 
     else {
-        // 双层发光字模式
         const isBackGlow = (glowMode === 'backGlow');
-        const fGeo = new TextGeometry(textString, { ...commonOpts, height: frontThickness });
-        const bGeo = new TextGeometry(textString, { ...commonOpts, height: backThickness });
-        
-        fGeo.scale(1, yScale, 1);
-        bGeo.scale(1, yScale, 1);
-
-        fGeo.computeBoundingBox();
-        const cX = -0.5 * (fGeo.boundingBox.max.x - fGeo.boundingBox.min.x);
-        const cY = -0.5 * (fGeo.boundingBox.max.y - fGeo.boundingBox.min.y);
-        fGeo.translate(cX, cY, 0);
-        bGeo.translate(cX, cY, 0);
-
         const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
         const ledMat = new THREE.MeshStandardMaterial({ color: ledColor, emissive: ledColor, emissiveIntensity: 0 });
         const capMat = createBackMaterial(currentTexName, true, currentTintColor);
@@ -722,18 +767,66 @@ function getFlowTexture() {
         frontMeshes.push(fMesh);
 
         const bMesh = new THREE.Mesh(bGeo, isBackGlow ? ledMat : capMat);
-        const bBaseZ = -backThickness;
-        bMesh.position.z = bBaseZ;
-        bMesh.userData.baseZ = bBaseZ; // 用于一键解体
+        bMesh.position.z = -backThickness;
+        bMesh.userData.baseZ = -backThickness; 
         if (isBackGlow) bMesh.layers.enable(BLOOM_SCENE);
         textGroup.add(bMesh);
         backMeshes.push(bMesh);
+
+        singleGeo.dispose(); innerGeo.dispose();
     }
 
     updateBrightness(document.getElementById('brightnessSlider').value);
     if (adjustCamera) centerAndFitCamera();
     isDecomposed = false;
 }
+
+// ==========================================
+// 新增：监听 SVG 上传并解析
+// ==========================================
+const svgLoader = new SVGLoader();
+const svgInput = document.getElementById('svgInput');
+const clearSvgBtn = document.getElementById('clearSvgBtn');
+const textInputEl = document.getElementById('textInput');
+
+svgInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const parsed = svgLoader.parse(event.target.result);
+            svgPaths = parsed.paths;
+            isSvgMode = true;
+            
+            // UI 更新
+            clearSvgBtn.classList.remove('hidden');
+            textInputEl.disabled = true; // 禁用文本输入
+            textInputEl.style.opacity = 0.5;
+
+            // 生成 3D 模型
+            generate3DText(textInputEl.value, true);
+        } catch (err) {
+            alert("SVG 轮廓解析失败，请确保上传了规范的矢量文件！");
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // 清空选择器以便能重复选同一个文件
+});
+
+// 清除图纸并恢复文字模式
+clearSvgBtn.addEventListener('click', () => {
+    isSvgMode = false;
+    svgPaths = null;
+    
+    clearSvgBtn.classList.add('hidden');
+    textInputEl.disabled = false;
+    textInputEl.style.opacity = 1;
+    
+    generate3DText(textInputEl.value, true);
+});
     // 创建LED像素矩阵（用于流水灯效果）
   
 
