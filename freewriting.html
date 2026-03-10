@@ -211,9 +211,17 @@
             </select>
         </div>
         
-        <div id="materialSection">
-            <label>⚙️ 金属材质 (Metal Material)</label>
+      <div id="materialSection">
+            <!-- 修改为左右对齐的 Flex 布局 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; margin-top: 10px;">
+                <label style="margin: 0;">🧱 材质选择</label>
+                <span style="font-size: 12px; color: #f39c12; font-weight: bold; letter-spacing: 1px;">
+                    当前：<span id="currentMatName">金属拉丝</span>
+                </span>
+            </div>
+            
             <div class="option-group" id="materialOptions">
+        
                 <div class="material-btn active" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg');" data-type="metal011" title="金属拉丝"></div>
                 <div class="material-btn" style="background-image: url('textures/Metal049A_2K-JPG_Color.jpg');" data-type="metal049a" title="金属镜面"></div>
                 <div class="material-btn" style="background-image: url('textures/Metal011_2K-JPG_Color.jpg'); background-color: #c07c51; background-blend-mode: multiply;" data-type="copper_brushed" title="铜色拉丝"></div>
@@ -248,8 +256,11 @@
 
         <div id="ledSection">
             <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px;">🎨 预设颜色</label>
-                <div class="color-swatch-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <label style="margin: 0;">🎨 预设颜色</label>
+        <span id="currentColorName" style="font-size: 12px; color: #f39c12; font-weight: bold; letter-spacing: 1px;">当前：标准白</span>
+    </div>
+    <div class="color-swatch-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
                     <!-- 彩色 -->
                     <div class="color-swatch" style="background: linear-gradient(135deg, red, orange, yellow, green, blue, purple);" data-color="RGB" title="RGB呼吸灯效"></div>
                     <div class="color-swatch" style="background: linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, white);" data-color="FLOWRGB" title="RGBW流水灯"></div>
@@ -879,16 +890,17 @@ function getFlowTexture() {
     document.querySelectorAll('.material-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             // 1. 切换按钮的激活状态样式
-            document.querySelectorAll('.material-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+               document.querySelectorAll('.material-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-            // 2. 获取点击的材质类型
-            const type = btn.dataset.type;
-            
-            // 3. 根据类型设置材质属性
-            // 判断是否为拉丝(brushed)还是镜面(mirror)
-            currentIsBrushed = type.includes('brushed') || type === 'metal011';
-            
+        // 2. 更新上方提示文字
+        const materialName = btn.getAttribute('title');
+        const nameDisplay = document.getElementById('currentMatName');
+        if(nameDisplay) nameDisplay.innerText = materialName;
+
+        // 3. 获取点击的材质类型并处理 3D 逻辑 (保持你原有的逻辑不变)
+        const type = btn.dataset.type;
+        currentIsBrushed = type.includes('brushed') || type === 'metal011';
             // 设置基础纹理图名称
             if (type.includes('mirror') || type === 'metal049a') {
                 currentTexName = 'Metal049A';
@@ -944,9 +956,20 @@ function getFlowTexture() {
     });
 
    // 颜色方块点击事件
+  // 颜色方块点击事件
     document.querySelectorAll('.color-swatch').forEach(swatch => {
         swatch.addEventListener('click', () => {
             if (glowMode === 'metalCut') return;
+
+            // ==========================================
+            // 新增：实时更新上方提示文字
+            // ==========================================
+            const colorTitle = swatch.getAttribute('title');
+            const nameDisplay = document.getElementById('currentColorName');
+            if (nameDisplay) {
+                nameDisplay.innerText = colorTitle; 
+            }
+            // ==========================================
 
             // 1. UI 状态切换
             document.querySelectorAll('.color-swatch').forEach(s => {
@@ -957,20 +980,20 @@ function getFlowTexture() {
             const color = swatch.dataset.color;
 
             // 2. 逻辑处理
-           if (color === 'FLOWRGB') {
-        swatch.classList.add('marquee-active');
-        isFlowRGB = true;
-        isRGBGlow = false;
-         backMeshes.concat(frontMeshes).forEach(m => {
-            m.material.needsUpdate = true;
-        });
-    } else {
-        isFlowRGB = false;
-        isRGBGlow = false;
-        // 切换回普通颜色时，清理发光贴图
-        backMeshes.concat(frontMeshes).forEach(m => {
-            if (m.material) m.material.emissiveMap = null;
-        });
+            if (color === 'FLOWRGB') {
+                swatch.classList.add('marquee-active');
+                isFlowRGB = true;
+                isRGBGlow = false;
+                backMeshes.concat(frontMeshes).forEach(m => {
+                    m.material.needsUpdate = true;
+                });
+            } else {
+                isFlowRGB = false;
+                isRGBGlow = false;
+                // 切换回普通颜色时，清理发光贴图
+                backMeshes.concat(frontMeshes).forEach(m => {
+                    if (m.material) m.material.emissiveMap = null;
+                });
 
                 // --- 修正：手动同步颜色选择器并触发更新 ---
                 const picker = document.getElementById('ledColorPicker');
@@ -979,6 +1002,22 @@ function getFlowTexture() {
                 picker.dispatchEvent(new Event('input', { bubbles: true }));
             }
         });
+    });
+
+    // ==========================================
+    // 新增：如果用户自己拉动了下方的调色盘，显示为“自定义”
+    // ==========================================
+    document.getElementById('ledColorPicker').addEventListener('input', (e) => {
+        // 只有当不是通过代码触发（即不是点击上方色块）时，才显示“自定义”
+        if (e.isTrusted) { 
+            const nameDisplay = document.getElementById('currentColorName');
+            if (nameDisplay) nameDisplay.innerText = '自定义';
+            
+            // 取消上方色块的高亮
+            document.querySelectorAll('.color-swatch').forEach(s => {
+                s.classList.remove('active', 'marquee-active');
+            });
+        }
     });
 
     document.getElementById('craftSelect').addEventListener('change', (e) => {
