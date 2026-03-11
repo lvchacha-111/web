@@ -367,6 +367,7 @@
     import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+
     // ==========================================
     // 全局状态管理
     // ==========================================
@@ -419,13 +420,14 @@ let yScale = 1.0; // 纵向拉伸倍率
         new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-gridSize/2,0,0), new THREE.Vector3(gridSize/2,0,0)]),
         new THREE.LineBasicMaterial({ color: '#c44550', linewidth: 1 })
     );
-    scene.add(xAxis);
+    /*scene.add(xAxis);*/
+    //坐标轴
 
     const zAxis = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-gridSize/2), new THREE.Vector3(0,0,gridSize/2)]),
         new THREE.LineBasicMaterial({ color: '#7dab4f', linewidth: 1 })
     );
-    scene.add(zAxis);
+    /*scene.add(zAxis);*/
 
     scene.add(textGroup);
 
@@ -532,7 +534,7 @@ const mat = new THREE.MeshStandardMaterial({
     normalMap: isBrushed ? normalMap : null,
     roughnessMap: roughnessMap,
     metalness: 1.0,
-    roughness: 0.5,
+    roughness:1,
     side: THREE.DoubleSide, // 关键：改为双面渲染，确保内部不透视
     transparent: false,     // 彻底关闭透明
     opacity: 1.0,           // 强制 100% 不透明
@@ -668,7 +670,13 @@ function generate3DText(textString, adjustCamera = true) {
     if (!isSvgMode && !textString.trim()) return;
 
     let fGeo, bGeo, singleGeo, innerGeo;
-    const commonExtrude = { bevelEnabled: false, bevelSegments: 0 };
+   const commonExtrude = { 
+    bevelEnabled: false, 
+    bevelSegments: 0,
+    depth: 5,        // 这里的 depth 会被下面具体的参数覆盖，没关系
+    steps: 1,        // 侧面细分步数
+    caps: true       // 显式声明：强制生成顶部和底部的面（封口）
+};
 
     // 2. 几何体生成
     if (isSvgMode && svgPaths) {
@@ -711,10 +719,23 @@ function generate3DText(textString, adjustCamera = true) {
     // 4. 材质与 Mesh 生成
     const isBackGlow = (glowMode === 'backGlow');
     const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
-    const ledMat = new THREE.MeshStandardMaterial({ 
-        color: ledColor, emissive: ledColor, emissiveIntensity: 0,
-        transparent: false, depthWrite: true 
-    });
+
+
+   // 创建磨砂发光面材质（模糊感）
+// 创建一个完全不透明、哑光、像实体塑料或粉末涂层的材质
+// 在 generate3DText 函数内部
+const ledMat = new THREE.MeshStandardMaterial({ 
+    color: ledColor, 
+    emissive: ledColor, 
+    emissiveIntensity: 0, 
+    roughness: 1.0,       
+    metalness: 0.0,       
+    transparent: false,   
+    opacity: 1.0,         
+    depthWrite: true,     
+    side: THREE.DoubleSide // 关键修改：由 FrontSide 改为 DoubleSide
+});
+
     const capMat = createBackMaterial(currentTexName, true, currentTintColor);
 
     if (glowMode === 'boxLight') {
@@ -735,20 +756,26 @@ function generate3DText(textString, adjustCamera = true) {
     } 
      else {
         // --- 双层字逻辑 ---
+        const tinyGap = 0.0005;
         const fMesh = new THREE.Mesh(fGeo, isBackGlow ? capMat : ledMat);
         const bMesh = new THREE.Mesh(bGeo, isBackGlow ? ledMat : capMat);
         
         // 关键：这里的 baseZ 必须对应它们被添加进 textGroup 后的世界 Z 坐标
         // 既然我们对 bGeo 做了 translate(0, 0, -backThickness)，它们默认都放在 (0,0,0)
-        fMesh.position.set(0, 0, 0);
-        bMesh.position.set(0, 0, 0);
+        fMesh.position.set(0, 0, tinyGap); 
+    bMesh.position.set(0, 0, -tinyGap); 
         
-        fMesh.userData.baseZ = 0; 
-        bMesh.userData.baseZ = 0; // 注意：因为 bGeo 已经偏移过了，所以 Mesh 的 Z 为 0 时已经是贴合的
+         fMesh.userData.baseZ = tinyGap; 
+    bMesh.userData.baseZ = -tinyGap; 
         
-        if (!isBackGlow) fMesh.layers.enable(BLOOM_SCENE);
-        else bMesh.layers.enable(BLOOM_SCENE);
-
+       if (!isBackGlow) fMesh.layers.enable(BLOOM_SCENE);
+    else bMesh.layers.enable(BLOOM_SCENE);
+if (glowMode === 'frontGlow') {
+    // 如果是正面发光，确保正面材质是双面渲染或足够厚
+    frontMeshes.forEach(mesh => {
+        mesh.material.side = THREE.FrontSide; // 只渲染正面
+    });
+}
         textGroup.add(fMesh, bMesh);
         frontMeshes.push(fMesh);
         backMeshes.push(bMesh);
