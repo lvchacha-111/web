@@ -68,20 +68,74 @@
     animation: marquee-swatch 4s linear infinite alternate; /* 4秒一轮，往返滚动 */
 }
 /* 新增：右上角 SVG 上传控件样式 */
+/* 修改原有的容器样式，增加过渡动画 */
 #svg-upload-container {
     position: absolute;
     top: 20px;
     right: 20px;
     z-index: 100;
-    background: rgba(44, 44, 44, 0.9);
+    background: rgba(44, 44, 44, 0.95);
     padding: 15px;
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid #555;
     box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 弹性过渡动画 */
+    overflow: hidden; /* 关键：收缩时隐藏内容 */
+    width: 240px; /* 固定展开时的宽度 */
+}
+
+/* 收缩状态下的样式 */
+#svg-upload-container.collapsed {
+    width: 30px;  /* 刚好容纳箭头 */
+    height: 30px; /* 刚好容纳箭头 */
+    padding: 5px;
+    background: rgba(44, 44, 44, 0.6);
+    border-color: #f39c12; /* 收缩时边缘变亮提示 */
+}
+
+/* 箭头按钮样式 */
+#panel-toggle-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #f39c12;
+    font-size: 16px;
+    font-weight: bold;
+    background: rgba(0,0,0,0.2);
+    border-radius: 0 6px 0 6px;
+    transition: background 0.3s;
+}
+#panel-toggle-btn:hover {
+    background: rgba(243, 156, 18, 0.2);
+}
+
+/* 内部内容容器的淡入淡出逻辑 */
+#panel-inner-content {
+    transition: opacity 0.3s ease;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-top: 15px; /* 给箭头留出空间 */
+}
+#svg-upload-container.collapsed #panel-inner-content {
+    opacity: 0;
+    pointer-events: none; /* 收缩时不可点击 */
+}
+
+/* 箭头旋转动画 */
+#toggle-icon {
+    transition: transform 0.4s;
+    display: inline-block;
+}
+#svg-upload-container.collapsed #toggle-icon {
+    transform: rotate(180deg); /* 展开时指向右，收缩时指向左 */
 }
 .svg-note { font-size: 11px; color: #aaa; margin-top: 2px; }
 /* 选中状态强化 */
@@ -341,15 +395,31 @@
         
         <button class="action-btn" id="decomposeBtn">一键解体 (Explode)</button>
     </div>
-<!-- 新增：右上角 SVG 上传面板 -->
+
+
+
+
+<!-- 右上角功能面板 -->
 <div id="svg-upload-container">
-    <div style="font-size: 13px; font-weight: bold; color: #f39c12;">📤 上传矢量轮廓 (SVG)</div>
-    <div style="display: flex; gap: 8px;">
-        <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin: 0;" onclick="document.getElementById('svgInput').click()">选择 SVG 文件</button>
-        <input type="file" id="svgInput" accept=".svg" style="display: none;">
-        <button class="action-btn hidden" id="clearSvgBtn" style="padding: 6px 12px; font-size: 12px; background: #c0392b; border-color: #a93226; margin: 0;">移除图纸</button>
+    <!-- 小箭头切换按钮 -->
+    <div id="panel-toggle-btn">
+        <span id="toggle-icon">▶</span>
     </div>
-    <div class="svg-note">注：上传后将自动挤压为 3D 发光字</div>
+
+    <!-- 所有内容必须包在这个 inner-content 里 -->
+    <div id="panel-inner-content">
+        <div style="font-size: 13px; font-weight: bold; color: #f39c12;">📤 上传矢量轮廓 (SVG)</div>
+        <div style="display: flex; gap: 8px;">
+            <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin: 0;" onclick="document.getElementById('svgInput').click()">选择 SVG 文件</button>
+            <input type="file" id="svgInput" accept=".svg" style="display: none;">
+            <button class="action-btn hidden" id="clearSvgBtn" style="padding: 6px 12px; font-size: 12px; background: #c0392b; border-color: #a93226; margin: 0;">移除图纸</button>
+        </div>
+        <button class="action-btn" id="toggleDimensionBtn" style="padding: 8px 12px; font-size: 12px; margin-top: 5px; background: #2980b9; border-color: #2471a3;">👁️ 隐藏标注 (Hide Labels)</button>
+        <button class="action-btn" id="snapshotBtn" style="padding: 8px 12px; font-size: 12px; margin-top: 5px; background: #27ae60; border-color: #219150;">📸 导出实拍图 (Snapshot)</button>
+        <div class="svg-note">注：上传后将自动挤压为 3D 发光字</div>
+    </div>
+</div>
+
 </div>
     <div id="canvas-container">
         <div id="loading"><div class="spinner"></div><span>加载字体库...</span></div>
@@ -400,15 +470,26 @@ import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
     let backMeshes = [];     // 普通模式背面 / 盒子模式的外部发光盒
     let singleMesh = null;   // 单体模式
     let isDecomposed = false;
-    let textGroup = new THREE.Group();
-    let textSize = 26; // 默认文字大小/高度
-let yScale = 1.0; // 纵向拉伸倍率
-    // 场景基础
-    const container = document.getElementById('canvas-container');
-    const scene = new THREE.Scene();
-    const blenderBgColor = new THREE.Color('#393939');
-    scene.background = blenderBgColor;
-    scene.fog = new THREE.Fog(blenderBgColor, 100, 1000); 
+ // 1. 先声明这些变量
+let textGroup = new THREE.Group();
+let dimensionGroup = new THREE.Group();
+let textSize = 26;
+let yScale = 1.0;
+
+// 2. 获取容器
+const container = document.getElementById('canvas-container');
+
+// 3. 【关键修改】先初始化 scene
+const scene = new THREE.Scene(); 
+
+// 4. 【关键修改】现在 scene 存在了，可以 add 了
+scene.add(dimensionGroup);
+scene.add(textGroup); // 记得也要把 textGroup 加上
+
+// 5. 设置背景和雾化
+const blenderBgColor = new THREE.Color('#393939');
+scene.background = blenderBgColor;
+scene.fog = new THREE.Fog(blenderBgColor, 100, 1000);
 
     const gridSize = 4000;
     const gridDivisions = 400;
@@ -432,11 +513,28 @@ let yScale = 1.0; // 纵向拉伸倍率
     scene.add(textGroup);
 
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 10000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+    // --- 增强型渲染器配置 ---
+    const renderer = new THREE.WebGLRenderer({ 
+        antialias: true,             // 开启硬件抗锯齿
+        alpha: true,                 // 允许透明背景
+        preserveDrawingBuffer: true,  // 关键：保留绘图缓冲区。这能防止截图时出现黑屏，并提升图片导出质量
+        powerPreference: "high-performance", // 强制开启高性能 GPU 模式
+        logarithmicDepthBuffer: true // 开启对数深度缓冲区，能解决模型闪烁并让线条（标注线）更清晰
+    });
+
     renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    
+    // 提升分辨率：不再硬性限制在 2。允许使用设备最高的像素比（比如 iPhone 或 Mac 视网膜屏的 3）
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    // 色彩映射与曝光优化
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.8; 
+    renderer.toneMappingExposure = 1.0; // 将曝光从 0.8 提升到 1.0，让金属光泽和发光效果更饱满
+    
+    // 颜色空间校正 (确保截图颜色不灰暗，色彩还原真实)
+    renderer.outputColorSpace = THREE.SRGBColorSpace; 
+
     container.appendChild(renderer.domElement);
     
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -647,6 +745,169 @@ const mat = new THREE.MeshStandardMaterial({
 let isSvgMode = false;
 let svgPaths = null;
     // 生成3D文字
+
+    // --- 功能面板切换展开/收缩逻辑 ---
+// --- 功能面板切换展开/收缩逻辑 ---
+// 先把元素存在变量里，方便后续多次使用，且代码更整洁
+const toggleBtn = document.getElementById('panel-toggle-btn');
+const svgContainer = document.getElementById('svg-upload-container');
+
+if (toggleBtn && svgContainer) {
+    toggleBtn.addEventListener('click', () => {
+        // 切换 .collapsed 类名，触发 CSS 里的动画
+        svgContainer.classList.toggle('collapsed');
+    });
+}
+    // 创建永远面向相机的数字标签
+function createTextLabel(text, position) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 128;
+
+    // 绘制背景（可选，透明则注释掉）
+    // ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    // ctx.fillRect(0, 0, 256, 128);
+
+    // 绘制文字
+    ctx.font = 'Bold 60px Arial';
+    ctx.fillStyle = '#f39c12'; // 橙色，匹配你的主题
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 128, 80);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    
+    // 调整标签大小
+    sprite.scale.set(12, 6, 1);
+    sprite.position.copy(position);
+    return sprite;
+}
+function updateDimensions() {
+    // 1. 清理旧标注
+    dimensionGroup.clear();
+
+    if (textGroup.children.length === 0) return;
+
+    // 2. 获取模型包围盒
+    const box = new THREE.Box3().setFromObject(textGroup);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+
+    const min = box.min;
+    const max = box.max;
+    const offset = 5; // 标注线离开模型的距离
+
+    // --- 底部长度标注 (X轴) ---
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x888888 });
+    
+    const xLinePoints = [
+        new THREE.Vector3(min.x, min.y - offset, 0),
+        new THREE.Vector3(max.x, min.y - offset, 0),
+        // 两端的短垂线
+        new THREE.Vector3(min.x, min.y - offset + 1, 0),
+        new THREE.Vector3(min.x, min.y - offset - 1, 0),
+        new THREE.Vector3(max.x, min.y - offset + 1, 0),
+        new THREE.Vector3(max.x, min.y - offset - 1, 0),
+    ];
+    const xLineGeo = new THREE.BufferGeometry().setFromPoints(xLinePoints);
+    const xLine = new THREE.LineSegments(xLineGeo, lineMat);
+    dimensionGroup.add(xLine);
+
+    // 添加长度文字 (保留一位小数)
+    const widthText = (size.x).toFixed(1) + " cm";
+    const xLabel = createTextLabel(widthText, new THREE.Vector3((min.x + max.x)/2, min.y - offset - 4, 0));
+    dimensionGroup.add(xLabel);
+
+    // --- 侧面高度标注 (Y轴) ---
+    const yLinePoints = [
+        new THREE.Vector3(min.x - offset, min.y, 0),
+        new THREE.Vector3(min.x - offset, max.y, 0),
+        // 两端的短垂线
+        new THREE.Vector3(min.x - offset + 1, min.y, 0),
+        new THREE.Vector3(min.x - offset - 1, min.y, 0),
+        new THREE.Vector3(min.x - offset + 1, max.y, 0),
+        new THREE.Vector3(min.x - offset - 1, max.y, 0),
+    ];
+    const yLineGeo = new THREE.BufferGeometry().setFromPoints(yLinePoints);
+    const yLine = new THREE.LineSegments(yLineGeo, lineMat);
+    dimensionGroup.add(yLine);
+
+    // 添加高度文字
+    const heightText = (size.y).toFixed(1) + " cm";
+    const yLabel = createTextLabel(heightText, new THREE.Vector3(min.x - offset - 8, (min.y + max.y)/2, 0));
+    dimensionGroup.add(yLabel);
+}
+// --- 截图功能实现 ---
+// --- 高级高清截图功能 ---
+function takeSnapshot() {
+    // 1. 记录原始尺寸和像素比
+    const originalWidth = container.clientWidth;
+    const originalHeight = container.clientHeight;
+    const originalPixelRatio = renderer.getPixelRatio();
+
+    // 2. 设置截图倍率 (2 代表 2倍清晰度，3 代表超高清/4K级别)
+    const zoom = 3; 
+    
+    // 3. 临时放大渲染器
+    renderer.setSize(originalWidth * zoom, originalHeight * zoom, false);
+    // 辉光合成器也要跟着放大，否则发光效果会变小
+    bloomComposer.setSize(originalWidth * zoom, originalHeight * zoom);
+    finalComposer.setSize(originalWidth * zoom, originalHeight * zoom);
+
+    // 4. 执行高清渲染
+    // 这一步非常关键：必须完整渲染后处理通道
+    finalComposer.render();
+
+    // 5. 导出图片 (使用最高质量)
+    const dataURL = renderer.domElement.toDataURL('image/png', 1.0);
+
+    // 6. 触发下载
+    const link = document.createElement('a');
+    const timestamp = new Date().getTime();
+    link.download = `YiJiao_4K_Design_${timestamp}.png`;
+    link.href = dataURL;
+    link.click();
+
+    // 7. 恢复原始尺寸，避免用户界面变大
+    renderer.setPixelRatio(originalPixelRatio);
+    renderer.setSize(originalWidth, originalHeight);
+    bloomComposer.setSize(originalWidth, originalHeight);
+    finalComposer.setSize(originalWidth, originalHeight);
+    
+    // 8. 重新渲染一次正常的画面，确保 UI 回归正常
+    finalComposer.render();
+
+    console.log("高清 4K 实拍图已导出");
+}
+
+// --- 标注显示/隐藏切换逻辑 ---
+let isDimensionVisible = true; // 记录当前标注状态
+
+document.getElementById('toggleDimensionBtn').addEventListener('click', () => {
+    // 1. 切换布尔值状态
+    isDimensionVisible = !isDimensionVisible;
+
+    // 2. 核心：设置 Three.js 组的可见性
+    // dimensionGroup 是你存放所有线和数字标签的容器
+    if (dimensionGroup) {
+        dimensionGroup.visible = isDimensionVisible;
+    }
+
+    // 3. 更新按钮文字，提供 UI 反馈
+    const btn = document.getElementById('toggleDimensionBtn');
+    btn.innerText = isDimensionVisible ? '👁️ 隐藏标注 (Hide Labels)' : '👁️ 显示标注 (Show Labels)';
+    
+    // 4. 可选：改变按钮颜色
+    btn.style.background = isDimensionVisible ? '#2980b9' : '#4a4a4a';
+});
+
+// 绑定按钮点击事件
+document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
+
+// 绑定按钮点击事件
+document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
 function generate3DText(textString, adjustCamera = true) {
     if (!isSvgMode && !currentFont) {
         loadFontAndGenerate('helvetiker', textString, adjustCamera);
@@ -756,7 +1017,7 @@ const ledMat = new THREE.MeshStandardMaterial({
     } 
      else {
         // --- 双层字逻辑 ---
-        const tinyGap = 0.0005;
+        const tinyGap = 0.005;
         const fMesh = new THREE.Mesh(fGeo, isBackGlow ? capMat : ledMat);
         const bMesh = new THREE.Mesh(bGeo, isBackGlow ? ledMat : capMat);
         
@@ -783,6 +1044,9 @@ if (glowMode === 'frontGlow') {
 
     updateBrightness(document.getElementById('brightnessSlider').value);
     if (adjustCamera) centerAndFitCamera();
+     setTimeout(() => {
+        updateDimensions();
+    }, 50); // 稍微延迟确保包围盒计算准确
 }
 // ==========================================
 // 新增：监听 SVG 上传并解析
@@ -1200,29 +1464,38 @@ clearSvgBtn.addEventListener('click', () => {
     }
 
     // --- 4. 一键解体按钮 ---
-  document.getElementById('decomposeBtn').addEventListener('click', () => {
+ document.getElementById('decomposeBtn').addEventListener('click', () => {
     if (glowMode === 'acrylicCut' || glowMode === 'metalCut' || glowMode === 'boxLight') return; 
 
     isDecomposed = !isDecomposed;
-    const gap = 20; 
+    const explodeGap = 20; // 解体时的总位移
 
     if (frontMeshes.length > 0 && backMeshes.length > 0) {
         const fMesh = frontMeshes[0];
         const bMesh = backMeshes[0];
 
-        // 无论是否解体，baseZ 都是 0
-        // 解体时 fMesh 往 +gap 走，bMesh 往 -gap 走
+        // 动画：正面物体
         gsap.to(fMesh.position, { 
-            z: isDecomposed ? gap : 0, 
+            // 如果解体，去到 gap 位置；如果合并，回到初始记录的 baseZ (比如 0.0005)
+            z: isDecomposed ? explodeGap : (fMesh.userData.baseZ || 0), 
             duration: 1, 
-            ease: "power2.inOut" 
+            ease: "power2.inOut",
+            // 关键：在动画过程中实时调用 updateDimensions，让标注线跟着动
+            onUpdate: () => {
+                if (typeof updateDimensions === 'function') updateDimensions();
+            }
         });
+
+        // 动画：背面物体
         gsap.to(bMesh.position, { 
-            z: isDecomposed ? -gap : 0, 
+            // 如果解体，去到 -gap 位置；如果合并，回到初始记录的 baseZ (比如 -0.0005)
+            z: isDecomposed ? -explodeGap : (bMesh.userData.baseZ || 0), 
             duration: 1, 
             ease: "power2.inOut" 
         });
     }
+
+    // 更新按钮文字
     document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并' : '一键解体 (Explode)';
 });
 
