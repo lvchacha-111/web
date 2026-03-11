@@ -115,7 +115,48 @@
 #panel-toggle-btn:hover {
     background: rgba(243, 156, 18, 0.2);
 }
-
+/* 右上角面板内部行列布局 */
+.upload-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+.upload-label {
+    font-size: 11px;
+    font-weight: bold;
+    color: #f39c12;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.upload-btns {
+    display: flex;
+    gap: 8px;
+}
+.small-btn {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    margin: 0 !important;
+    flex: 1; /* 按钮等宽 */
+}
+.danger-btn {
+    background: #c0392b !important;
+    border-color: #a93226 !important;
+}
+.toggle-btn {
+    padding: 8px !important;
+    font-size: 12px !important;
+    background: #2980b9 !important;
+}
+.snapshot-btn {
+    padding: 8px !important;
+    font-size: 12px !important;
+    background: #27ae60 !important;
+}
+/* 修改容器宽度以适应新布局 */
+#svg-upload-container {
+    width: 200px !important; /* 调整宽度 */
+}
 /* 内部内容容器的淡入淡出逻辑 */
 #panel-inner-content {
     transition: opacity 0.3s ease;
@@ -405,19 +446,35 @@
     </div>
 
     <!-- 所有内容必须包在这个 inner-content 里 -->
-    <div id="panel-inner-content">
-        <div style="font-size: 13px; font-weight: bold; color: #f39c12;">📤 上传矢量轮廓 (SVG)</div>
-        <div style="display: flex; gap: 8px;">
-            <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin: 0;" onclick="document.getElementById('svgInput').click()">选择 SVG 文件</button>
+  <div id="panel-inner-content">
+    <!-- 第一组：SVG 上传 -->
+    <div class="upload-row">
+        <div class="upload-label">📤 上传矢量轮廓 (SVG)</div>
+        <div class="upload-btns">
+            <button class="action-btn small-btn" onclick="document.getElementById('svgInput').click()">选择文件</button>
             <input type="file" id="svgInput" accept=".svg" style="display: none;">
-            <button class="action-btn hidden" id="clearSvgBtn" style="padding: 6px 12px; font-size: 12px; background: #c0392b; border-color: #a93226; margin: 0;">移除图纸</button>
+            <button class="action-btn small-btn hidden danger-btn" id="clearSvgBtn">移除</button>
         </div>
-        <button class="action-btn" id="toggleDimensionBtn" style="padding: 8px 12px; font-size: 12px; margin-top: 5px; background: #2980b9; border-color: #2471a3;">👁️ 隐藏标注 (Hide Labels)</button>
-        <button class="action-btn" id="snapshotBtn" style="padding: 8px 12px; font-size: 12px; margin-top: 5px; background: #27ae60; border-color: #219150;">📸 导出实拍图 (Snapshot)</button>
-        <div class="svg-note">注：上传后将自动挤压为 3D 发光字</div>
     </div>
-</div>
 
+    <!-- 第二组：背景图片上传 -->
+    <div class="upload-row">
+        <div class="upload-label">🖼️ 上传参考背景 (JPG/PNG)</div>
+        <div class="upload-btns">
+            <button class="action-btn small-btn" onclick="document.getElementById('bgInput').click()">选择背景</button>
+            <input type="file" id="bgInput" accept="image/png, image/jpeg" style="display: none;">
+            <button class="action-btn small-btn hidden danger-btn" id="clearBgBtn">移除</button>
+        </div>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid #444; margin: 5px 0;">
+
+    <!-- 第三组：操作按钮 -->
+    <button class="action-btn toggle-btn" id="toggleDimensionBtn">👁️ 隐藏标注 (Labels)</button>
+    <button class="action-btn snapshot-btn" id="snapshotBtn">📸 导出实拍图 (Snapshot)</button>
+    
+    <div class="svg-note">注：背景图和物体均可点击拖拽</div>
+</div>
 </div>
     <div id="canvas-container">
         <div id="loading"><div class="spinner"></div><span>加载字体库...</span></div>
@@ -441,11 +498,14 @@ import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
     // ==========================================
 
 // --- 物体拖拽相关变量 ---
+
+let activeDragTarget = null;
 let isDraggingObject = false;
 const dragPlane = new THREE.Plane(); // 拖拽平面
 const dragIntersection = new THREE.Vector3(); // 鼠标与平面的交点
 const dragOffset = new THREE.Vector3(); // 鼠标点击位置与物体中心的偏移
-    
+    let bgPlaneMesh = null; // 用于存储背景图片网格
+
     let isRGBGlow = false; // 是否开启 RGB 动态光效
     let rgbHue = 0; 
     // 流水灯相关全局变量
@@ -1123,7 +1183,63 @@ svgInput.addEventListener('change', (e) => {
     reader.readAsText(file);
     e.target.value = ''; // 清空选择器以便能重复选同一个文件
 });
+const bgInput = document.getElementById('bgInput');
+const clearBgBtn = document.getElementById('clearBgBtn');
 
+bgInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const loader = new THREE.TextureLoader();
+        loader.load(event.target.result, (texture) => {
+            // 1. 如果已有背景，先移除
+            if (bgPlaneMesh) {
+                scene.remove(bgPlaneMesh);
+                bgPlaneMesh.geometry.dispose();
+                bgPlaneMesh.material.dispose();
+            }
+
+            // 2. 计算比例，防止图片拉伸
+            const aspect = texture.image.width / texture.image.height;
+            const bgHeight = 300; // 设定一个基础高度
+            const bgWidth = bgHeight * aspect;
+
+            // 3. 创建背景平面
+            const geometry = new THREE.PlaneGeometry(bgWidth, bgHeight);
+            const material = new THREE.MeshBasicMaterial({ 
+    map: texture, 
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 1.0, // 可以调回 1.0 让图片更清晰
+    fog: false    // 关键点：禁用雾化效果，这样无论相机多远，图片颜色都保持原样
+});
+            
+            bgPlaneMesh = new THREE.Mesh(geometry, material);
+            
+            // 4. 将背景放在模型后面 (Z 轴负方向)
+            bgPlaneMesh.position.set(0, 0, -100); 
+            scene.add(bgPlaneMesh);
+
+            // 显示移除按钮
+            clearBgBtn.classList.remove('hidden');
+        });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // 清空选择器
+});
+
+// 移除背景功能
+clearBgBtn.addEventListener('click', () => {
+    if (bgPlaneMesh) {
+        scene.remove(bgPlaneMesh);
+        bgPlaneMesh.geometry.dispose();
+        bgPlaneMesh.material.dispose();
+        bgPlaneMesh = null;
+    }
+    clearBgBtn.classList.add('hidden');
+});
 // 清除图纸并恢复文字模式
 clearSvgBtn.addEventListener('click', () => {
     isSvgMode = false;
@@ -1664,36 +1780,53 @@ container.addEventListener('pointerdown', (event) => {
 
     raycaster.setFromCamera(mouse, camera);
 
-    // 1. 优先检测标注标签 (dimensionGroup)
+    // 1. 优先检测标注标签
     const labelIntersects = raycaster.intersectObjects(dimensionGroup.children);
     if (labelIntersects.length > 0) {
         selectedLabel = labelIntersects[0].object;
         isDraggingLabel = true;
         controls.enabled = false;
         container.style.cursor = 'move';
-        return; // 如果点中了标注，就不再检测物体
+        return;
     }
 
-    // 2. 检测 3D 物体 (textGroup)
+    // 2. 检测 3D 文字物体
     const objectIntersects = raycaster.intersectObjects(textGroup.children, true);
     if (objectIntersects.length > 0) {
         isDraggingObject = true;
-        controls.enabled = false; // 禁用相机旋转
+        activeDragTarget = textGroup; // 设置拖拽目标为文字
+        controls.enabled = false;
         container.style.cursor = 'move';
+        
+        setupDragPlane(objectIntersects[0].point, textGroup.position);
+        return;
+    }
 
-        // 设置拖拽平面：平面法线朝向相机，位置在交点处
-        const normal = new THREE.Vector3();
-        camera.getWorldDirection(normal).negate();
-        dragPlane.setFromNormalAndCoplanarPoint(normal, objectIntersects[0].point);
-
-        // 记录偏移：点击点减去物体当前位置
-        dragOffset.copy(objectIntersects[0].point).sub(textGroup.position);
+    // 3. 检测背景图 (bgPlaneMesh)
+    if (bgPlaneMesh) {
+        const bgIntersects = raycaster.intersectObject(bgPlaneMesh);
+        if (bgIntersects.length > 0) {
+            isDraggingObject = true;
+            activeDragTarget = bgPlaneMesh; // 设置拖拽目标为背景
+            controls.enabled = false;
+            container.style.cursor = 'move';
+            
+            setupDragPlane(bgIntersects[0].point, bgPlaneMesh.position);
+        }
     }
 });
 
+// 辅助函数：设置拖拽平面
+function setupDragPlane(intersectPoint, targetPosition) {
+    const normal = new THREE.Vector3();
+    camera.getWorldDirection(normal).negate();
+    dragPlane.setFromNormalAndCoplanarPoint(normal, intersectPoint);
+    dragOffset.copy(intersectPoint).sub(targetPosition);
+}
+
 // --- 统一的鼠标移动事件 ---
 window.addEventListener('pointermove', (event) => {
-    // 处理标注拖拽
+    // 1. 处理标注数值的拖拽 (保持不变)
     if (isDraggingLabel && selectedLabel) {
         const movementScale = textSize * 0.002;
         const dx = event.movementX * movementScale;
@@ -1706,8 +1839,8 @@ window.addEventListener('pointermove', (event) => {
         return;
     }
 
-    // 处理物体拖拽
-    if (isDraggingObject) {
+    // 2. 处理物体（文字或背景图）的拖拽
+    if (isDraggingObject && activeDragTarget) { // 注意这里使用了 activeDragTarget
         const rect = container.getBoundingClientRect();
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -1716,11 +1849,14 @@ window.addEventListener('pointermove', (event) => {
 
         // 计算射线与平面的交点
         if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
-            // 文字组的新位置 = 平面交点 - 初始偏移
-            textGroup.position.copy(dragIntersection.sub(dragOffset));
+            // 将计算出的新位置赋给当前正在拖动的目标 (文字组或背景图)
+            activeDragTarget.position.copy(dragIntersection.sub(dragOffset));
             
-            // 重要：移动物体时必须同步更新标注线
-            updateDimensions();
+            // 重要：只有当移动的是“文字组”时，才需要重新计算标注线
+            // 如果移动的是背景图，标注线是不需要动的
+            if (activeDragTarget === textGroup) {
+                updateDimensions();
+            }
         }
     }
 });
