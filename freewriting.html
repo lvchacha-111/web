@@ -288,6 +288,10 @@
             <select id="craftSelect">
                 <option value="backGlow" selected>金属反口背面发光字</option>
                 <option value="frontGlow">金属反口正面发光字</option>
+                 <option value="testFrontGlow">测试正面发光</option>
+                 <option value="frontBackGlow">测试 正面与背面发光</option> 
+                  <option value="sideGlowTest">测试 侧面发光</option>
+                  
                 <option value="acrylicCut">亚克力切割字 (Acrylic Cut)</option>
                 <option value="metalCut">金属字 (Metal Cut)</option>
                 
@@ -352,13 +356,39 @@
             <input type="color" id="frontColorPicker" value="#ffffff">
         </div>
 
+
+<!-- 新增：Colour 属性专用颜色选择器 -->
+<!-- 修改后的 Colour 属性专用区域 -->
+<div id="colourAttributeSection" class="hidden">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <label style="margin: 0; color:#f39c12">🎨 面板预设颜色</label>
+        <span id="currentPanelColorName" style="font-size: 11px; color: #bbb;">当前：标准白</span>
+    </div>
+    
+    <!-- 面板颜色专用色块容器 -->
+    <div class="panel-color-swatch-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+        <div class="color-swatch" style="background-color: #FFA500;" data-color="#FFA500" title="橘"></div>
+        <div class="color-swatch" style="background-color: #FFFF00;" data-color="#FFFF00" title="黄"></div>
+        <div class="color-swatch" style="background-color: #FFC0CB;" data-color="#FFC0CB" title="粉"></div>
+        <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF" title="蓝"></div>
+        <div class="color-swatch" style="background-color: #00FF00;" data-color="#00FF00" title="绿"></div>
+        <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000" title="红"></div>
+        <div class="color-swatch active" style="background-color: #FFFFFF; border: 2px solid #888;" data-color="#FFFFFF" title="标准白"></div>
+        <div class="color-swatch" style="background-color: #F0F8FF; border: 2px solid #888;" data-color="#F0F8FF" title="高亮白（冷白）"></div>
+        <div class="color-swatch" style="background-color: #FAF0E6; border: 2px solid #888;" data-color="#FAF0E6" title="暗淡白（暖白）"></div>
+    </div>
+
+    <label style="font-size: 11px; color: #888;">自定义面板颜色：</label>
+    <input type="color" id="colourAttrPicker" value="#ffffff" style="width: 100%; height: 30px; cursor: pointer; border: 1px solid #444; background: none;">
+</div>
+
         <div id="ledSection">
             <div style="margin-bottom: 10px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
         <label style="margin: 0;">🎨 预设颜色</label>
         <span id="currentColorName" style="font-size: 12px; color: #f39c12; font-weight: bold; letter-spacing: 1px;">当前：标准白</span>
     </div>
-    <div class="color-swatch-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
+    <div id="ledSwatchContainer" class="color-swatch-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
                     <!-- 彩色 -->
                     <div class="color-swatch" style="background: linear-gradient(135deg, red, orange, yellow, green, blue, purple);" data-color="RGB" title="RGB呼吸灯效"></div>
                     <div class="color-swatch" style="background: linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, white);" data-color="FLOWRGB" title="RGBW流水灯"></div>
@@ -386,9 +416,9 @@
 <div class="thickness-control">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <label id="frontLabel" style="margin:0;">📏 正面厚度 (单位:mm)</label>
-        <input type="number" id="frontThicknessInput" class="num-input" value="50" step="1">
+        <input type="number" id="frontThicknessInput" class="num-input" value="50" step="0.01">
     </div>
-    <input type="range" id="frontThicknessSlider" min="5" max="120" step="1" value="50">
+    <input type="range" id="frontThicknessSlider" min="0.1" max="120" step="0.1" value="50">
     <div id="frontDesc" style="font-size:11px; color:#aaa;">向前凸起 (5mm - 120mm)</div>
 </div>
 
@@ -488,6 +518,8 @@ import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
     // ==========================================
 
 // --- 物体拖拽相关变量 ---
+
+let colourAttrColor = 0xffffff; // 存储 Colour 属性的颜色
 let isMoveModeActive = false; // 是否处于 M 键激活的移动模式中
 let selectedObject = null; // 当前选中的物体（文字组或背景图）
 let outlinePass;
@@ -554,7 +586,33 @@ const handle = document.getElementById('panel-drag-handle');
 let isMovingPanel = false;
 let panelOffsetX = 0;
 let panelOffsetY = 0;
+// --- 处理面板颜色 (Colour Attribute) 的色块点击 ---
+// 处理面板颜色 (Colour Attribute) 的色块点击
+// --- 专门处理【面板颜色】的点击 ---
+document.querySelectorAll('.panel-color-swatch-container .color-swatch').forEach(swatch => {
+    swatch.addEventListener('click', (e) => {
+        e.stopPropagation(); // 阻止事件冒泡
+        // 只清理面板这一组的 active
+        document.querySelectorAll('.panel-color-swatch-container .color-swatch').forEach(s => s.classList.remove('active'));
+        swatch.classList.add('active');
 
+        const colorTitle = swatch.getAttribute('title');
+        document.getElementById('currentPanelColorName').innerText = '当前：' + colorTitle;
+
+        // 只更新面板色选择器
+        const colorValue = swatch.dataset.color;
+        document.getElementById('colourAttrPicker').value = colorValue;
+
+        generate3DText(document.getElementById('textInput').value, false);
+    });
+});
+
+// 如果用户手动拉动面板颜色选择器，也触发更新并取消色块高亮
+document.getElementById('colourAttrPicker').addEventListener('input', (e) => {
+    document.querySelectorAll('.panel-color-swatch-container .color-swatch').forEach(s => s.classList.remove('active'));
+    document.getElementById('currentPanelColorName').innerText = '当前：自定义';
+    generate3DText(document.getElementById('textInput').value, false);
+});
 handle.addEventListener('mousedown', (e) => {
     isMovingPanel = true;
     // 计算鼠标点击位置相对于面板左上角的偏移
@@ -1078,6 +1136,15 @@ document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
 
 // 绑定按钮点击事件
 document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
+ const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
+    const ledMat = new THREE.MeshStandardMaterial({ 
+        color: ledColor, emissive: ledColor, emissiveIntensity: 0, 
+        roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide
+    });
+    
+    // 获取新增的 Colour 属性颜色
+    const cAttrColor = new THREE.Color(document.getElementById('colourAttrPicker').value);
+    const capMat = createBackMaterial(currentTexName, true, currentTintColor);
 function generate3DText(textString, adjustCamera = true) {
     if (!isSvgMode && !currentFont) {
         loadFontAndGenerate('helvetiker', textString, adjustCamera);
@@ -1098,60 +1165,65 @@ function generate3DText(textString, adjustCamera = true) {
     isDecomposed = false; 
     document.getElementById('decomposeBtn').innerText = '一键解体 (Explode)';
 
+    // 2. 初始化颜色和材质 (防止报错的关键)
+    const ledColorVal = document.getElementById('ledColorPicker').value;
+    const ledColor = new THREE.Color(ledColorVal);
+    
+    // 获取面板独立颜色 Colour Attribute
+    const cAttrPickerVal = document.getElementById('colourAttrPicker').value;
+    const cAttrColor = new THREE.Color(cAttrPickerVal);
+
+    const ledMat = new THREE.MeshStandardMaterial({ 
+        color: ledColor, emissive: ledColor, emissiveIntensity: 0, 
+        roughness: 1.0, metalness: 0.0, side: THREE.DoubleSide
+    });
+    
+    const colourAttrMat = new THREE.MeshStandardMaterial({
+        color: cAttrColor,
+        roughness: 0.6,
+        metalness: 0.2,
+        side: THREE.DoubleSide
+    });
+
+    const capMat = createBackMaterial(currentTexName, true, currentTintColor);
+
+    // 3. 计算几何体
     const fDepth = frontThickness / 10; 
     const bDepth = backThickness / 10;  
-
     if (!isSvgMode && !textString.trim()) return;
 
     let fGeo, bGeo, singleGeo, innerGeo;
-    const commonExtrude = { 
-        bevelEnabled: false, 
-        bevelSegments: 0,
-        steps: 1,
-        caps: true 
-    };
+    const commonExtrude = { bevelEnabled: false, steps: 1, caps: true };
 
-    // 2. 几何体生成
     if (isSvgMode && svgPaths) {
         const shapes = [];
         svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
-
-        // SVG 模式：使用 ExtrudeGeometry，深度直接使用计算好的 fDepth 和 bDepth
         fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth });
         bGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: bDepth });
         singleGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth + bDepth });
-        innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: 0.2 });
+        innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: 0.1 }); // 0.01mm
 
-        // SVG 归一化处理
         [fGeo, bGeo, singleGeo, innerGeo].forEach(geo => {
             geo.computeBoundingBox();
             const h = geo.boundingBox.max.y - geo.boundingBox.min.y;
             const scale = textSize / h;
-            // 注意：SVG 通常坐标系是反的，所以 Y 缩放用负值，并配合 yScale
             geo.applyMatrix4(new THREE.Matrix4().makeScale(scale, -scale * yScale, 1));
-            
             geo.computeBoundingBox();
             const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
             const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
             geo.translate(cx, cy, 0);
         });
     } else {
-        // 文字模式逻辑
         const refSize = 10;
-        const tempOpts = { ...commonExtrude, font: currentFont, size: refSize, height: 0 };
-        
-        const tempGeo = new TextGeometry(textString, tempOpts);
+        const tempGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: refSize, height: 0 });
         tempGeo.computeBoundingBox();
-        const actualHeight = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
-        
-        const finalScale = textSize / actualHeight;
+        const finalScale = textSize / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y);
         const scaledFontSize = refSize * finalScale; 
 
-        const finalOpts = { ...commonExtrude, font: currentFont, size: scaledFontSize, height: 0 };
-        fGeo = new TextGeometry(textString, { ...finalOpts, height: fDepth });
-        bGeo = new TextGeometry(textString, { ...finalOpts, height: bDepth });
-        singleGeo = new TextGeometry(textString, { ...finalOpts, height: fDepth + bDepth });
-        innerGeo = new TextGeometry(textString, { ...finalOpts, height: 0.2 });
+        fGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth });
+        bGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: bDepth });
+        singleGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth + bDepth });
+        innerGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: 0.1 });
 
         [fGeo, bGeo, singleGeo, innerGeo].forEach(geo => {
             geo.scale(1, yScale, 1);
@@ -1162,51 +1234,71 @@ function generate3DText(textString, adjustCamera = true) {
         });
     }
 
-    // 3. Z轴统一处理：背面整体向后平移
-    bGeo.translate(0, 0, -bDepth);
+    // 4. Mesh 生成逻辑
+    if (glowMode === 'sideGlowTest') {
+        const tinyGap = 0.005;
+        
+        // 侧面（中间发光层）
+        const glowMesh = new THREE.Mesh(fGeo, ledMat); // 使用 ledMat (发光色)
+        glowMesh.position.set(0, 0, 0);
+        glowMesh.userData.baseZ = 0;
+        glowMesh.layers.enable(BLOOM_SCENE);
 
-    // 4. 材质与 Mesh 生成
-    const isBackGlow = (glowMode === 'backGlow');
-    const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
+        // 面板（最前面不发光层）
+        const colourMesh = new THREE.Mesh(innerGeo, colourAttrMat); // 使用 colourAttrMat (面板色)
+        const frontPos = fDepth + tinyGap;
+        colourMesh.position.set(0, 0, frontPos);
+        colourMesh.userData.baseZ = frontPos;
 
-    const ledMat = new THREE.MeshStandardMaterial({ 
-        color: ledColor, 
-        emissive: ledColor, 
-        emissiveIntensity: 0, 
-        roughness: 1.0,       
-        metalness: 0.0,       
-        transparent: false,   
-        opacity: 1.0,         
-        depthWrite: true,     
-        side: THREE.DoubleSide
-    });
+        // --- 后面：封底层 (Fixed) ---
+        const fixedMat = new THREE.MeshStandardMaterial({ color: 0x222222 }); 
+        const fixedMesh = new THREE.Mesh(innerGeo, fixedMat); 
+        const backPos = -tinyGap - 0.1;
+        fixedMesh.position.set(0, 0, backPos);
+        fixedMesh.userData.baseZ = backPos;
 
-    const capMat = createBackMaterial(currentTexName, true, currentTintColor);
-
-  
-     if (glowMode === 'acrylicCut' || glowMode === 'metalCut') {
+        textGroup.add(colourMesh, glowMesh, fixedMesh);
+        frontMeshes.push(colourMesh, glowMesh);
+        backMeshes.push(fixedMesh);
+    } 
+    else if (glowMode === 'acrylicCut' || glowMode === 'metalCut') {
         const mat = (glowMode === 'acrylicCut') ? new THREE.MeshStandardMaterial({color: ledColor}) : capMat;
         const mesh = new THREE.Mesh(singleGeo, mat);
         textGroup.add(mesh);
         singleMesh = mesh;
     } 
+    else if (glowMode === 'frontBackGlow') {
+        const tinyGap = 0.005;
+        bGeo.translate(0, 0, -bDepth); // 修正背面位置
+        const bMesh = new THREE.Mesh(bGeo, capMat); 
+        bMesh.position.set(0, 0, 0); 
+        bMesh.userData.baseZ = 0;
+        const fMeshForward = new THREE.Mesh(fGeo, ledMat);
+        fMeshForward.position.set(0, 0, tinyGap); 
+        fMeshForward.userData.baseZ = tinyGap;
+        fMeshForward.layers.enable(BLOOM_SCENE);
+        const fMeshBackward = new THREE.Mesh(fGeo, ledMat);
+        const backPos = -bDepth - tinyGap;
+        fMeshBackward.position.set(0, 0, backPos); 
+        fMeshBackward.userData.baseZ = backPos;
+        fMeshBackward.layers.enable(BLOOM_SCENE);
+        textGroup.add(bMesh, fMeshForward, fMeshBackward);
+        frontMeshes.push(fMeshForward, fMeshBackward);
+        backMeshes.push(bMesh);
+    }
     else {
         const tinyGap = 0.005;
+        bGeo.translate(0, 0, -bDepth);
+        const isBackGlow = (glowMode === 'backGlow');
         const fMesh = new THREE.Mesh(fGeo, isBackGlow ? capMat : ledMat);
         const bMesh = new THREE.Mesh(bGeo, isBackGlow ? ledMat : capMat);
-        
         fMesh.position.set(0, 0, tinyGap); 
         bMesh.position.set(0, 0, -tinyGap); 
-        
-        fMesh.userData.baseZ = tinyGap; 
-        bMesh.userData.baseZ = -tinyGap; 
-        
-        if (!isBackGlow) fMesh.layers.enable(BLOOM_SCENE);
+        fMesh.userData.baseZ = tinyGap; bMesh.userData.baseZ = -tinyGap; 
+        if (glowMode === 'frontGlow' || glowMode === 'testFrontGlow') fMesh.layers.enable(BLOOM_SCENE);
         else bMesh.layers.enable(BLOOM_SCENE);
-
         textGroup.add(fMesh, bMesh);
-        frontMeshes.push(fMesh);
-        backMeshes.push(bMesh);
+        frontMeshes.push(fMesh); backMeshes.push(bMesh);
     }
 
     updateBrightness(document.getElementById('brightnessSlider').value);
@@ -1293,7 +1385,10 @@ bgInput.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
     e.target.value = ''; // 清空选择器
 });
-
+// 绑定 Colour Attribute 颜色选择器
+document.getElementById('colourAttrPicker').addEventListener('input', (e) => {
+    generate3DText(document.getElementById('textInput').value, false);
+});
 // 移除背景功能
 clearBgBtn.addEventListener('click', () => {
     if (bgPlaneMesh) {
@@ -1363,7 +1458,17 @@ clearSvgBtn.addEventListener('click', () => {
         const backDesc = document.getElementById('backDesc');
         const depthControl = document.getElementById('depthControl');
         const swatchContainer = document.querySelector('.color-swatch-container');
-        
+         const colourSection = document.getElementById('colourAttributeSection');
+  
+
+   if (glowMode === 'sideGlowTest') {
+        colourSection.classList.remove('hidden'); // 显示 Colour 专用选择器
+        frontThickness = 10;
+        backThickness = 0.1;
+        // ... 设置 slider 和 input 的值 ...
+    } else {
+        colourSection.classList.add('hidden'); // 隐藏
+    }
         if (swatchContainer) {
             if (glowMode === 'metalCut') {
                 swatchContainer.classList.add('disabled');
@@ -1387,7 +1492,46 @@ clearSvgBtn.addEventListener('click', () => {
       backLabel.innerText = '📏 背面厚度 (单位mm)';
         frontDesc.innerText = '向前凸起';
         backDesc.innerText = '向后凸起';
+        // 在 updateUIState 函数内部添加
+if (glowMode === 'sideGlowTest') {
+    frontThickness = 10;   // 发光层 10mm
+    backThickness = 0.1;   // 封底 Fixed 0.01mm (0.1/10)
+    
+    document.getElementById('frontThicknessSlider').value = frontThickness;
+    document.getElementById('frontThicknessInput').value = frontThickness;
+    document.getElementById('backThicknessSlider').value = backThickness;
+    document.getElementById('backThicknessInput').value = backThickness;
 
+    document.getElementById('frontLabel').innerText = '📏 侧面发光厚度 (mm)';
+    document.getElementById('backLabel').innerText = '📏 封底Fixed厚度 (mm)';
+
+    matSection.classList.add('disabled-overlay'); 
+    tintSection.classList.add('disabled-overlay');
+    brightDiv.style.opacity = '1';
+    document.getElementById('brightnessSlider').disabled = false;
+    ledLabel.innerText = '🎨 工艺颜色 (Colour/LED)';
+}
+ if (glowMode === 'testFrontGlow') {
+        // 1. 设置特定的厚度数值
+        // 因为代码中 depth = thickness / 10，所以 0.05mm 对应数值 0.5，10mm 对应数值 100
+        frontThickness = 0.01; 
+        backThickness = 10;
+//正面发光
+        // 2. 同步 UI 滑块和输入框
+        document.getElementById('frontThicknessSlider').value = frontThickness;
+        document.getElementById('frontThicknessInput').value = frontThickness;
+        document.getElementById('backThicknessSlider').value = backThickness;
+        document.getElementById('backThicknessInput').value = backThickness;
+
+        // 3. 材质/颜色控制（参照 frontGlow 逻辑）
+        matSection.classList.remove('disabled-overlay');
+        tintSection.classList.remove('disabled-overlay');
+        ledPicker.classList.remove('disabled-picker');
+        ledPicker.disabled = false;
+        brightDiv.style.opacity = '1';
+        document.getElementById('brightnessSlider').disabled = false;
+        ledLabel.innerText = '💡 灯光颜色 (LED Color)';
+    }
         if (glowMode === 'acrylicCut') {
             matSection.classList.add('disabled-overlay');
             tintSection.classList.add('disabled-overlay');
@@ -1521,52 +1665,36 @@ clearSvgBtn.addEventListener('click', () => {
 
    // 颜色方块点击事件
   // 颜色方块点击事件
-    document.querySelectorAll('.color-swatch').forEach(swatch => {
-        swatch.addEventListener('click', () => {
-            if (glowMode === 'metalCut') return;
+ // 只选择 led-swatches 容器下的方块
+document.querySelectorAll('.led-swatches .color-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+        if (glowMode === 'metalCut') return;
 
-            // ==========================================
-            // 新增：实时更新上方提示文字
-            // ==========================================
-            const colorTitle = swatch.getAttribute('title');
-            const nameDisplay = document.getElementById('currentColorName');
-            if (nameDisplay) {
-                nameDisplay.innerText = colorTitle; 
-            }
-            // ==========================================
-
-            // 1. UI 状态切换
-            document.querySelectorAll('.color-swatch').forEach(s => {
-                s.classList.remove('active', 'marquee-active');
-            });
-            swatch.classList.add('active');
-
-            const color = swatch.dataset.color;
-
-            // 2. 逻辑处理
-            if (color === 'FLOWRGB') {
-                swatch.classList.add('marquee-active');
-                isFlowRGB = true;
-                isRGBGlow = false;
-                backMeshes.concat(frontMeshes).forEach(m => {
-                    m.material.needsUpdate = true;
-                });
-            } else {
-                isFlowRGB = false;
-                isRGBGlow = false;
-                // 切换回普通颜色时，清理发光贴图
-                backMeshes.concat(frontMeshes).forEach(m => {
-                    if (m.material) m.material.emissiveMap = null;
-                });
-
-                // --- 修正：手动同步颜色选择器并触发更新 ---
-                const picker = document.getElementById('ledColorPicker');
-                picker.value = color; 
-                // 手动触发 input 事件以更新模型颜色
-                picker.dispatchEvent(new Event('input', { bubbles: true }));
-            }
+        // 核心：只移除发光颜色这一组的 active 状态
+        document.querySelectorAll('.led-swatches .color-swatch').forEach(s => {
+            s.classList.remove('active', 'marquee-active');
         });
+        
+        swatch.classList.add('active');
+        const color = swatch.dataset.color;
+
+        // 下面原有的 FLOWRGB, RGB 和普通颜色的逻辑保持不变...
+        if (color === 'FLOWRGB') {
+            // ...
+        } else if (color === 'RGB') {
+            // ...
+        } else {
+            isFlowRGB = false;
+            isRGBGlow = false;
+            backMeshes.concat(frontMeshes).forEach(m => {
+                if(m.material) m.material.emissiveMap = null;
+            });
+            const picker = document.getElementById('ledColorPicker');
+            picker.value = color; 
+            picker.dispatchEvent(new Event('input', { bubbles: true }));
+        }
     });
+});
 
     // ==========================================
     // 新增：如果用户自己拉动了下方的调色盘，显示为“自定义”
@@ -1601,7 +1729,7 @@ const frontSlider = document.getElementById('frontThicknessSlider');
 const frontInput = document.getElementById('frontThicknessInput');
 
 frontSlider.addEventListener('input', (e) => {
-    const val = parseInt(e.target.value);
+     const val = parseFloat(e.target.value);
     if(frontInput) frontInput.value = val;
     frontThickness = val;
     generate3DText(document.getElementById('textInput').value, false);
@@ -1609,7 +1737,7 @@ frontSlider.addEventListener('input', (e) => {
 
 if(frontInput) {
     frontInput.addEventListener('change', (e) => {
-        let val = parseInt(e.target.value);
+        let val = parseFloat(e.target.value);
         if (isNaN(val)) val = 50;
         val = Math.max(5, Math.min(120, val));
         frontInput.value = val;
@@ -1656,84 +1784,117 @@ if(backInput) {
  
 
     // --- 4. 一键解体按钮 ---
- document.getElementById('decomposeBtn').addEventListener('click', () => {
- 
-
+// --- 4. 一键解体按钮 核心修复版 ---
+// --- 4. 一键解体按钮 (修复 ReferenceError) ---
+document.getElementById('decomposeBtn').addEventListener('click', () => {
     isDecomposed = !isDecomposed;
-    const explodeGap = 20; // 解体时的总位移
 
-    if (frontMeshes.length > 0 && backMeshes.length > 0) {
-        const fMesh = frontMeshes[0];
-        const bMesh = backMeshes[0];
+    if (glowMode === 'sideGlowTest') {
+        const explodeGap = 15;
+        if (frontMeshes.length >= 2) {
+            const colourLayer = frontMeshes[0]; // 前面板
+            const glowLayer = frontMeshes[1];   // 中间层
+            const fixedLayer = backMeshes[0];   // 封底层
 
-        // 动画：正面物体
-        gsap.to(fMesh.position, { 
-            // 如果解体，去到 gap 位置；如果合并，回到初始记录的 baseZ (比如 0.0005)
-            z: isDecomposed ? explodeGap : (fMesh.userData.baseZ || 0), 
-            duration: 1, 
-            ease: "power2.inOut",
-            // 关键：在动画过程中实时调用 updateDimensions，让标注线跟着动
-            onUpdate: () => {
-                if (typeof updateDimensions === 'function') updateDimensions();
-            }
-        });
+            // 前面板滑出
+            gsap.to(colourLayer.position, { 
+                z: isDecomposed ? (colourLayer.userData.baseZ + explodeGap) : colourLayer.userData.baseZ, 
+                duration: 1, ease: "power2.inOut",
+                onUpdate: () => updateDimensions()
+            });
+            // 封底层滑出
+            gsap.to(fixedLayer.position, { 
+                z: isDecomposed ? (fixedLayer.userData.baseZ - explodeGap) : fixedLayer.userData.baseZ, 
+                duration: 1, ease: "power2.inOut"
+            });
+        }
+    } 
+    if (glowMode === 'frontBackGlow') {
+        frontThickness = 0.1; 
+        backThickness = 10;   
+        
+        document.getElementById('frontThicknessSlider').value = frontThickness;
+        document.getElementById('frontThicknessInput').value = frontThickness;
+        document.getElementById('backThicknessSlider').value = backThickness;
+        document.getElementById('backThicknessInput').value = backThickness;
 
-        // 动画：背面物体
-        gsap.to(bMesh.position, { 
-            // 如果解体，去到 -gap 位置；如果合并，回到初始记录的 baseZ (比如 -0.0005)
-            z: isDecomposed ? -explodeGap : (bMesh.userData.baseZ || 0), 
-            duration: 1, 
-            ease: "power2.inOut" 
-        });
+        matSection.classList.remove('disabled-overlay');
+        tintSection.classList.remove('disabled-overlay');
+        ledPicker.classList.remove('disabled-picker');
+        ledPicker.disabled = false;
+        brightDiv.style.opacity = '1';
+        document.getElementById('brightnessSlider').disabled = false;
+        ledLabel.innerText = '💡 灯光颜色 (LED Color)';
+    } else {
+        const explodeGap = 20; 
+        if (frontMeshes.length > 0 && backMeshes.length > 0) {
+            const fMesh = frontMeshes[0];
+            const bMesh = backMeshes[0];
+
+            gsap.to(fMesh.position, { 
+                z: isDecomposed ? (fMesh.userData.baseZ + explodeGap) : (fMesh.userData.baseZ || 0), 
+                duration: 1, 
+                ease: "power2.inOut",
+                onUpdate: () => { if (typeof updateDimensions === 'function') updateDimensions(); }
+            });
+
+            gsap.to(bMesh.position, { 
+                z: isDecomposed ? (bMesh.userData.baseZ - explodeGap) : (bMesh.userData.baseZ || 0), 
+                duration: 1, 
+                ease: "power2.inOut" 
+            });
+        }
     }
 
-    // 更新按钮文字
     document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并' : '一键解体 (Explode)';
 });
 
+
     // --- 5. 文字和字体输入监听 ---
     document.getElementById('textInput').addEventListener('input', (e) => {
-        if (currentFont) generate3DText(e.target.value, true);
-    });
+    if (currentFont) generate3DText(e.target.value, true);
+});
 
-    document.getElementById('fontSelector').addEventListener('change', (e) => {
-        const selected = e.target.value;
-        const currentText = document.getElementById('textInput').value;
-        loadFontAndGenerate(selected, currentText, true);
-    });
+document.getElementById('fontSelector').addEventListener('change', (e) => {
+    const selected = e.target.value;
+    const currentText = document.getElementById('textInput').value;
+    loadFontAndGenerate(selected, currentText, true);
+});
     // 颜色方块点击事件
-   document.querySelectorAll('.color-swatch').forEach(swatch => {
+ // --- 专门处理【发光颜色】的点击 ---
+// 注意：这里改成了 #ledSwatchContainer .color-swatch
+document.querySelectorAll('#ledSwatchContainer .color-swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
         if (glowMode === 'metalCut') return;
 
-        // 移除所有色块的active状态
-        document.querySelectorAll('.color-swatch').forEach(s => {
+        // 只清理发光颜色这一组的 active
+        document.querySelectorAll('#ledSwatchContainer .color-swatch').forEach(s => {
             s.classList.remove('active', 'marquee-active');
         });
-        
-        // 给当前点击的色块添加active状态
         swatch.classList.add('active');
 
         const color = swatch.dataset.color;
 
         if (color === 'FLOWRGB') {
-             swatch.classList.add('marquee-active');
-        isFlowRGB = true;
-        isRGBGlow = false;
-        updateBrightness(80); // 跑马灯通常需要高亮度
+            swatch.classList.add('marquee-active');
+            isFlowRGB = true;
+            isRGBGlow = false;
+            updateBrightness(80);
         } else if (color === 'RGB') {
-            // 开启RGB呼吸灯 - 给色块加跑马灯激活状态
             swatch.classList.add('marquee-active');
             isRGBGlow = true;
             isFlowRGB = false;
         } else {
-            // 普通颜色 - 关闭所有动态效果
             isFlowRGB = false;
             isRGBGlow = false;
-
-              backMeshes.concat(frontMeshes).forEach(m => {
-            m.material.emissiveMap = null;
-        });
+            backMeshes.concat(frontMeshes).forEach(m => {
+                if(m.material) m.material.emissiveMap = null;
+            });
+            
+            // 只更新 LED 选择器
+            const picker = document.getElementById('ledColorPicker');
+            picker.value = color; 
+            picker.dispatchEvent(new Event('input', { bubbles: true }));
         }
     });
 });

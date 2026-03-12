@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>路径扫描 (Lofting) 工业复刻测试</title>
+    <style>
+        body { margin: 0; background: #121212; color: #f39c12; font-family: 'Consolas', monospace; overflow: hidden; }
+        #ui { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 8px; border: 1px solid #444; width: 300px; z-index: 100; }
+        input { width: 100%; padding: 10px; background: #222; border: 1px solid #f39c12; color: white; border-radius: 4px; font-size: 16px; margin-top: 10px; }
+        .dna-box { font-size: 11px; background: #1a1a1a; padding: 10px; margin-top: 10px; border: 1px dashed #555; }
+        .label { color: #888; font-size: 10px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div style="font-weight: bold; font-size: 18px;">LOFTING ENGINE</div>
+    <div class="label">路径扫描工业生成器</div>
+    
+    <div class="dna-box">
+        <div style="color: #27ae60; margin-bottom: 5px;">● 已提取 y.glb 截面基因:</div>
+        - 垂直围边: 20.0mm<br>
+        - 压口水平: 2.0mm<br>
+        - 压口垂直: 3.0mm
+    </div>
+
+    <input type="text" id="textInput" value="ABC" maxlength="5">
+    
+    <div style="margin-top: 15px; font-size: 12px; color: #666;">
+        [原理]: 提取截面形状，沿着文字轮廓进行路径放样 (Lofting)。
+    </div>
+</div>
+
+<script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+
+    let scene, camera, renderer, controls, font;
+    let mainGroup = new THREE.Group();
+
+    // --- 1. 定义从 y.glb 提取的截面基因 ---
+    // 这是一个 stair-step (阶梯) 剖面
+    const YAKOU_PROFILE = [
+        new THREE.Vector2(0, 0),    // 起点
+        new THREE.Vector2(0, 20),   // 围边升起 20mm
+        new THREE.Vector2(1.5, 20), // 压口平台 1.5mm
+        new THREE.Vector2(1.5, 23)  // 压口封边 3mm
+    ];
+
+    init();
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0a);
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(40, 40, 80);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+        sun.position.set(10, 20, 30);
+        scene.add(sun);
+        scene.add(mainGroup);
+
+        new FontLoader().load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json', (f) => {
+            font = f;
+            doLofting(document.getElementById('textInput').value);
+        });
+
+        document.getElementById('textInput').addEventListener('input', (e) => doLofting(e.target.value));
+        animate();
+    }
+
+    // --- 2. 扫描逻辑核心 ---
+    function doLofting(input) {
+        mainGroup.clear();
+        if(!font || !input) return;
+
+        const shapes = font.generateShapes(input.toUpperCase(), 20);
+        
+        shapes.forEach(shape => {
+            // 获取文字的所有路径点 (包含孔洞)
+            const points = shape.getPoints();
+            const holes = shape.holes;
+
+            // 为外轮廓做放样
+            mainGroup.add(createLoftMesh(points, YAKOU_PROFILE));
+
+            // 为孔洞做放样 (例如 O, B 的内部)
+            holes.forEach(hole => {
+                mainGroup.add(createLoftMesh(hole.getPoints(), YAKOU_PROFILE));
+            });
+            
+            // 生成面板 (Face)
+            const faceGeo = new THREE.ShapeGeometry(shape);
+            const faceMesh = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({ color: 0xffffff }));
+            faceMesh.position.z = 23; // 放在扫描的最顶端
+            mainGroup.add(faceMesh);
+        });
+
+        // 居中
+        const box = new THREE.Box3().setFromObject(mainGroup);
+        mainGroup.position.x = -box.getCenter(new THREE.Vector3()).x;
+    }
+
+    /**
+     * @param {THREE.Vector2[]} pathPoints 文字轮廓线
+     * @param {THREE.Vector2[]} profile 压口截面基因
+     */
+    function createLoftMesh(pathPoints, profile) {
+        const vertices = [];
+        const indices = [];
+
+        // 遍历路径上的每一个段
+        for (let i = 0; i < pathPoints.length; i++) {
+            const curr = pathPoints[i];
+            
+            // 每一个路径点，都要生成一圈截面顶点
+            profile.forEach(p => {
+                // p.x 是向外扩的距离, p.y 是高度
+                // 简化处理：这里直接用 z轴 表示 y高度
+                vertices.push(curr.x, curr.y + p.x * 0.1, p.y); 
+            });
+
+            // 构建三角形索引 (面)
+            if (i > 0) {
+                const pLen = profile.length;
+                const currIdx = i * pLen;
+                const prevIdx = (i - 1) * pLen;
+
+                for (let j = 0; j < pLen - 1; j++) {
+                    const a = prevIdx + j;
+                    const b = currIdx + j;
+                    const c = currIdx + j + 1;
+                    const d = prevIdx + j + 1;
+                    
+                    indices.push(a, b, d);
+                    indices.push(b, c, d);
+                }
+            }
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0x888888, 
+            metalness: 1, 
+            roughness: 0.2,
+            side: THREE.DoubleSide 
+        });
+        return new THREE.Mesh(geometry, material);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+</script>
+</body>
+</html>
