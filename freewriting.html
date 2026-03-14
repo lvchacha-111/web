@@ -1619,100 +1619,108 @@ else if (glowMode === 'neonWord') {
         if (isFlowRGB) flowMeshes.push(neonMesh);
     }
 else if (glowMode === 'neonWord012') {
-        // --- 1. 参数换算 (10mm = 1.0 3D单位) ---
-        const tRadius = neonTubeSize / 20;    // 灯管半径
-        const sDepth = frontThickness / 10;   // 支撑壳厚度
+    // --- 1. 参数定义 (保持与013一致的参数集) ---
+    const hDepth = frontThickness / 10;   // 支撑壳厚度 (由滑块控制)
+    const tRadius = 0.5;                  // 灯管半径 (固定 10mm 直径)
+    const basePadding = 0.1;              // 支撑壳比灯管稍微小一点 (负值收缩)
+    const lift = 0.08;                    // 防穿透间隙
 
-        // --- 2. 几何体生成 (适配 SVG 或 文字) ---
-        let neonGeo, shellGeo;
+    // 支撑壳参数：使用 bevelSize 实现收缩，不改变几何中心
+    const shellSettings = {
+        bevelEnabled: true,
+        bevelThickness: 0.05,
+        bevelSize: -basePadding,          // 【关键】负值实现向内收缩 (视觉嵌套)
+        bevelSegments: 5
+    };
 
-        if (isSvgMode && svgPaths) {
-            const shapes = [];
-            svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
-            
-            // --- A. 计算 SVG 缩放倍率 (范本核心) ---
-            const tempShapeGeo = new THREE.ShapeGeometry(shapes);
-            tempShapeGeo.computeBoundingBox();
-            const svgH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
-            const scale = textSize / svgH;
+    // 灯管参数
+    const neonSettings = {
+        depth: 0.05,
+        bevelEnabled: true,
+        bevelThickness: tRadius, 
+        bevelSize: tRadius,
+        bevelSegments: 30
+    };
 
-            // --- B. 生成挤压几何体 ---
-            // 【核心修复】：所有的物理参数都要除以 scale，
-            // 这样在应用 matrix 缩放后，它们才会回到准确的毫米数。
-            neonGeo = new THREE.ExtrudeGeometry(shapes, { 
-                depth: 0.05 / scale,        // 极薄中间层
-                bevelEnabled: true,
-                bevelThickness: tRadius / scale, 
-                bevelSize: tRadius / scale,
-                bevelOffset: 0,
-                bevelSegments: 30
-            });
+    let shellGeo, neonGeo;
 
-            shellGeo = new THREE.ExtrudeGeometry(shapes, { 
-                depth: sDepth / scale,      // 支撑壳厚度
-                bevelEnabled: false,
-                steps: 1
-            });
+    // --- 2. 几何体生成 ---
+    if (isSvgMode && svgPaths) {
+        const shapes = [];
+        svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
 
-            // --- C. 应用矩阵变换 (Z轴也必须缩放) ---
-            // 将 Z 轴也设为 scale，这样几何体内部除掉的 scale 就会在这里乘回来，达到 1:1 精度
-            const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
-            neonGeo.applyMatrix4(matrix);
-            shellGeo.applyMatrix4(matrix);
+        const tempShapeGeo = new THREE.ShapeGeometry(shapes);
+        tempShapeGeo.computeBoundingBox();
+        const svgH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
+        const scale = textSize / svgH;
 
-        } else {
-            // 文字模式逻辑
-            const refSize = 10;
-            const tempGeo = new TextGeometry("A", { font: currentFont, size: refSize, height: 0 });
-            tempGeo.computeBoundingBox();
-            const finalScale = textSize / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y);
-            const scaledFontSize = refSize * finalScale;
-
-            neonGeo = new TextGeometry(textString, { 
-                font: currentFont, size: scaledFontSize, height: 0.05, 
-                bevelEnabled: true, bevelThickness: tRadius, bevelSize: tRadius, bevelSegments: 30 
-            });
-            shellGeo = new TextGeometry(textString, { 
-                font: currentFont, size: scaledFontSize, height: sDepth, bevelEnabled: false 
-            });
-
-            neonGeo.scale(1, yScale, 1);
-            shellGeo.scale(1, yScale, 1);
-        }
-
-        // --- 3. 支撑壳收缩处理 (比灯管窄) ---
-        shellGeo.scale(0.96, 0.96, 1);
-
-        // --- 4. 统一居中校准 ---
-        [neonGeo, shellGeo].forEach(geo => {
-            geo.computeBoundingBox();
-            const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
-            const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
-            geo.translate(cx, cy, 0); 
+        shellGeo = new THREE.ExtrudeGeometry(shapes, { 
+            ...shellSettings, 
+            depth: hDepth / scale,
+            bevelThickness: 0.05 / scale,
+            bevelSize: -basePadding / scale 
+        });
+        neonGeo = new THREE.ExtrudeGeometry(shapes, { 
+            ...neonSettings, 
+            depth: 0.05 / scale,
+            bevelThickness: tRadius / scale,
+            bevelSize: tRadius / scale
         });
 
-        // --- 5. 创建 Mesh 并设置层级 ---
-        const neonMesh = new THREE.Mesh(neonGeo, ledMat);
-        const shellMesh = new THREE.Mesh(shellGeo, capMat);
+        const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
+        shellGeo.applyMatrix4(matrix);
+        neonGeo.applyMatrix4(matrix);
+    } else {
+        const refSize = 10;
+        const tempGeo = new TextGeometry("A", { font: currentFont, size: refSize, height: 0 });
+        tempGeo.computeBoundingBox();
+        const finalScale = textSize / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y);
+        const scaledFontSize = refSize * finalScale;
 
-        neonMesh.material.side = THREE.DoubleSide; 
-        neonMesh.layers.enable(BLOOM_SCENE);       
+        shellGeo = new TextGeometry(textString, { 
+            font: currentFont, size: scaledFontSize, ...shellSettings, height: hDepth 
+        });
+        neonGeo = new TextGeometry(textString, { 
+            font: currentFont, size: scaledFontSize, ...neonSettings, height: 0.05 
+        });
 
-        // 坐标设定：支撑壳向后长，灯管向前凸，保留 0.01 间隙
-        shellMesh.position.z = -sDepth; 
-        neonMesh.position.z = tRadius + 0.01; 
-
-        textGroup.add(neonMesh, shellMesh);
-
-        frontMeshes = [shellMesh]; 
-        backMeshes = [neonMesh];   
-        if (isFlowRGB) flowMeshes.push(neonMesh);
+        shellGeo.scale(1, yScale, 1);
+        neonGeo.scale(1, yScale, 1);
     }
+
+    // --- 3. 统一对齐 (与013逻辑一致) ---
+    shellGeo.computeBoundingBox();
+    const cx = -0.5 * (shellGeo.boundingBox.max.x + shellGeo.boundingBox.min.x);
+    const cy = -0.5 * (shellGeo.boundingBox.max.y + shellGeo.boundingBox.min.y);
+
+    shellGeo.translate(cx, cy, 0); 
+    neonGeo.translate(cx, cy, 0); 
+
+    // --- 4. 创建 Mesh ---
+    const shellMesh = new THREE.Mesh(shellGeo, capMat); 
+    const neonMesh = new THREE.Mesh(neonGeo, ledMat);   
+
+    neonMesh.material.side = THREE.DoubleSide; 
+    neonMesh.layers.enable(BLOOM_SCENE); 
+
+    // --- 5. 坐标设定 (与013逻辑一致) ---
+    shellMesh.position.z = -hDepth;    
+    neonMesh.position.z = tRadius + lift; 
+
+    textGroup.add(shellMesh, neonMesh);
+
+    // --- 6. 登记分类 ---
+    frontMeshes = [shellMesh]; 
+    backMeshes = [neonMesh];   
+    colourMeshes = [];
+
+    if (isFlowRGB) flowMeshes.push(neonMesh);
+}
 else if (glowMode === 'neonWord013') {
         // --- 1. 参数定义 (10mm = 1.0 3D单位) ---
         const hDepth = frontThickness / 10;   // 底座厚度
         const tRadius = 0.5;                  // 灯管半径 (固定10mm直径)
-        const basePadding = 0.2;              // 底座比灯管向外扩张 2mm
+        const basePadding = 1.5;              // 底座比灯管向外扩张 2mm
         const lift = 0.08;                    // 物理防穿透间隙
 
         // 底座参数：使用 bevelSize 实现外扩，保持正面平整
