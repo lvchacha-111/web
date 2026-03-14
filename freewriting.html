@@ -1466,7 +1466,7 @@ if (glowMode === 'testFrontGlow') {
         // --- 1. 参数定义 ---
         const tRadius = neonTubeSize / 40;    // 霓虹灯管半径 (建议 0.5 左右)
         const bRadius = tRadius * 0.85;       // 【核心】背托半径设为灯管的 85% (略小于灯管)
-
+const baseDepth = frontThickness / 10; 
         // --- 2. 几何体生成 ---
         let shapes = [];
         if (isSvgMode && svgPaths) {
@@ -2148,20 +2148,24 @@ function updateUIState() {
         frontLabel.innerText = '📏 材质外壳厚度 (mm)';
         ledLabel.innerText = '💡 背面发光颜色';
     }// --- 修改后的 UI 逻辑 ---
-  else if (glowMode === 'neonBorder') {
-        if (ntCont) ntCont.classList.remove('hidden'); // 调灯管直径
-        if (npCont) npCont.classList.add('hidden');
-        
-        if (fCont) {
-            fCont.classList.remove('hidden');
-            frontLabel.innerText = '📏 凹槽外壳深度 (mm)';
-        }
-        if (bCont) bCont.classList.add('hidden');
-
-        matSection.classList.remove('hidden'); 
-        colourSection.classList.add('hidden'); 
-        ledLabel.innerText = '🎨 内嵌灯管颜色';
-    }
+// 在 updateUIState 函数内部：
+else if (glowMode === 'neonBorder') {
+    // --- 1. 隐藏“正面厚度”滑块 ---
+    const fCont = document.getElementById('frontThicknessSlider').closest('.thickness-control');
+    if (fCont) fCont.classList.add('hidden'); // 这里改为 add('hidden') 即可隐藏
+    
+    // 隐藏背面滑块
+    if (bCont) bCont.classList.add('hidden');
+    
+    // 其他 UI 显示逻辑
+    matSection.classList.remove('hidden');    
+    colourSection.classList.add('hidden');   
+    tintSection.classList.remove('hidden');   
+    
+    ledLabel.innerText = '🎨 内嵌灯带颜色';
+    brightDiv.style.opacity = '1';
+    document.getElementById('brightnessSlider').disabled = false;
+}
     else if (glowMode === 'neonWord' || glowMode === 'neonWord012') {
         // 共同点：隐藏背面滑块
         if (bCont) bCont.classList.add('hidden');
