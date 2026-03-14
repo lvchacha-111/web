@@ -295,6 +295,8 @@
                   <option value="testBackGlow">测试 背面发光</option>
                   <option value="neonWord">测试 霓虹灯字</option> 
                   <option value="neonWord012">测试 霓虹灯字 012</option> <!-- 新增 -->
+                  <option value="neonWord013">测试 霓虹灯字 013 (内嵌槽)</option>   
+                  <option value="neonBorder">测试 霓虹字围边</option> <!-- 新增 -->
                 <option value="acrylicCut">亚克力切割字 (Acrylic Cut)</option>
                 <option value="metalCut">金属字 (Metal Cut)</option>
                 
@@ -316,6 +318,7 @@
                  <option value="neonFont">霓虹字01</option>
                  <option value="neonFont02">霓虹字02</option>
                  <option value="neonFont03">霓虹字03</option>
+                  <option value="neonFont04">霓虹字04</option>
             </select>
         </div>
         
@@ -445,9 +448,9 @@
 <div class="thickness-control">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <label id="frontLabel" style="margin:0;">📏 正面厚度 (单位:mm)</label>
-        <input type="number" id="frontThicknessInput" class="num-input" value="50" step="0.01">
+        <input type="number" id="frontThicknessInput" class="num-input" value="5" step="0.01">
     </div>
-    <input type="range" id="frontThicknessSlider" min="0.1" max="120" step="0.1" value="50">
+    <input type="range" id="frontThicknessSlider" min="0.1" max="120" step="0.1" value="5">
     <div id="frontDesc" style="font-size:11px; color:#aaa;"></div>
 </div>
 
@@ -577,9 +580,10 @@ let currentPaintColor = '#ffffff';
 
     // 尺寸控制
     // 尺寸控制 - 从原来的 5.0 缩小 10 倍变为 0.5
-let frontThickness = 50; 
+let frontThickness = 5; 
 let backThickness = 50;
-    
+    let neonTubeSize = 20;   // 霓虹管默认直径 20mm
+let neonPlateDepth = 5;  // 底板默认厚度 5mm
 
     // 字体相关
     let currentFont = null;
@@ -981,7 +985,8 @@ const mat = new THREE.MeshStandardMaterial({
 
              case 'neonFont': return 'fonts/nhd01.json'; // 假设你的文件名是这个
             case 'neonFont02': return 'fonts/Damion_Regular.json'; 
-             case 'neonFont03': return 'fonts/London Handlettering_Regular.json'; 
+             case 'neonFont03': return 'fonts/London Handlettering_Regular.json';
+              case 'neonFont04': return 'fonts/GilaniSign_Regular.json';
             default: return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
         }
     }
@@ -1235,6 +1240,9 @@ function generate3DText(textString, adjustCamera = true) {
         textGroup.remove(obj);
     }
     frontMeshes = []; backMeshes = []; colourMeshes = []; singleMesh = null;
+      const colourAttrMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(document.getElementById('colourAttrPicker').value), roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide });
+    let capMat = isPaintMode ? new THREE.MeshStandardMaterial({ color: new THREE.Color(currentPaintColor), roughness: 0.2, metalness: 0.05, side: THREE.DoubleSide, depthWrite: true }) : createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
+    if(isPaintMode) capMat.userData.isPaint = true;
 
     // 2. 获取当前灯光颜色
     const ledColorVal = document.getElementById('ledColorPicker').value;
@@ -1334,15 +1342,13 @@ if (glowMode === 'neonWord') {
         });
     }
 
-    const colourAttrMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(document.getElementById('colourAttrPicker').value), roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide });
-    let capMat = isPaintMode ? new THREE.MeshStandardMaterial({ color: new THREE.Color(currentPaintColor), roughness: 0.2, metalness: 0.05, side: THREE.DoubleSide, depthWrite: true }) : createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
-    if(isPaintMode) capMat.userData.isPaint = true;
+  
 
     // 6. Mesh 生成并登记 flowMeshes
   // --- 核心 Mesh 生成与辉光层分配逻辑 ---
     // --- 在 generate3DText 函数内部，材质分配逻辑之前 ---
 
-else if (glowMode === 'testFrontGlow') {
+if (glowMode === 'testFrontGlow') {
         // 直接使用全局预生成的几何体：
         // innerGeo: 深度固定为 0.1 (0.01mm效果)
         // bGeo: 深度由 backThickness 滑块控制
@@ -1430,44 +1436,115 @@ else if (glowMode === 'testFrontGlow') {
     }
     
     // --- 2. 拆分出的【测试 背面发光】逻辑：厚度固定为 0.01mm ---
-  else if (glowMode === 'testBackGlow') {
-        // --- 模式：背面发光 (三层结构：固定前片 + 动态中壳 + 固定后灯片) ---
-        // 直接复用全局预生成的几何体：
-        // 1. innerGeo (固定 0.1) -> 用于【前材质片】和【后灯片】
-        // 2. bGeo (背面滑块控制) -> 用于【中间材质壳】
+ else if (glowMode === 'testBackGlow') {
+        // --- 模式：背面发光 (两层精简版：材质壳 + 后灯片) ---
+        // fGeo: 由“正面厚度”滑块控制 -> 作为【材质外壳】
+        // innerGeo: 固定 0.1 -> 作为【后发光灯片】
 
-        const mFront = new THREE.Mesh(innerGeo, colourAttrMat); // 前面板 (面板颜色)
-        const mShell = new THREE.Mesh(bGeo, capMat);           // 中间壳 (金属材质)
-        const mLED = new THREE.Mesh(innerGeo, ledMat);         // 后灯片 (发光颜色)
+        const mShell = new THREE.Mesh(fGeo, capMat);   // 正面显示金属/烤漆材质
+        const mLED = new THREE.Mesh(innerGeo, ledMat); // 背面显示发光灯片
 
-        // 获取当前背面滑块数值用于定位
-        const bDepth = backThickness / 10;
+        // --- 坐标设置 (包含 0.01 间隙) ---
+        // 壳体从 0 位开始往前长
+        mShell.position.z = 0; 
+        // 灯片贴在壳体背面（0轴位置），增加 0.01 的间隙，设为 -0.11
+        mLED.position.z = -0.11; 
 
-        // --- 核心坐标计算 (增加 0.01 间隙的三明治堆叠) ---
-        
-        // 1. 前面板：原位 0.1，现在设为 0.11
-        // 这样它的背面距离壳体顶面正好有 0.01 的间隙
-        mFront.position.z = 0.1 + 0.01; 
-        
-        // 2. 中间材质壳：保持在原位，从 0 开始向后拉伸 bDepth 距离
-        mShell.position.z = -bDepth; 
-        
-        // 3. 后发光灯片：原位是贴在壳背后 (-bDepth - 0.1)
-        // 现在再往后挪 0.01，设为 -bDepth - 0.11
-        mLED.position.z = -bDepth - 0.1 - 0.01; 
-
-        // 仅开启最后一层灯片的辉光
+        // 仅开启灯片辉光
         mLED.layers.enable(BLOOM_SCENE); 
 
-        // 添加到组
-        textGroup.add(mFront, mShell, mLED);
+        textGroup.add(mShell, mLED);
 
-        // --- 核心登记分类 ---
-        colourMeshes = [mFront];  // 响应“面板预设颜色”
-        frontMeshes = [mShell];   // 响应“材质选择/金属调色”
-        backMeshes = [mLED];      // 响应“灯光颜色/亮度调节”
+        // --- 登记分类 ---
+        frontMeshes = [mShell];   // 响应金属材质/漆色/调色
+        backMeshes = [mLED];      // 响应灯光颜色/亮度
+        colourMeshes = [];        // 彻底清空，禁用“面板预设颜色”对该模式的影响
         
         if (isFlowRGB) flowMeshes.push(mLED);
+    }
+ else if (glowMode === 'neonBorder') {
+        // --- 1. 参数定义 ---
+        const tRadius = neonTubeSize / 40;    // 霓虹灯管半径 (建议 0.5 左右)
+        const bRadius = tRadius * 0.85;       // 【核心】背托半径设为灯管的 85% (略小于灯管)
+
+        // --- 2. 几何体生成 ---
+        let shapes = [];
+        if (isSvgMode && svgPaths) {
+            svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
+        } else {
+            const refSize = 10;
+            const tempGeo = new TextGeometry("A", { font: currentFont, size: refSize, height: 0 });
+            tempGeo.computeBoundingBox();
+            const finalScale = textSize / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y);
+            shapes = currentFont.generateShapes(textString, refSize * finalScale);
+        }
+
+        const localGroup = new THREE.Group();
+        frontMeshes = [];
+        backMeshes = [];
+
+        shapes.forEach(shape => {
+            const points = shape.getPoints();
+            if (points.length > 2) {
+                // 提取路径曲线
+                const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(p.x, p.y, 0)));
+                curve.closed = true;
+
+                // --- A. 生成发光霓虹管 (外层) ---
+                const tubeGeo = new THREE.TubeGeometry(curve, 120, tRadius, 12, true);
+                const tubeMesh = new THREE.Mesh(tubeGeo, ledMat);
+                
+                // --- B. 生成背托围边 (内层/底层) ---
+                const backTubeGeo = new THREE.TubeGeometry(curve, 120, bRadius, 12, true);
+                const backTubeMesh = new THREE.Mesh(backTubeGeo, capMat);
+
+                // --- 坐标堆叠 (增加 0.01 间隙) ---
+                // 1. 背托管放在 Z=0 基准位
+                backTubeMesh.position.z = 0; 
+                // 2. 发灯管放在背托管的前面：背托半径 + 灯管半径 + 0.01 间隙
+                tubeMesh.position.z = bRadius + tRadius + 0.01; 
+
+                tubeMesh.layers.enable(BLOOM_SCENE);
+                localGroup.add(backTubeMesh, tubeMesh);
+
+                // 登记引用
+                frontMeshes.push(backTubeMesh); // 材质球控制背托
+                backMeshes.push(tubeMesh);      // 预设颜色控制灯管
+                if (isFlowRGB) flowMeshes.push(tubeMesh);
+            }
+
+            // 处理内部孔洞 (如 O, A, B 的内圈)
+            shape.holes.forEach(hole => {
+                const hPoints = hole.getPoints();
+                if (hPoints.length > 2) {
+                    const hCurve = new THREE.CatmullRomCurve3(hPoints.map(p => new THREE.Vector3(p.x, p.y, 0)));
+                    hCurve.closed = true;
+
+                    const hTubeGeo = new THREE.TubeGeometry(hCurve, 80, tRadius, 12, true);
+                    const hTubeMesh = new THREE.Mesh(hTubeGeo, ledMat);
+                    
+                    const hBackGeo = new THREE.TubeGeometry(hCurve, 80, bRadius, 12, true);
+                    const hBackMesh = new THREE.Mesh(hBackGeo, capMat);
+
+                    hBackMesh.position.z = 0;
+                    hTubeMesh.position.z = bRadius + tRadius + 0.01;
+
+                    hTubeMesh.layers.enable(BLOOM_SCENE);
+                    localGroup.add(hBackMesh, hTubeMesh);
+                    
+                    frontMeshes.push(hBackMesh);
+                    backMeshes.push(hTubeMesh);
+                }
+            });
+        });
+
+        // --- 3. 整体居中与拉伸 ---
+        textGroup.add(localGroup);
+        localGroup.scale.set(1, yScale, 1);
+        const totalBox = new THREE.Box3().setFromObject(localGroup);
+        const center = totalBox.getCenter(new THREE.Vector3());
+        localGroup.position.x = -center.x;
+        localGroup.position.y = -center.y;
     }
     // 在 generate3DText 函数内部的 Mesh 生成部分
 else if (glowMode === 'neonWord') {
@@ -1541,75 +1618,204 @@ else if (glowMode === 'neonWord') {
         backMeshes = []; 
         if (isFlowRGB) flowMeshes.push(neonMesh);
     }
- else if (glowMode === 'neonWord012') {
-        // --- 1. 参数设定：锁定 20mm 直径 (半径为 1.0) ---
-        const fixedTubeRadius = 1.0; 
-        const tubeSettings = {
-            depth: 0.1,              // 极薄中间层，使圆弧对接
-            bevelEnabled: true,      
-            bevelThickness: fixedTubeRadius, // 倒角深度决定圆度
-            bevelSize: fixedTubeRadius,      // 倒角外扩决定直径
-            bevelOffset: 0,
-            bevelSegments: 30         // 高细分步数，确保管子平滑
-        };
+else if (glowMode === 'neonWord012') {
+        // --- 1. 参数换算 (10mm = 1.0 3D单位) ---
+        const tRadius = neonTubeSize / 20;    // 灯管半径
+        const sDepth = frontThickness / 10;   // 支撑壳厚度
 
-        // --- 2. 生成几何体 (适配 SVG 或 文字) ---
-        let neonGeo;
+        // --- 2. 几何体生成 (适配 SVG 或 文字) ---
+        let neonGeo, shellGeo;
+
         if (isSvgMode && svgPaths) {
             const shapes = [];
             svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
             
-            // --- 模板式处理：计算 SVG 缩放 ---
+            // --- A. 计算 SVG 缩放倍率 (范本核心) ---
             const tempShapeGeo = new THREE.ShapeGeometry(shapes);
             tempShapeGeo.computeBoundingBox();
             const svgH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
             const scale = textSize / svgH;
 
-            // 生成挤压几何体（depth 预除以比例以保持 0.1 的真实厚度）
-            neonGeo = new THREE.ExtrudeGeometry(shapes, { ...tubeSettings, depth: 0.1 / scale });
+            // --- B. 生成挤压几何体 ---
+            // 【核心修复】：所有的物理参数都要除以 scale，
+            // 这样在应用 matrix 缩放后，它们才会回到准确的毫米数。
+            neonGeo = new THREE.ExtrudeGeometry(shapes, { 
+                depth: 0.05 / scale,        // 极薄中间层
+                bevelEnabled: true,
+                bevelThickness: tRadius / scale, 
+                bevelSize: tRadius / scale,
+                bevelOffset: 0,
+                bevelSegments: 30
+            });
 
-            // 应用缩放、翻转及 Y 轴拉伸
-            const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, 1);
+            shellGeo = new THREE.ExtrudeGeometry(shapes, { 
+                depth: sDepth / scale,      // 支撑壳厚度
+                bevelEnabled: false,
+                steps: 1
+            });
+
+            // --- C. 应用矩阵变换 (Z轴也必须缩放) ---
+            // 将 Z 轴也设为 scale，这样几何体内部除掉的 scale 就会在这里乘回来，达到 1:1 精度
+            const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
             neonGeo.applyMatrix4(matrix);
+            shellGeo.applyMatrix4(matrix);
 
         } else {
-            // --- 文字模式逻辑 ---
+            // 文字模式逻辑
             const refSize = 10;
             const tempGeo = new TextGeometry("A", { font: currentFont, size: refSize, height: 0 });
             tempGeo.computeBoundingBox();
             const finalScale = textSize / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y);
-            const scaledFontSize = refSize * finalScale; 
-            
-            neonGeo = new TextGeometry(textString, {
-                font: currentFont,
-                size: scaledFontSize,
-                ...tubeSettings,
-                height: 0.1 // 确保覆盖 TextGeometry 的默认高度
+            const scaledFontSize = refSize * finalScale;
+
+            neonGeo = new TextGeometry(textString, { 
+                font: currentFont, size: scaledFontSize, height: 0.05, 
+                bevelEnabled: true, bevelThickness: tRadius, bevelSize: tRadius, bevelSegments: 30 
             });
-            
-            // 应用 Y 轴拉伸
+            shellGeo = new TextGeometry(textString, { 
+                font: currentFont, size: scaledFontSize, height: sDepth, bevelEnabled: false 
+            });
+
             neonGeo.scale(1, yScale, 1);
+            shellGeo.scale(1, yScale, 1);
         }
 
-        // --- 3. 核心对齐：无论何种模式，强制几何中心归位 ---
-        neonGeo.computeBoundingBox();
-        const cx = -0.5 * (neonGeo.boundingBox.max.x + neonGeo.boundingBox.min.x);
-        const cy = -0.5 * (neonGeo.boundingBox.max.y + neonGeo.boundingBox.min.y);
-        neonGeo.translate(cx, cy, 0); 
+        // --- 3. 支撑壳收缩处理 (比灯管窄) ---
+        shellGeo.scale(0.96, 0.96, 1);
 
-        // --- 4. 创建 Mesh 并添加 ---
+        // --- 4. 统一居中校准 ---
+        [neonGeo, shellGeo].forEach(geo => {
+            geo.computeBoundingBox();
+            const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
+            const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
+            geo.translate(cx, cy, 0); 
+        });
+
+        // --- 5. 创建 Mesh 并设置层级 ---
         const neonMesh = new THREE.Mesh(neonGeo, ledMat);
+        const shellMesh = new THREE.Mesh(shellGeo, capMat);
+
         neonMesh.material.side = THREE.DoubleSide; 
         neonMesh.layers.enable(BLOOM_SCENE);       
 
-        textGroup.add(neonMesh);
+        // 坐标设定：支撑壳向后长，灯管向前凸，保留 0.01 间隙
+        shellMesh.position.z = -sDepth; 
+        neonMesh.position.z = tRadius + 0.01; 
 
-        // --- 5. 登记引用 (确保分类唯一) ---
-        frontMeshes = [neonMesh]; 
-        backMeshes = []; // 霓虹字通常没有背面层
+        textGroup.add(neonMesh, shellMesh);
+
+        frontMeshes = [shellMesh]; 
+        backMeshes = [neonMesh];   
         if (isFlowRGB) flowMeshes.push(neonMesh);
     }
-else if (glowMode === 'frontBackGlow') {
+else if (glowMode === 'neonWord013') {
+        // --- 1. 参数定义 (10mm = 1.0 3D单位) ---
+        const hDepth = frontThickness / 10;   // 底座厚度
+        const tRadius = 0.5;                  // 灯管半径 (固定10mm直径)
+        const basePadding = 0.2;              // 底座比灯管向外扩张 2mm
+        const lift = 0.08;                    // 物理防穿透间隙
+
+        // 底座参数：使用 bevelSize 实现外扩，保持正面平整
+        const housingSettings = {
+            bevelEnabled: true,
+            bevelThickness: 0.05,             // 极小厚度防止正面鼓起
+            bevelSize: tRadius + basePadding, // 【核心】向外扩张，且不改变几何中心
+            bevelSegments: 5
+        };
+
+        // 灯管参数：标准圆管
+        const stripSettings = {
+            depth: 0.05,
+            bevelEnabled: true,
+            bevelThickness: tRadius, 
+            bevelSize: tRadius,
+            bevelSegments: 30
+        };
+
+        let houseGeo, stripGeo;
+
+        // --- 2. 几何体生成 ---
+        if (isSvgMode && svgPaths) {
+            const shapes = [];
+            svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
+
+            // 计算 SVG 缩放倍率
+            const tempShapeGeo = new THREE.ShapeGeometry(shapes);
+            tempShapeGeo.computeBoundingBox();
+            const svgH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
+            const scale = textSize / svgH;
+
+            // 生成几何体：物理参数全部除以 scale 以保持 1:1 精度
+            houseGeo = new THREE.ExtrudeGeometry(shapes, { 
+                ...housingSettings, 
+                depth: hDepth / scale,
+                bevelThickness: 0.05 / scale,
+                bevelSize: (tRadius + basePadding) / scale 
+            });
+            stripGeo = new THREE.ExtrudeGeometry(shapes, { 
+                ...stripSettings, 
+                depth: 0.05 / scale,
+                bevelThickness: tRadius / scale,
+                bevelSize: tRadius / scale
+            });
+
+            // 应用矩阵变换 (Z轴同步缩放)
+            const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
+            houseGeo.applyMatrix4(matrix);
+            stripGeo.applyMatrix4(matrix);
+
+        } else {
+            // 文字模式逻辑
+            const refSize = 10;
+            const tempGeo = new TextGeometry("A", { font: currentFont, size: refSize, height: 0 });
+            tempGeo.computeBoundingBox();
+            const finalScale = textSize / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y);
+            const scaledFontSize = refSize * finalScale;
+
+            houseGeo = new TextGeometry(textString, { 
+                font: currentFont, size: scaledFontSize, ...housingSettings, height: hDepth 
+            });
+            stripGeo = new TextGeometry(textString, { 
+                font: currentFont, size: scaledFontSize, height: 0.05,
+                bevelEnabled: true, bevelThickness: tRadius, bevelSize: tRadius, bevelSegments: 30 
+            });
+
+            // 应用高度拉伸
+            houseGeo.scale(1, yScale, 1);
+            stripGeo.scale(1, yScale, 1);
+        }
+
+        // --- 3. 【最关键的对齐修复】：统一对齐基准 ---
+        // 我们以底座 (houseGeo) 的中心作为唯一的对齐目标
+        houseGeo.computeBoundingBox();
+        const cx = -0.5 * (houseGeo.boundingBox.max.x + houseGeo.boundingBox.min.x);
+        const cy = -0.5 * (houseGeo.boundingBox.max.y + houseGeo.boundingBox.min.y);
+
+        // 底座和灯管都执行相同的偏移值
+        houseGeo.translate(cx, cy, 0); 
+        stripGeo.translate(cx, cy, 0); 
+
+        // --- 4. 创建 Mesh 并设置坐标 ---
+        const mHousing = new THREE.Mesh(houseGeo, capMat); 
+        const mStrip = new THREE.Mesh(stripGeo, ledMat);   
+
+        mStrip.material.side = THREE.DoubleSide; 
+        mStrip.layers.enable(BLOOM_SCENE); 
+
+        // 坐标设定：以 0 为接触面
+        mHousing.position.z = -hDepth;    // 底座向后
+        mStrip.position.z = tRadius + lift; // 灯管向前，包含 0.08 间隙
+
+        textGroup.add(mHousing, mStrip);
+
+        // --- 5. 登记分类 ---
+        frontMeshes = [mHousing]; 
+        backMeshes = [mStrip];   
+        colourMeshes = [];
+
+        if (isFlowRGB) flowMeshes.push(mStrip);
+    }
+        else if (glowMode === 'frontBackGlow') {
         // --- 模式：正面与背面同时发光 (三层结构) ---
         // 直接复用全局预生成的几何体：
         // 1. innerGeo (固定 0.1 厚度) -> 用于正面发光层
@@ -1652,32 +1858,34 @@ else if (glowMode === 'frontBackGlow') {
         if (isFlowRGB) flowMeshes.push(fGlow, bGlow);
     }
  // --- 新增：专门处理单层工艺 (金属切割 或 亚克力切割) ---
+    // --- 找到 generate3DText 中处理切割字的部分 ---
     else if (glowMode === 'metalCut' || glowMode === 'acrylicCut') {
-        // 1. 确定材质：金属用 capMat (背材质), 亚克力用 ledMat (灯光材质)
         const isMetal = (glowMode === 'metalCut');
-        const singleMat = isMetal ? capMat : ledMat;
-
-        // 2. 创建单一物体 (使用 fGeo，其厚度由“正面厚度”滑块控制)
-        const mesh = new THREE.Mesh(fGeo, singleMat);
         
-        // 3. 层级设置：单体字直接放在 0 位
-        mesh.position.z = 0;
-
-        // 4. 辉光设置：亚克力如果需要发光效果，则开启辉光层
-        if (!isMetal) {
-            mesh.layers.enable(BLOOM_SCENE);
+        let meshMat;
+        if (isMetal) {
+            meshMat = capMat; // 金属用金属材质
+        } else {
+            // 【核心修改】亚克力：使用标准材质，但彻底关掉发光（Emissive）
+            meshMat = new THREE.MeshStandardMaterial({ 
+                color: ledColor, 
+                roughness: 0.3, 
+                metalness: 0.1,
+                emissive: new THREE.Color(0x000000), // 发光色设为全黑
+                emissiveIntensity: 0                  // 强度设为 0
+            });
         }
 
-        // 5. 添加到场景
-        textGroup.add(mesh);
-
-        // 6. 登记分类：统一放进 frontMeshes 方便 UI 调色和亮度
-        frontMeshes = [mesh]; 
-        backMeshes = []; // 单层工艺不需要背面引用，清空它以免报错
+        const mesh = new THREE.Mesh(fGeo, meshMat);
+        mesh.position.z = 0; 
         
-        // 如果开启了流水灯且是亚克力，加入流水动画组
-        if (isFlowRGB && !isMetal) flowMeshes.push(mesh);
-    } 
+        // 【核心修改】确保不执行 layers.enable(BLOOM_SCENE)
+        // 这样它就不会产生任何光晕
+
+        textGroup.add(mesh);
+        frontMeshes = [mesh]; 
+        backMeshes = [];
+    }
     // --- 以下是你原本的 else 块，保持不变 ---
     else {
         // 模式：标准单面发光 (正面或背面)
@@ -1726,6 +1934,9 @@ svgInput.addEventListener('change', (e) => {
             clearSvgBtn.classList.remove('hidden');
             textInputEl.disabled = true; // 禁用文本输入
             textInputEl.style.opacity = 0.5;
+              const fontSelector = document.getElementById('fontSelector');
+            fontSelector.disabled = true;       // 禁用选择器
+            fontSelector.style.opacity = 0.5;   // 变灰提示
 
             // 生成 3D 模型
             generate3DText(textInputEl.value, true);
@@ -1811,6 +2022,9 @@ clearSvgBtn.addEventListener('click', () => {
     clearSvgBtn.classList.add('hidden');
     textInputEl.disabled = false;
     textInputEl.style.opacity = 1;
+     const fontSelector = document.getElementById('fontSelector');
+    fontSelector.disabled = false;     // 重新启用
+    fontSelector.style.opacity = 1;     // 恢复亮度
     
     generate3DText(textInputEl.value, true);
 });
@@ -1852,6 +2066,9 @@ function updateUIState() {
     // 1. 获取所有 UI 组件
       const fCont = document.getElementById('frontThicknessSlider').closest('.thickness-control');
     const bCont = document.getElementById('backThicknessSlider').closest('.thickness-control');
+      const ntCont = document.getElementById('neonTubeControl');
+    const npCont = document.getElementById('neonPlateControl');
+    
     const matSection = document.getElementById('materialSection');
     const tintSection = document.getElementById('tintSection');
     const colourSection = document.getElementById('colourAttributeSection');
@@ -1896,6 +2113,9 @@ function updateUIState() {
         colourSection.classList.remove('hidden'); // 显示面板颜色
         matSection.classList.add('disabled-overlay'); // 禁用材质选择
         tintSection.classList.add('disabled-overlay'); 
+           brightDiv.style.opacity = '0.3';
+        document.getElementById('brightnessSlider').disabled = true;
+        document.getElementById('brightnessValue').textContent = "不发光";
         
         ledLabel.innerText = '🎨 侧面发光颜色';
         frontLabel.innerText = '📏 发光层厚度 (mm)';
@@ -1919,48 +2139,110 @@ function updateUIState() {
         if (bCont) bCont.classList.remove('hidden');
 
     } else if (glowMode === 'testBackGlow') {
-        // 1. 显示面板颜色区域 (控制最前面 Front 片)
-        colourSection.classList.remove('hidden'); 
-
-        // 2. 彻底隐藏“正面厚度”滑块
-        const fCont = document.getElementById('frontThicknessSlider').closest('.thickness-control');
-        if (fCont) fCont.classList.add('hidden');
-
-        // 3. 启用“背面厚度”滑块 (控制中间壳)
-        const bCont = document.getElementById('backThicknessSlider').closest('.thickness-control');
-        if (bCont) {
-            bCont.classList.remove('hidden');
-            bCont.style.opacity = '1';
-        }
-        backLabel.innerText = '📏 材质层厚度(mm)';
-        backDesc.innerText = '控制中间支撑壳的厚度 (Metal/Paint)';
+        // 隐藏不需要的滑块和面板
+        if (fCont) fCont.classList.remove('hidden');
+        if (bCont) bCont.classList.add('hidden'); // 隐藏背面滑块，用正面一个滑块控全身
         
+        colourSection.classList.add('hidden'); // 【核心】删除/隐藏正面的改色面板
         
+        frontLabel.innerText = '📏 材质外壳厚度 (mm)';
         ledLabel.innerText = '💡 背面发光颜色';
-    }else if (glowMode === 'neonWord' || glowMode === 'neonWord012') {
-        // 【霓虹灯模式系列】
-        if (fCont) fCont.classList.add('hidden');
-        if (bCont) bCont.classList.add('hidden');
-        matSection.classList.add('hidden');     
-        tintSection.classList.add('hidden');    
+    }// --- 修改后的 UI 逻辑 ---
+  else if (glowMode === 'neonBorder') {
+        if (ntCont) ntCont.classList.remove('hidden'); // 调灯管直径
+        if (npCont) npCont.classList.add('hidden');
         
+        if (fCont) {
+            fCont.classList.remove('hidden');
+            frontLabel.innerText = '📏 凹槽外壳深度 (mm)';
+        }
+        if (bCont) bCont.classList.add('hidden');
+
+        matSection.classList.remove('hidden'); 
+        colourSection.classList.add('hidden'); 
+        ledLabel.innerText = '🎨 内嵌灯管颜色';
+    }
+    else if (glowMode === 'neonWord' || glowMode === 'neonWord012') {
+        // 共同点：隐藏背面滑块
+        if (bCont) bCont.classList.add('hidden');
         ledLabel.innerText = '🎨 霓虹发光颜色';
 
-        // 如果是 012 模式，额外显示面板颜色
-        if (glowMode === 'neonWord012') {
-            colourSection.classList.remove('hidden');
-            document.getElementById('currentPanelColorName').innerText = '当前：底座颜色';
-        } else {
+        if (glowMode === 'neonWord') {
+            // 【普通霓虹字】：全隐藏，只留高度和灯光颜色
+            if (fCont) fCont.classList.add('hidden');
+            matSection.classList.add('hidden');     
+            tintSection.classList.add('hidden');    
+            colourSection.classList.add('hidden');
+        } 
+        else {
+            // 【测试 霓虹字 012】：
+            // 1. 显示材质面板（用来改外壳支撑的金属/烤漆）
+            matSection.classList.remove('hidden'); 
+            tintSection.classList.remove('hidden');
+            
+            // 2. 显示新滑块（用来改管子粗细）
+            if (ntCont) ntCont.classList.remove('hidden'); 
+            
+            // 3. 显示正面滑块（用来改你圈起的外壳支撑的厚度）
+            if (fCont) {
+                fCont.classList.remove('hidden');
+                frontLabel.innerText = '📏 支撑壳厚度 (mm)';
+            }
+            
+            // 4. 隐藏面板颜色（因为我们现在只有两层，外壳归材质管了）
             colourSection.classList.add('hidden');
         }
-    }else if (glowMode === 'acrylicCut') {
-        // 【亚克力切割】
+    }
+  else if (glowMode === 'neonWord013') {
+        // --- 1. 隐藏 012 模式专用的特殊滑块 ---
+        if (ntCont) ntCont.classList.add('hidden'); // 隐藏灯管直径滑块
+        if (npCont) npCont.classList.add('hidden'); // 隐藏底板厚度滑块
+
+        // --- 2. 启用正面滑块控制【底座托盘】的厚度 ---
+        if (fCont) {
+            fCont.classList.remove('hidden');
+            frontLabel.innerText = '📏 底座托盘厚度 (mm)';
+        }
+        
+        // --- 3. 隐藏背面滑块 (因为 013 灯条厚度已写死为 0.5 半径) ---
+        if (bCont) bCont.classList.add('hidden');
+
+        // --- 4. 开启材质选择面板 (用来控制底座托盘的金属/烤漆材质) ---
+        matSection.classList.remove('hidden');
+        tintSection.classList.remove('hidden');
+
+        // --- 5. 隐藏面板颜色 (因为 013 只有两层，底座归材质管) ---
+        colourSection.classList.add('hidden'); 
+
+        // --- 6. 标签与亮度控制 ---
+        ledLabel.innerText = '🎨 内嵌灯带颜色';
+        brightDiv.style.opacity = '1';
+        document.getElementById('brightnessSlider').disabled = false;
+    }  else if (glowMode === 'acrylicCut') {
+        // --- 1. 滑块控制 ---
+        if (fCont) fCont.classList.remove('hidden'); 
+        if (bCont) bCont.classList.add('hidden'); // 隐藏背面滑块，单层切割只用一个滑块
+        frontLabel.innerText = '📏 亚克力厚度 (mm)';
+
+        // --- 2. 材质面板控制 ---
         matSection.classList.add('disabled-overlay');
         tintSection.classList.add('disabled-overlay');
+
+        // --- 3. 亮度滑块控制 (禁用) ---
         brightDiv.style.opacity = '0.3';
         document.getElementById('brightnessSlider').disabled = true;
-        ledLabel.innerText = '🎨 本体颜色';
+        document.getElementById('brightnessValue').textContent = "不发光";
+        
+        // --- 4. 核心：隐藏 RGB 预设色块 ---
+        const rgbSwatches = document.querySelectorAll('#ledSwatchContainer .color-swatch[data-color="RGB"], #ledSwatchContainer .color-swatch[data-color="FLOWRGB"]');
+        rgbSwatches.forEach(s => s.classList.add('hidden'));
 
+        // 强制重置发光状态，防止切过来时还在跑动画
+        isFlowRGB = false;
+        isRGBGlow = false;
+
+        ledLabel.innerText = '🎨 本体颜色';
+        colourSection.classList.add('hidden');
     } else if (glowMode === 'metalCut') {
         // 【金属切割】
         ledPicker.classList.add('disabled-picker');
@@ -2014,7 +2296,7 @@ else if (glowMode === 'testFrontGlow') {
     // 交互逻辑
     // ==========================================
 function updateBrightness(percent) {
-    if (glowMode === 'acrylicCut' || glowMode === 'metalCut') return;
+      if (glowMode === 'metalCut' || glowMode === 'acrylicCut') return; 
     
     // 1. 计算自发光强度（之前改过的，最高阈值设为 1.2）
     const ledIntensity = (percent / 100) * 1.2;   
@@ -2252,34 +2534,33 @@ if(frontInput) {
 }
 
 // --- 2. 背面厚度控制 ---
+// --- 2. 材质层/背面厚度控制 (修复后的版本) ---
 const backSlider = document.getElementById('backThicknessSlider');
 const backInput = document.getElementById('backThicknessInput');
 
+// 滑块滑动时
 backSlider.addEventListener('input', (e) => {
-    const val = parseInt(e.target.value);
+    const val = parseFloat(e.target.value);
     if(backInput) backInput.value = val;
     backThickness = val;
     generate3DText(document.getElementById('textInput').value, false);
 });
 
-if(backInput) {
-    backInput.addEventListener('change', (e) => {
-        let val = parseInt(e.target.value);
-        if (isNaN(val)) val = 50;
-        val = Math.max(5, Math.min(120, val));
-        backInput.value = val;
-        backSlider.value = val;
-        backThickness = val;
-        generate3DText(document.getElementById('textInput').value, false);
-    });
-}
+// 手动输入数值时
 if(backInput) {
     backInput.addEventListener('change', (e) => {
         let val = parseFloat(e.target.value);
-        if (isNaN(val)) val = 0.5;
-        val = Math.max(0.05, Math.min(2.5, val)); // 更新限制范围
-        backInput.value = val.toFixed(2);
+        // 如果输入的不是数字，默认为 50
+        if (isNaN(val)) val = 50;
+        
+        // 限制范围：最小 0.1mm，最大 120mm (对应你滑块的范围)
+        val = Math.max(0.1, Math.min(120, val));
+        
+        // 同步 UI
+        backInput.value = val;
         backSlider.value = val;
+        
+        // 更新全局变量并重绘
         backThickness = val;
         generate3DText(document.getElementById('textInput').value, false);
     });
@@ -2292,172 +2573,168 @@ if(backInput) {
 // --- 4. 一键解体按钮 (修复 ReferenceError) ---
 // --- 4. 一键解体按钮 核心修复版 ---
 // --- 一键解体按钮 完整整合版 ---
+// --- 4. 一键解体按钮 完整整合版 (修复 012/013 及所有工艺逻辑) ---
 document.getElementById('decomposeBtn').addEventListener('click', () => {
     // 1. 霓虹灯字(单层)不需要解体
     if (glowMode === 'neonWord') {
         alert("霓虹灯字为整体单层工艺，无需解体预览。");
         return;
     }
-// 在 decomposeBtn 的 click 事件中，找到 else if (glowMode === 'testFrontGlow') 附近
-    else if (glowMode === 'neonWord012') {
-        if (frontMeshes.length > 0 && colourMeshes.length > 0) {
-            const mLED = frontMeshes[0];
-            const mBack = frontMeshes[0] === colourMeshes[0] ? null : colourMeshes[0]; // 容错处理
+
+    // --- 核心修复：点击瞬间先翻转状态，确保下面所有逻辑读取的状态一致 ---
+    isDecomposed = !isDecomposed;
+
+    // 基础变量计算
+    const fDepth = frontThickness / 10;
+    const bDepth = backThickness / 10;
+    const tRadius012 = neonTubeSize / 20;  // 012 的灯管半径
+    const tRadius013 = 0.5;               // 013 的固定半径
+    const explodeGap = 30;                // 解体飞散距离
+
+    // --- 开始排他性工艺判断链条 ---
+
+    // A. 霓虹字 013 模式
+    if (glowMode === 'neonWord013') {
+        if (frontMeshes.length > 0 && backMeshes.length > 0) {
+            const mHouse = frontMeshes[0]; // 底座槽位
+            const mStrip = backMeshes[0]; // 内嵌灯带
             
-            const explodeGap = 30;
+            // --- 核心参数同步 (必须与 generate3DText 里的数值一致) ---
+            const gap = explodeGap;       // 解体飞行距离
+            const hDepth = fDepth;        // 底座厚度 (frontThickness/10)
+            const tRadius = tRadius013;   // 灯管半径 (0.5)
+            const lift = 0.08;            // 【关键】你设定的 0.08 物理防穿透间隙
+
             if (isDecomposed) {
-                gsap.to(mLED.position, { z: explodeGap, duration: 1 });
-                if(backMesh) gsap.to(colourMeshes[0].position, { z: -explodeGap, duration: 1, onUpdate: () => updateDimensions() });
+                // --- 执行解体 (飞散) ---
+                // 灯管在前：在原有 (半径+间隙) 基础上再加 gap
+                gsap.to(mStrip.position, { z: tRadius + lift + gap, duration: 1, ease: "power2.inOut" });
+                
+                // 底座在后：在原有 (-厚度) 基础上再减 gap
+                gsap.to(mHouse.position, { 
+                    z: -hDepth - gap, 
+                    duration: 1, 
+                    ease: "power2.inOut", 
+                    onUpdate: () => updateDimensions() // 飞的过程中实时更新标注线
+                });
             } else {
-                gsap.to(mLED.position, { z: 1.0, duration: 1 }); // 归位到半径高度
-                if(backMesh) gsap.to(colourMeshes[0].position, { z: -0.5, duration: 1, onUpdate: () => updateDimensions() });
+                // --- 执行合并 (归位) ---
+                // 精准回到生成时的坐标，确保合并后不闪烁、不穿透
+                gsap.to(mStrip.position, { z: tRadius + lift, duration: 1, ease: "power2.inOut" });
+                
+                gsap.to(mHouse.position, { 
+                    z: -hDepth, 
+                    duration: 1, 
+                    ease: "power2.inOut", 
+                    onUpdate: () => updateDimensions() 
+                });
             }
         }
     }
-    isDecomposed = !isDecomposed;
+ else if (glowMode === 'neonBorder') {
+        const tubes = backMeshes;  // 灯管
+        const bases = frontMeshes; // 背托
+        const gap = 30;
+        const tRadius = neonTubeSize / 40;
+        const bRadius = tRadius * 0.85;
 
-    // 基础变量计算 (单位换算同 generate3DText)
-    const fDepth = frontThickness / 10;
-    const bDepth = backThickness / 10;
-    const explodeGap = 25; // 解体飞行距离
-
-    // --- 分工艺逻辑处理 ---
-
-    // A. 三层结构：侧面发光、半侧面发光 (面板 + 围边 + 底板)
-    if (glowMode === 'sideGlowTest' || glowMode === 'sideHalfGlowTest') {
-        if (colourMeshes.length > 0 && frontMeshes.length > 0 && backMeshes.length > 0) {
-            const colourLayer = colourMeshes[0]; // 正面面板
-            const glowLayer = frontMeshes[0];   // 发光围边
-            const backLayer = backMeshes[0];    // 固定底板
-
-            gsap.to(colourLayer.position, { 
-                z: isDecomposed ? (fDepth + explodeGap) : (fDepth + 0.005), 
-                duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions()
-            });
-            gsap.to(glowLayer.position, { z: 0, duration: 1, ease: "power2.inOut" });
-            
-            let backTargetZ = (glowMode === 'sideGlowTest') ? -0.1 : -bDepth;
-            gsap.to(backLayer.position, { 
-                z: isDecomposed ? (backTargetZ - explodeGap) : backTargetZ, 
-                duration: 1, ease: "power2.inOut"
-            });
+        if (isDecomposed) {
+            tubes.forEach(m => gsap.to(m.position, { z: bRadius + tRadius + 0.01 + gap, duration: 1 }));
+            bases.forEach(m => gsap.to(m.position, { z: -gap, duration: 1, onUpdate: () => updateDimensions() }));
+        } else {
+            tubes.forEach(m => gsap.to(m.position, { z: bRadius + tRadius + 0.01, duration: 1 }));
+            bases.forEach(m => gsap.to(m.position, { z: 0, duration: 1, onUpdate: () => updateDimensions() }));
         }
-    } 
-    // B. 三层结构：正面与背面发光 (前发光片 + 材质壳 + 后发光板)
+    }
+    else if (glowMode === 'neonWord012') {
+        if (frontMeshes.length > 0 && backMeshes.length > 0) {
+            const mLED = backMeshes[0];    // 灯管
+            const mShell = frontMeshes[0];  // 支撑壳
+            if (isDecomposed) {
+                gsap.to(mLED.position, { z: tRadius012 + explodeGap, duration: 1, ease: "power2.inOut" });
+                gsap.to(mShell.position, { z: -fDepth - explodeGap, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            } else {
+                gsap.to(mLED.position, { z: tRadius012 + 0.01, duration: 1, ease: "power2.inOut" });
+                gsap.to(mShell.position, { z: -fDepth, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            }
+        }
+    }
+    // C. 背面发光测试模式 (两层)
+    else if (glowMode === 'testBackGlow') {
+        if (frontMeshes.length > 0 && backMeshes.length > 0) {
+            const mShell = frontMeshes[0];
+            const mLED = backMeshes[0];
+            if (isDecomposed) {
+                gsap.to(mShell.position, { z: explodeGap, duration: 1, ease: "power2.inOut" });
+                gsap.to(mLED.position, { z: -0.11 - explodeGap, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            } else {
+                gsap.to(mShell.position, { z: 0, duration: 1, ease: "power2.inOut" });
+                gsap.to(mLED.position, { z: -0.11, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            }
+        }
+    }
+    // D. 正面发光测试模式 (两层)
+    else if (glowMode === 'testFrontGlow') {
+        if (frontMeshes.length > 0 && backMeshes.length > 0) {
+            const mLED = frontMeshes[0];
+            const mShell = backMeshes[0];
+            if (isDecomposed) {
+                gsap.to(mLED.position, { z: 0.11 + explodeGap, duration: 1, ease: "power2.inOut" });
+                gsap.to(mShell.position, { z: -bDepth - explodeGap, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            } else {
+                gsap.to(mLED.position, { z: 0.11, duration: 1, ease: "power2.inOut" });
+                gsap.to(mShell.position, { z: -bDepth, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            }
+        }
+    }
+    // E. 侧面发光系列 (三层)
+    else if (glowMode === 'sideGlowTest' || glowMode === 'sideHalfGlowTest') {
+        if (colourMeshes.length > 0 && frontMeshes.length > 0 && backMeshes.length > 0) {
+            const colourLayer = colourMeshes[0]; // 面板
+            const glowLayer = frontMeshes[0];   // 围边
+            const backLayer = backMeshes[0];    // 底板
+            if (isDecomposed) {
+                gsap.to(colourLayer.position, { z: fDepth + explodeGap, duration: 1, ease: "power2.inOut" });
+                gsap.to(backLayer.position, { z: -0.11 - explodeGap, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            } else {
+                gsap.to(colourLayer.position, { z: fDepth + 0.01, duration: 1, ease: "power2.inOut" });
+                gsap.to(backLayer.position, { z: -0.11, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            }
+        }
+    }
+    // F. 正面与背面同时发光 (三层)
     else if (glowMode === 'frontBackGlow') {
         if (frontMeshes.length > 0 && colourMeshes.length > 0 && backMeshes.length > 0) {
             const fGlow = frontMeshes[0];
             const shell = colourMeshes[0];
             const bGlow = backMeshes[0];
-            const shellDepth = fDepth; 
-
-            gsap.to(fGlow.position, { 
-                z: isDecomposed ? explodeGap : 0.1, 
-                duration: 1, ease: "power2.inOut" 
-            });
-            gsap.to(shell.position, { z: -shellDepth, duration: 1, ease: "power2.inOut" });
-            gsap.to(bGlow.position, { 
-                z: isDecomposed ? (-shellDepth - bDepth - explodeGap) : (-shellDepth - bDepth), 
-                duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions()
-            });
-        }
-    }
-    // C. 两层极薄结构：测试 背面发光 (正面材质片 + 背面发光片)
-  else if (glowMode === 'testBackGlow') {
-        if (colourMeshes.length > 0 && frontMeshes.length > 0 && backMeshes.length > 0) {
-            // --- 核心修复：重新映射正确的物体引用 ---
-            const mFront = colourMeshes[0]; // 真正的最前面装饰片
-            const mShell = frontMeshes[0];  // 真正的中间材质壳
-            const mLED = backMeshes[0];     // 真正的最后面发光片
-            
-            const gap = 30; // 飞行距离
-            const currentShellDepth = backThickness / 10;
-
             if (isDecomposed) {
-                // --- 执行解体 (飞散) ---
-                // 1. 装饰面板：向前飞行
-                gsap.to(mFront.position, { z: 0.1 + gap, duration: 1, ease: "power2.inOut" });
-                
-                // 2. 中间壳体：留在原地 (z = -currentShellDepth)
-                gsap.to(mShell.position, { z: -currentShellDepth, duration: 1, ease: "power2.inOut" });
-                
-                // 3. 发光底片：向后飞行
-                gsap.to(mLED.position, { 
-                    z: -currentShellDepth - 0.1 - gap, 
-                    duration: 1, 
-                    ease: "power2.inOut", 
-                    onUpdate: () => updateDimensions() 
-                });
+                gsap.to(fGlow.position, { z: 0.11 + explodeGap, duration: 1, ease: "power2.inOut" });
+                gsap.to(bGlow.position, { z: -fDepth - bDepth - 0.01 - explodeGap, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
             } else {
-                // --- 执行合并 (精准归位) ---
-                // 还原到 generate3DText 设定的原始坐标，确保严丝合缝
-                gsap.to(mFront.position, { z: 0.1, duration: 1, ease: "power2.inOut" });
-                gsap.to(mShell.position, { z: -currentShellDepth, duration: 1, ease: "power2.inOut" });
-                gsap.to(mLED.position, { 
-                    z: -currentShellDepth - 0.1, 
-                    duration: 1, 
-                    ease: "power2.inOut", 
-                    onUpdate: () => updateDimensions() 
-                });
+                gsap.to(fGlow.position, { z: 0.11, duration: 1, ease: "power2.inOut" });
+                gsap.to(bGlow.position, { z: -fDepth - bDepth - 0.01, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
             }
         }
     }
-    // D. 两层缩进结构：测试 霓虹字12 (发光管 + 缩进底座)
-    else if (glowMode === 'neonWord12') {
-        if (frontMeshes.length > 0 && colourMeshes.length > 0) {
-            const neonLayer = frontMeshes[0];
-            const plateLayer = colourMeshes[0];
-            const pipeRadius = frontThickness / 20;
-
-            gsap.to(neonLayer.position, { 
-                z: isDecomposed ? (pipeRadius + explodeGap) : pipeRadius, 
-                duration: 1, ease: "power2.inOut" 
-            });
-            gsap.to(plateLayer.position, { 
-                z: isDecomposed ? (-bDepth - explodeGap) : -bDepth, 
-                duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions()
-            });
-        }
-    }
-    // --- 在 decomposeBtn 的 click 监听器中添加 ---
-
-else if (glowMode === 'testFrontGlow') {
-    if (frontMeshes.length > 0 && backMeshes.length > 0) {
-        const mLED = frontMeshes[0];
-        const mShell = backMeshes[0];
-        const gap = 30; // 飞行距离
-        const currentShellDepth = backThickness / 10;
-
-        if (isDecomposed) {
-            gsap.to(mLED.position, { z: gap, duration: 1 });
-            gsap.to(mShell.position, { z: -currentShellDepth - gap, duration: 1, onUpdate: () => updateDimensions() });
-        } else {
-            gsap.to(mLED.position, { z: 0.1, duration: 1 });
-            gsap.to(mShell.position, { z: -currentShellDepth, duration: 1, onUpdate: () => updateDimensions() });
-        }
-    }
-}
-    // E. 标准双层结构：正面发光、背面发光、切割字等
+    // G. 兜底逻辑：标准双层结构 (正面发光/背面发光)
     else {
         if (frontMeshes.length > 0 && backMeshes.length > 0) {
             const fMesh = frontMeshes[0];
             const bMesh = backMeshes[0];
-
-            gsap.to(fMesh.position, { 
-                z: isDecomposed ? explodeGap : 0, 
-                duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions()
-            });
-            gsap.to(bMesh.position, { 
-                z: isDecomposed ? (-bDepth - explodeGap) : -bDepth, 
-                duration: 1, ease: "power2.inOut" 
-            });
+            if (isDecomposed) {
+                gsap.to(fMesh.position, { z: explodeGap, duration: 1, ease: "power2.inOut" });
+                gsap.to(bMesh.position, { z: -bDepth - 0.01 - explodeGap, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            } else {
+                gsap.to(fMesh.position, { z: 0, duration: 1, ease: "power2.inOut" });
+                gsap.to(bMesh.position, { z: -bDepth - 0.01, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+            }
         }
     }
 
     // 更新按钮文字
     document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并 (Merge)' : '一键解体 (Explode)';
 });
-
     // --- 5. 文字和字体输入监听 ---
     document.getElementById('textInput').addEventListener('input', (e) => {
     if (currentFont) generate3DText(e.target.value, true);
