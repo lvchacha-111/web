@@ -1870,32 +1870,88 @@ else if (glowMode === 'neonWord013') {
     }
  // --- 新增：专门处理单层工艺 (金属切割 或 亚克力切割) ---
     // --- 找到 generate3DText 中处理切割字的部分 ---
-    else if (glowMode === 'metalCut' || glowMode === 'acrylicCut') {
+else if (glowMode === 'metalCut' || glowMode === 'acrylicCut') {
         const isMetal = (glowMode === 'metalCut');
+        // 亚克力使用前层厚度，金属使用后层厚度
+        const thickness = (isMetal ? backThickness : frontThickness) / 10;
         
-        let meshMat;
-        if (isMetal) {
-            meshMat = capMat; // 金属用金属材质
-        } else {
-            // 【核心修改】亚克力：使用标准材质，但彻底关掉发光（Emissive）
-            meshMat = new THREE.MeshStandardMaterial({ 
-                color: ledColor, 
-                roughness: 0.3, 
-                metalness: 0.1,
-                emissive: new THREE.Color(0x000000), // 发光色设为全黑
-                emissiveIntensity: 0                  // 强度设为 0
+        let meshGeo;
+
+        // --- 1. 统一的 SVG 与 文字几何体生成逻辑 ---
+        if (isSvgMode && svgPaths) {
+            const shapes = [];
+            svgPaths.forEach(path => {
+                const s = SVGLoader.createShapes(path);
+                s.forEach(shape => { shape.autoClose = true; shapes.push(shape); });
             });
+
+            // 测量尺寸以计算缩放
+            const tempGeo = new THREE.ShapeGeometry(shapes);
+            tempGeo.computeBoundingBox();
+            const svgH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
+            const scale = textSize / svgH;
+
+            // 生成挤压几何体
+            meshGeo = new THREE.ExtrudeGeometry(shapes, {
+                depth: thickness / scale, // 缩放修正
+                bevelEnabled: false,
+                steps: 1
+            });
+
+            // 应用缩放、翻转及 Y 轴拉伸 (与 neonWord013 一致)
+            const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
+            meshGeo.applyMatrix4(matrix);
+
+        } else {
+            // 文字模式逻辑
+            const refSize = 10;
+            const tempGeo = new TextGeometry("A", { font: currentFont, size: refSize, height: 0 });
+            tempGeo.computeBoundingBox();
+            const finalScale = textSize / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y);
+            const scaledFontSize = refSize * finalScale;
+
+            meshGeo = new TextGeometry(textString, {
+                font: currentFont,
+                size: scaledFontSize,
+                height: thickness,
+                bevelEnabled: false
+            });
+            meshGeo.scale(1, yScale, 1);
         }
 
-        const mesh = new THREE.Mesh(fGeo, meshMat);
-        mesh.position.z = 0; 
-        
-        // 【核心修改】确保不执行 layers.enable(BLOOM_SCENE)
-        // 这样它就不会产生任何光晕
+        // --- 2. 统一的中心对齐 (与 neonWord013 核心校准一致) ---
+        meshGeo.computeBoundingBox();
+        const cx = -0.5 * (meshGeo.boundingBox.max.x + meshGeo.boundingBox.min.x);
+        const cy = -0.5 * (meshGeo.boundingBox.max.y + meshGeo.boundingBox.min.y);
+        meshGeo.translate(cx, cy, 0);
+
+        // --- 3. 材质定义 ---
+        // 金属用 capMat，亚克力用定制材质
+        const meshMat = isMetal ? capMat : new THREE.MeshStandardMaterial({ 
+            color: ledColor, 
+            roughness: 0.3, 
+            metalness: 0.1,
+            emissive: new THREE.Color(0x000000), 
+            emissiveIntensity: 0,
+            side: THREE.DoubleSide 
+        });
+
+        const mesh = new THREE.Mesh(meshGeo, meshMat);
+        mesh.layers.disable(BLOOM_SCENE); // 明确不发光
+        mesh.position.z = 0;
 
         textGroup.add(mesh);
-        frontMeshes = [mesh]; 
-        backMeshes = [];
+
+        // --- 4. 登记属性 ---
+        // 亚克力作为 frontMeshes (前层)，金属作为 backMeshes (后层)
+        if (isMetal) {
+            frontMeshes = [];
+            backMeshes = [mesh];
+        } else {
+            frontMeshes = [mesh];
+            backMeshes = [];
+        }
+        colourMeshes = [];
     }
     // --- 以下是你原本的 else 块，保持不变 ---
     else {
@@ -2124,8 +2180,8 @@ function updateUIState() {
         colourSection.classList.remove('hidden'); // 显示面板颜色
         matSection.classList.add('disabled-overlay'); // 禁用材质选择
         tintSection.classList.add('disabled-overlay'); 
-           brightDiv.style.opacity = '0.3';
-        document.getElementById('brightnessSlider').disabled = true;
+           brightDiv.style.opacity = '1';
+        document.getElementById('brightnessSlider').disabled = false;
         document.getElementById('brightnessValue').textContent = "不发光";
         
         ledLabel.innerText = '🎨 侧面发光颜色';
