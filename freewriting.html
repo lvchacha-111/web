@@ -390,6 +390,10 @@
         </div>
 
 
+
+
+
+        
 <!-- 新增：Colour 属性专用颜色选择器 -->
 <!-- 修改后的 Colour 属性专用区域 -->
 <div id="colourAttributeSection" class="hidden">
@@ -445,7 +449,7 @@
                 <input type="range" id="brightnessSlider" min="0" max="100" step="1" value="15">
             </div>
         </div>
-
+  
   <!-- 1. 正面厚度 -->
 <div class="thickness-control">
     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -604,7 +608,8 @@ let dimensionGroup = new THREE.Group();
 let textSize = 26;
 let yScale = 1.0;
 
-
+let platePointLight = null; // 专门照亮背板的光源
+let lPlateGroup = null; // 全局变量，用于存储L型背板
 
 // --- 拖拽标注相关的全局变量 ---
 let isDraggingLabel = false;
@@ -690,45 +695,6 @@ window.addEventListener('mouseup', () => {
 // --- 2. 键盘快捷键逻辑 ---
 // --- 2. 键盘快捷键逻辑 ---
 // --- 最终整合的键盘快捷键逻辑 ---
-window.addEventListener('keydown', (e) => {
-    // 检查是否正在输入文字，如果是，则不触发快捷键
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-    // --- 1. 使用 ] 键实现浮窗显示/隐藏切换 ---
-    if (e.key === ']') {
-        const isHidden = panel.style.display === 'none' || window.getComputedStyle(panel).display === 'none';
-        if (isHidden) {
-            panel.style.display = 'block';
-            gsap.fromTo(panel, {opacity: 0, y: 20, scale: 0.9}, {opacity: 1, y: 0, scale: 1, duration: 0.3});
-        } else {
-            gsap.to(panel, {opacity: 0, y: 20, scale: 0.9, duration: 0.2, onComplete: () => {
-                panel.style.display = 'none';
-            }});
-        }
-    }
-
-    // --- 2. M 键切换移动重心模式 ---
-    if (e.key.toLowerCase() === 'm') {
-        if (selectedObject) {
-            isMoveModeActive = !isMoveModeActive; 
-            
-            if (isMoveModeActive) {
-                controls.enabled = false; // 锁定相机
-                container.style.cursor = 'move';
-                outlinePass.edgeStrength = 10.0; // 高亮边框提示正在移动
-                
-                // 初始化投影平面：以物体当前位置为平面基准
-                setupDragPlane(selectedObject.position, selectedObject.position);
-            } else {
-                controls.enabled = true; // 恢复相机
-                container.style.cursor = 'pointer';
-                outlinePass.edgeStrength = 3.0; // 恢复正常亮度
-            }
-        } else {
-            alert("请先点击选中一个物体（文字或背景），再按 M 键移动。");
-        }
-    }
-});
 
 // 2. 获取容器
 const container = document.getElementById('canvas-container');
@@ -1090,6 +1056,60 @@ function takeSnapshot() {
 
     console.log("高清 4K 实拍图已导出");
 }
+
+
+
+
+// --- L型背板：承接灯光与反射的“展台” ---
+// --- L型背板：唯一的定义 ---
+function createLPlate() {
+    if (lPlateGroup) scene.remove(lPlateGroup);
+    if (platePointLight) scene.remove(platePointLight);
+
+    lPlateGroup = new THREE.Group();
+    lPlateGroup.name = "L_Plate";
+
+    // 使用深灰色，反射彩光效果最好
+    const plateMat = new THREE.MeshStandardMaterial({ 
+        color: 0x151515,    
+        roughness: 0.8, 
+        metalness: 0.1,
+        side: THREE.DoubleSide 
+    });
+
+    // --- 适配 100cm 物体的精准尺寸 ---
+    const w = 400; // 宽度 300cm
+    const h = 180; // 高度 180cm
+    const d = 150; // 深度 150cm
+
+    // 1. 地面 (Floor)
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), plateMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = 0; 
+    floor.position.z = d / 2 - 20; // 往前伸展
+
+    // 2. 墙面 (Wall)
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, h), plateMat);
+    wall.position.y = h / 2; // 底部对接地面
+    wall.position.z = -20;   // 放在模型后面一点点
+
+    lPlateGroup.add(floor, wall);
+    
+    // 初始位置：将地面放在文字下方（假设文字中心在0，高度100，则底部在-50）
+    lPlateGroup.position.set(0, -60, 0); 
+    
+    scene.add(lPlateGroup);
+
+    // --- 模拟物体发光打在背板上的点光源 ---
+    platePointLight = new THREE.PointLight(0xffffff, 0, 500); 
+    platePointLight.position.set(0, 0, 50); 
+    scene.add(platePointLight);
+}
+// 在页面加载完成时默认调用
+createLPlate();
+
+
+
 function updateDimensions() {
     dimensionGroup.clear();
     if (textGroup.children.length === 0) return;
@@ -1187,6 +1207,9 @@ document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
 // 在 generate3DText 中
 
 if (isFlowRGB) {
+     if (glowMode === 'testFrontGlow') flowMeshes.push(mLED);
+    else if (glowMode === 'sideGlowTest') flowMeshes.push(glowMesh);
+    else if (glowMode === 'neonWord') flowMeshes.push(neonMesh);
     ledMat.userData.uTime = { value: 0 };
     ledMat.onBeforeCompile = (shader) => {
         shader.uniforms.uTime = ledMat.userData.uTime;
@@ -1248,23 +1271,25 @@ function generate3DText(textString, adjustCamera = true) {
     if(isPaintMode) capMat.userData.isPaint = true;
 
     // 2. 获取当前灯光颜色
+   // 2. 获取当前灯光颜色
     const ledColorVal = document.getElementById('ledColorPicker').value;
     const ledColor = new THREE.Color(ledColorVal);
 
-    // 3. 【核心修复】创建唯一的材质逻辑
-    // 如果是流水模式，基础设为黑/白，否则读取 ledColor
-    // 在 generate3DText 函数内部找到 ledMat 的定义
-const ledMat = new THREE.MeshStandardMaterial({ 
-    color: isFlowRGB ? 0x000000 : ledColor, 
-    emissive: isFlowRGB ? 0xffffff : ledColor,
-    
-    // --- 核心修改：这里的乘数也要从 3.0 改为 1.2 ---
-    emissiveIntensity: isFlowRGB ? 1.5 : (document.getElementById('brightnessSlider').value / 100) * 1.2,
-    
-    side: THREE.DoubleSide
-});
-    // 4. 【核心修复】流水灯 Shader 注入：左右流动逻辑
-    if (isFlowRGB) {
+    // 3. 【核心修复】创建发光材质，并强制设置唯一的 CacheKey
+    const ledMat = new THREE.MeshStandardMaterial({ 
+        color: isFlowRGB ? 0x000000 : ledColor, 
+        emissive: isFlowRGB ? 0xffffff : ledColor,
+        emissiveIntensity: isFlowRGB ? 1.5 : (document.getElementById('brightnessSlider').value / 100) * 1.2,
+        side: THREE.DoubleSide
+    });
+
+    // 为材质指定身份证，防止切换模式时 Shader 混淆崩溃
+    ledMat.customProgramCacheKey = () => {
+        return isFlowRGB ? 'type_flow' : 'type_normal';
+    };
+
+    // 4. 【核心修复】仅在流水灯模式下注入 Shader
+    if (isFlowRGB && glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
         ledMat.userData.uTime = { value: 0 };
         ledMat.onBeforeCompile = (shader) => {
             shader.uniforms.uTime = ledMat.userData.uTime;
@@ -1275,24 +1300,15 @@ const ledMat = new THREE.MeshStandardMaterial({
             shader.fragmentShader = `uniform float uTime; varying vec3 vWorldPos;\n` + shader.fragmentShader.replace(
                 '#include <emissivemap_fragment>',
                 `
-                // 调节 0.05 可以控制颜色密集度（左右跨度）
                 float xPos = vWorldPos.x * 0.05; 
-                // uTime 决定流动的快慢和方向
                 float t = uTime * 4.0 - xPos; 
-                
-                vec3 rainbow = vec3(
-                    0.5 + 0.5 * sin(t),
-                    0.5 + 0.5 * sin(t + 2.094), // 120度相位差
-                    0.5 + 0.5 * sin(t + 4.188)  // 240度相位差
-                );
-                // 混合 30% 的白色，让颜色更柔和，不刺眼
+                vec3 rainbow = vec3(0.5 + 0.5 * sin(t), 0.5 + 0.5 * sin(t + 2.094), 0.5 + 0.5 * sin(t + 4.188));
                 vec3 softColor = mix(rainbow, vec3(1.0), 0.3); 
                 totalEmissiveRadiance *= softColor;
                 `
             );
         };
     }
-
     // 5. 几何体计算逻辑（保持原样）
     const fDepth = frontThickness / 10; 
     const bDepth = backThickness / 10;  
@@ -1826,48 +1842,50 @@ else if (glowMode === 'neonWord013') {
 
         if (isFlowRGB) flowMeshes.push(mStrip);
     }
-        else if (glowMode === 'frontBackGlow') {
-        // --- 模式：正面与背面同时发光 (三层结构) ---
-        // 直接复用全局预生成的几何体：
-        // 1. innerGeo (固定 0.1 厚度) -> 用于正面发光层
-        // 2. fGeo (由正面滑块控制) -> 用于中间材质壳
-        // 3. bGeo (由背面滑块控制) -> 用于背面发光层
+      else if (glowMode === 'frontBackGlow') {
+    // 1. 创建正面发光层 (使用固定薄层 innerGeo)
+    const fGlow = new THREE.Mesh(innerGeo, ledMat); 
+    
+    // 2. 创建中间材质壳 (深度由正面厚度滑块控制)
+    const shell = new THREE.Mesh(fGeo, capMat);     
+    
+    // 3. 创建背面发光层 (深度由背面厚度滑块控制)
+    const bGlow = new THREE.Mesh(bGeo, ledMat);     
 
-        const fGlow = new THREE.Mesh(innerGeo, ledMat); // 正面 LED
-        const shell = new THREE.Mesh(fGeo, capMat);     // 中间 材质壳
-        const bGlow = new THREE.Mesh(bGeo, ledMat);     // 背面 LED
+    const fDepth = frontThickness / 10;
+    const bDepth = backThickness / 10;
 
-        // 获取当前的数值用于精确堆叠
-        const fDepth = frontThickness / 10;
-        const bDepth = backThickness / 10;
+    // --- 核心坐标计算 (加固版) ---
+    // 间隙调大到 0.05 解决闪烁问题
+    const gap = 0.05; 
 
-        // --- 核心坐标计算 (增加 0.01 间隙的三明治堆叠) ---
-        
-        // 1. 正面 LED：原位 0.1，现在设为 0.11
-        // 这样它的背面距离中间壳体顶面正好有 0.01 的间隙
-        fGlow.position.z = 0.1 + 0.01; 
-        
-        // 2. 中间材质壳：起始位在 0，向后拉伸 fDepth 距离
-        shell.position.z = -fDepth; 
-        
-        // 3. 背面 LED：原位是贴在中间壳背后 (-fDepth - bDepth)
-        // 现在再往后挪 0.01，设为 -fDepth - bDepth - 0.01
-        bGlow.position.z = -fDepth - bDepth - 0.01; 
+    // 正面发光层：放在壳体最前方，再往前挪一点间隙
+    // innerGeo 默认厚度是 0.1，所以它在 0 轴时，面在 0.1 处
+    fGlow.position.z = 0.1 + gap; 
+    
+    // 中间壳体：从 0 位开始向后长 fDepth 距离
+    shell.position.z = -fDepth; 
+    
+    // 背面发光层：贴在中间壳背后，再往后挪间隙
+    // 它从 0 开始长 bDepth，所以起始位在 shell 的背后 (-fDepth) 再减去它自身的厚度
+    bGlow.position.z = -fDepth - bDepth - gap; 
 
-        // 开启前后两层的辉光
-        fGlow.layers.enable(BLOOM_SCENE);
-        bGlow.layers.enable(BLOOM_SCENE);
+    // 开启双层辉光
+    fGlow.layers.enable(BLOOM_SCENE);
+    bGlow.layers.enable(BLOOM_SCENE);
 
-        // 添加到组
-        textGroup.add(fGlow, shell, bGlow);
+    textGroup.add(fGlow, shell, bGlow);
 
-        // --- 登记分类 ---
-        frontMeshes = [fGlow];    // 响应发光颜色
-        backMeshes = [bGlow];     // 响应发光颜色
-        colourMeshes = [shell];   // 响应“面板预设颜色”(中间壳调色)
-        
-        if (isFlowRGB) flowMeshes.push(fGlow, bGlow);
+    // --- 【核心修复】登记引用 ---
+    frontMeshes = [fGlow];    
+    backMeshes = [bGlow];     
+    colourMeshes = [shell];   // 这样“面板预设颜色”就能控制中间的壳了
+    
+    // 【关键】：必须把两层都放进流水灯数组，否则切过来流水灯就只有一层甚至不亮
+    if (isFlowRGB) {
+        flowMeshes.push(fGlow, bGlow);
     }
+}
  // --- 新增：专门处理单层工艺 (金属切割 或 亚克力切割) ---
     // --- 找到 generate3DText 中处理切割字的部分 ---
 else if (glowMode === 'metalCut' || glowMode === 'acrylicCut') {
@@ -2126,11 +2144,14 @@ clearSvgBtn.addEventListener('click', () => {
         scene.fog.far = cameraDist * 5.0;*/
     }
 
+
     // ==========================================
     // UI 状态控制函数
     // ==========================================
 function updateUIState() {
     // 1. 获取所有 UI 组件
+
+    
       const fCont = document.getElementById('frontThicknessSlider').closest('.thickness-control');
     const bCont = document.getElementById('backThicknessSlider').closest('.thickness-control');
       const ntCont = document.getElementById('neonTubeControl');
@@ -2149,6 +2170,40 @@ function updateUIState() {
     const depthControl = document.getElementById('depthControl');
     const swatchContainer = document.querySelector('.color-swatch-container');
     const backControlContainer = document.getElementById('backThicknessSlider').closest('.thickness-control');
+const allSwatches = document.querySelectorAll('#ledSwatchContainer .color-swatch');
+    allSwatches.forEach(s => s.classList.remove('hidden'));
+
+
+   const ledSection = document.getElementById('ledSection');          // 绿圈部分
+  
+    
+    // 【关键修复点】：定义变量，指向你 HTML 里的 paintColorSection
+    const paintSection = document.getElementById('paintColorSection'); 
+    
+
+    const paintLabel = paintSection ? paintSection.querySelector('label') : null;
+
+    if (fCont) fCont.classList.remove('hidden');
+    if (bCont) bCont.classList.remove('hidden');
+    
+     if (ledSection) ledSection.classList.remove('hidden'); 
+    if (brightDiv) brightDiv.classList.remove('hidden');
+    if (colourSection) colourSection.classList.add('hidden'); // 默认隐藏面板颜色
+ 
+
+    // 如果有被禁用的容器，也恢复
+    if (swatchContainer) {
+        swatchContainer.classList.remove('disabled');
+        swatchContainer.style.opacity = '1';
+        swatchContainer.style.pointerEvents = 'auto';
+    }
+    // 如果有被禁用的容器，也恢复
+    if (swatchContainer) {
+        swatchContainer.classList.remove('disabled');
+        swatchContainer.style.opacity = '1';
+        swatchContainer.style.pointerEvents = 'auto';
+    }
+    // -------------------------------------------------------
 
     // --- 第一步：重置所有状态（恢复默认可见/可用） ---
     if (backControlContainer) backControlContainer.classList.remove('hidden');
@@ -2174,7 +2229,7 @@ function updateUIState() {
     ledLabel.innerText = '💡 灯光颜色 (LED Color)';
 
     // --- 第二步：根据工艺 (glowMode) 执行特定显示逻辑 ---
-
+ 
     if (glowMode === 'sideGlowTest') {
         // 【测试 侧面发光】
         colourSection.classList.remove('hidden'); // 显示面板颜色
@@ -2314,21 +2369,33 @@ else if (glowMode === 'neonBorder') {
 
         ledLabel.innerText = '🎨 本体颜色';
         colourSection.classList.add('hidden');
-    } else if (glowMode === 'metalCut') {
-        // 【金属切割】
-        ledPicker.classList.add('disabled-picker');
-        ledPicker.disabled = true;
-        brightDiv.style.opacity = '0.3';
-        document.getElementById('brightnessSlider').disabled = true;
-        if (swatchContainer) swatchContainer.classList.add('disabled');
+    }     if (glowMode === 'metalCut') {
+        // --- 【核心修改：金属切割模式】 ---
+        
+        // 1. 彻底隐藏绿圈部分 (预设颜色 + 灯光颜色选择器)
+        if (ledSection) ledSection.classList.add('hidden'); 
+        
+        // 2. 彻底隐藏亮度调节滑块
+        if (brightDiv) brightDiv.classList.add('hidden'); 
+        
+        // 3. 隐藏背面厚度滑块（金属字通常只用正面滑块控厚度）
+        if (bCont) bCont.classList.add('hidden'); 
+
+        // 4. 重命名正面滑块标签
+        frontLabel.innerText = '📏 金属字厚度 (mm)';
+
+        // 5. 关闭后台灯效，防止报错
+        isFlowRGB = false;
+        isRGBGlow = false;
+        flowMeshes = [];
+
     }
 else if (glowMode === 'frontBackGlow') {
-        // 1. 设置标签文字
-        frontLabel.innerText = '📏 材质层厚度 (mm)';
-        backLabel.innerText = '📏 背发光层厚度 (mm)'; 
-       
+        // 1. 设置标签文字：正面滑块控中间壳，背面滑块控发光层
+        frontLabel.innerText = '📏 中间材质层厚度 (mm)';
+        backLabel.innerText = '📏 后发光层厚度 (mm)'; 
         
-        // 2. 核心修改：确保背面滑块容器是显示的，而不是隐藏的
+        // 2. 核心修改：确保背面滑块容器是显示的
         const backControlContainer = document.getElementById('backThicknessSlider').closest('.thickness-control');
         if (backControlContainer) {
             backControlContainer.classList.remove('hidden');
@@ -2337,8 +2404,11 @@ else if (glowMode === 'frontBackGlow') {
         document.getElementById('backThicknessSlider').disabled = false;
         document.getElementById('backThicknessInput').disabled = false;
         
-        // 开启面板颜色（用于中间壳调色）
-        colourSection.classList.remove('hidden'); 
+        // --- 【关键修改点】：强制隐藏面板颜色调色盘 ---
+        // 既然你不需要这个功能，我们在这里把它藏起来
+        if (colourSection) {
+            colourSection.classList.add('hidden'); 
+        }
     }
     // --- 在 updateUIState 函数中添加对应逻辑 ---
 
@@ -2504,16 +2574,21 @@ document.getElementById('paintColorPicker').addEventListener('input', (e) => {
 // --- 提取一个实时刷新的函数，让变色极其丝滑 ---
 function updatePaintColorLive() {
     const newColor = new THREE.Color(currentPaintColor);
+    
     const updateMat = (meshes) => {
         meshes.forEach(mesh => {
-            // 只要材质标记了 isPaint，就统一变色
+            // 检查材质是否存在，且是否有 isPaint 标记
             if (mesh.material && mesh.material.userData && mesh.material.userData.isPaint) {
                 mesh.material.color.copy(newColor);
             }
         });
     };
-    updateMat(frontMeshes); // 这会同时更新 testBackGlow 的前片和中壳
+
+    // --- 【核心修复】：增加对 colourMeshes 的遍历 ---
+    updateMat(frontMeshes); 
     updateMat(backMeshes);
+    updateMat(colourMeshes); // 加上这一行，中间壳就能实时变色了！
+    
     if (singleMesh) updateMat([singleMesh]);
 }
    document.getElementById('frontColorPicker').addEventListener('input', (e) => {
@@ -2569,16 +2644,25 @@ function updatePaintColorLive() {
         }
     });
 
-    document.getElementById('craftSelect').addEventListener('change', (e) => {
-        glowMode = e.target.value;
-        updateUIState(); 
-        generate3DText(document.getElementById('textInput').value, true);
-        
-        if (glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
-            updateBrightness(document.getElementById('brightnessSlider').value);
-        }
-    });
+document.getElementById('craftSelect').addEventListener('change', (e) => {
+    glowMode = e.target.value;
 
+    // --- 核心修改：如果是切换到发光工艺，不要手动重置 isFlowRGB 和 isRGBGlow ---
+    // 只有当进入不发光的切割模式时，我们才在 UI 层面做处理
+    if (glowMode === 'acrylicCut' || glowMode === 'metalCut') {
+        // 在切割模式下，我们不希望 animate 去跑逻辑
+        // 但不要修改全局 isFlowRGB 变量，这样切回来时它还是 true
+    }
+
+    updateUIState(); 
+    
+    // 重新生成模型：generate3DText 内部会根据当前的 isFlowRGB 状态自动重新注册 Mesh
+    generate3DText(document.getElementById('textInput').value, true);
+    
+    if (glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
+        updateBrightness(document.getElementById('brightnessSlider').value);
+    }
+});
    // --- 1. 正面厚度控制 (滑块 + 输入框) ---
    // --- 1. 正面厚度控制 ---
 // --- 1. 正面厚度控制 ---
@@ -2924,24 +3008,24 @@ document.querySelectorAll('#ledSwatchContainer .color-swatch').forEach(swatch =>
     let scanX = 0; // 全局扫描位置
 // 鼠标按下：检测是否点中标签
 // --- 统一的鼠标按下事件 ---
+// --- 统一的鼠标按下事件：支持背景、文字、背板的选中 ---
 container.addEventListener('pointerdown', (event) => {
     const rect = container.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    // --- 【新增：移动模式确认逻辑】 ---
-    // 如果当前按过 M 键正在移动中，点击鼠标表示“确定位置”
+    // --- 移动模式确认逻辑 ---
     if (typeof isMoveModeActive !== 'undefined' && isMoveModeActive && selectedObject) {
-        isMoveModeActive = false;    // 关闭移动模式状态
-        controls.enabled = true;     // 恢复相机旋转
+        isMoveModeActive = false;    
+        controls.enabled = true;     
         container.style.cursor = 'pointer'; 
-        outlinePass.edgeStrength = 3.0; // 边框恢复亮度
-        return; // 直接结束，不再执行下方的选中逻辑
+        outlinePass.edgeStrength = 3.0; 
+        return; 
     }
 
     raycaster.setFromCamera(mouse, camera);
 
-    // 1. 标注标签检测 (标注保持原样：按下即拖动，不参与 M 模式)
+    // 1. 标注标签检测 (优先级最高)
     const labelIntersects = raycaster.intersectObjects(dimensionGroup.children);
     if (labelIntersects.length > 0) {
         selectedLabel = labelIntersects[0].object;
@@ -2950,34 +3034,44 @@ container.addEventListener('pointerdown', (event) => {
         return;
     }
 
-    // 2. 物体选中逻辑
-    const intersects = raycaster.intersectObjects([textGroup, bgPlaneMesh].filter(Boolean), true);
+    // 2. 核心：物体选中逻辑 (检测文字组、背景图、L型背板)
+    const selectableObjects = [textGroup, bgPlaneMesh, lPlateGroup].filter(Boolean);
+    const intersects = raycaster.intersectObjects(selectableObjects, true);
 
     if (intersects.length > 0) {
         let hitObject = intersects[0].object;
-        let logicalTarget = (bgPlaneMesh && (hitObject === bgPlaneMesh || hitObject.parent === bgPlaneMesh)) 
-                            ? bgPlaneMesh : textGroup;
+        let logicalTarget = textGroup; // 默认目标
 
-        // 【修改：仅执行选中，不开启拖拽】
+        // 判定点击的是哪一个逻辑主体
+        if (bgPlaneMesh && (hitObject === bgPlaneMesh || hitObject.parent === bgPlaneMesh)) {
+            logicalTarget = bgPlaneMesh;
+        } else if (lPlateGroup && (hitObject === lPlateGroup || hitObject.parent === lPlateGroup)) {
+            logicalTarget = lPlateGroup;
+        } else {
+            logicalTarget = textGroup;
+        }
+
+        // 执行选中
         selectedObject = logicalTarget;
-        outlinePass.selectedObjects = [logicalTarget];
+        outlinePass.selectedObjects = [logicalTarget]; // 加上发光描边
         container.style.cursor = 'pointer';
-        
-        // 这里的 isDraggingObject 逻辑可以删掉，因为移动改用 M 键触发
         isDraggingObject = false; 
+        
+        console.log("当前选中物体:", logicalTarget === lPlateGroup ? "L型背板" : (logicalTarget === bgPlaneMesh ? "背景图" : "文字组"));
+        
     } else {
         // 点空白处 -> 取消选中
         selectedObject = null;
         outlinePass.selectedObjects = [];
         container.style.cursor = 'default';
         
-        // 如果有点中空白，也强制退出移动模式
         if (typeof isMoveModeActive !== 'undefined') {
             isMoveModeActive = false;
             controls.enabled = true;
         }
     }
 });
+
 // 辅助函数：设置拖拽平面
 function setupDragPlane(intersectPoint, targetPosition) {
     const normal = new THREE.Vector3();
@@ -3033,77 +3127,169 @@ window.addEventListener('pointerup', () => {
     controls.enabled = true; // 恢复相机
     container.style.cursor = 'default';
 });
-    function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    
-    // 全局时间累加
-    const currentTime = performance.now() * 0.001; 
+   // 统一渲染逻辑，避免在 if-else 中重复书写，减少渲染中断风险
+// ==========================================
+    // 终极整合：渲染与动画系统
+    // ==========================================
 
-    // 【流水灯核心】只驱动 flowMeshes 数组
-    if (isFlowRGB && flowMeshes.length > 0) {
-        flowMeshes.forEach(mesh => {
-            if (mesh.material.userData.uTime) {
-                mesh.material.userData.uTime.value = currentTime;
-            }
-        });
-    }
-
-    // 2. 呼吸灯逻辑
-  // --- 找到 animate 函数中的呼吸灯逻辑部分 ---
-    else if (isRGBGlow && glowMode !== 'metalCut') {
-        rgbHue += 0.002;
-        if (rgbHue > 1) rgbHue = 0;
-        const dynamicColor = new THREE.Color().setHSL(rgbHue, 1.0, 0.5);
-
-        // --- 核心修复：重新定义目标选择逻辑 ---
-        let targetMeshes = [];
-
-        if (glowMode === 'backGlow' || glowMode === 'testBackGlow') {
-            // 背面发光系列：控制 backMeshes
-            targetMeshes = backMeshes;
-        } 
-        else if (glowMode === 'sideGlowTest') {
-            // 侧面发光：发光层就是 frontMeshes[0]
-            targetMeshes = frontMeshes; 
-        }
-        else if (glowMode === 'sideHalfGlowTest') {
-            // 侧面一半发光：第一个 Mesh 是发光层
-            targetMeshes = frontMeshes.length > 0 ? [frontMeshes[0]] : [];
-        }
-        else {
-            // 默认模式（正面发光、霓虹灯等）：全部控制 frontMeshes
-            targetMeshes = frontMeshes;
-        }
-
-        // 应用动态颜色
-        targetMeshes.forEach(obj => {
-            if (obj && obj.material) {
-                // 确保清理掉流水灯残留，让颜色能直接显示
-                if (obj.material.emissiveMap) obj.material.emissiveMap = null;
-                
-                obj.material.color.copy(dynamicColor);
-                if (obj.material.emissive) obj.material.emissive.copy(dynamicColor);
-            }
-        });
-    }
-        // 渲染...
+    // 1. 统一渲染函数 (确保全文件只有这一个声明)
+    function renderSceneAll() {
         const originalBg = scene.background;
-        scene.background = new THREE.Color(0x000000);
+        scene.background = new THREE.Color(0x000000); // 临时将背景设为黑色以渲染辉光
+        
         scene.traverse(darkenNonBloomed);
         bloomComposer.render();
         scene.traverse(restoreMaterial);
-        scene.background = originalBg;
-        finalComposer.render();
+        
+        scene.background = originalBg; // 恢复原始背景色
+        finalComposer.render(); // 最终合成渲染
     }
-    window.addEventListener('resize', () => {
-        camera.aspect = container.clientWidth / container.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        bloomComposer.setSize(container.clientWidth, container.clientHeight);
-        finalComposer.setSize(container.clientWidth, container.clientHeight);
-    });
-    
+
+    // 2. 主动画循环
+ function animate() {
+        requestAnimationFrame(animate);
+        if (controls) controls.update();
+
+        // --- 1. 更新 L型背板的模拟反射光 (PointLight) ---
+        // 核心思路：通过一个不可见的点光源跟随文字，将文字颜色“投射”到背板上
+        if (platePointLight && lPlateGroup) {
+            const ledColor = new THREE.Color(document.getElementById('ledColorPicker').value);
+            const brightness = document.getElementById('brightnessSlider').value / 100;
+            
+            // 如果是切割模式或亮度为0，关闭反射光；否则实时更新
+            if (glowMode === 'acrylicCut' || glowMode === 'metalCut' || brightness <= 0) {
+                platePointLight.intensity = 0;
+            } else {
+                // 如果开启了呼吸灯，让点光源颜色也跟随呼吸颜色变动
+                if (isRGBGlow) {
+                    const tempHSL = { h: 0, s: 0, l: 0 };
+                    const dynamicColor = new THREE.Color().setHSL(rgbHue % 1, 1.0, 0.5);
+                    platePointLight.color.copy(dynamicColor);
+                } else {
+                    platePointLight.color.copy(ledColor);
+                }
+
+                // 调节强度：根据场景大小，这里设为 80000 左右能看到明显的彩色光晕
+                platePointLight.intensity = brightness * 1600000; 
+                //想让反射光更亮：修改 animate 里的乘数（把 80000 改大）。
+//                  想让反射光照得更广：修改 createLPlate 里的距离参数（把 1500 改大）。
+                // 【位置跟随】：让光点始终位于文字重心前方 50mm 处，这样能同时照亮墙面和地面
+                platePointLight.position.copy(textGroup.position).add(new THREE.Vector3(0, 0, 50));
+            }
+        }
+
+        // --- 2. 切割模式判定 (安全退出) ---
+        // 在切割模式下，我们直接渲染模型，跳过后续所有复杂的灯效计算
+        if (glowMode === 'acrylicCut' || glowMode === 'metalCut') {
+            renderSceneAll();
+            return;
+        }
+
+        const currentTime = performance.now() * 0.001; 
+
+        // --- 3. 流水灯逻辑 ---
+        if (isFlowRGB && flowMeshes.length > 0) {
+            flowMeshes.forEach(mesh => {
+                if (mesh.material && mesh.material.userData && mesh.material.userData.uTime) {
+                    mesh.material.userData.uTime.value = currentTime;
+                }
+            });
+        }
+        
+        // --- 4. 呼吸灯逻辑 (优化识别模式) ---
+        else if (isRGBGlow) {
+            rgbHue += 0.002;
+            const dynamicColor = new THREE.Color().setHSL(rgbHue % 1, 1.0, 0.5);
+
+            // 自动遍历所有组件，只对发光层应用颜色
+            const allPossible = [...frontMeshes, ...backMeshes, ...colourMeshes];
+            allPossible.forEach(obj => {
+                if (obj && obj.material && obj.layers.test(bloomLayer)) {
+                    obj.material.color.copy(dynamicColor);
+                    if (obj.material.emissive) obj.material.emissive.copy(dynamicColor);
+                }
+            });
+        }
+
+        // --- 5. 执行最终渲染 ---
+        renderSceneAll();
+    }
+
+    // 3. 窗口自适应监听
+ // --- 终极整合键盘监听器 (放在 animate() 之后) ---
+window.addEventListener('keydown', (e) => {
+    // 如果正在输入框输入，不触发快捷键
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    const panel = document.getElementById('svg-upload-container');
+
+    // --- 1. 使用 ] 键实现浮窗显示/隐藏 (带 GSAP 动画) ---
+    if (e.key === ']' || e.key === '}') {
+        const isHidden = !panel.style.display || panel.style.display === 'none' || window.getComputedStyle(panel).display === 'none';
+        if (isHidden) {
+            panel.style.display = 'block';
+            gsap.fromTo(panel, {opacity: 0, y: 20, scale: 0.9}, {opacity: 1, y: 0, scale: 1, duration: 0.3});
+        } else {
+            gsap.to(panel, {opacity: 0, y: 20, scale: 0.9, duration: 0.2, onComplete: () => {
+                panel.style.display = 'none';
+            }});
+        }
+    }
+
+    // --- 2. M 键切换移动模式 ---
+    if (e.key.toLowerCase() === 'm') {
+        if (selectedObject) {
+            isMoveModeActive = !isMoveModeActive; 
+            
+            if (isMoveModeActive) {
+                controls.enabled = false; // 锁定相机
+                container.style.cursor = 'move';
+                outlinePass.edgeStrength = 10.0; // 描边加亮提示
+                setupDragPlane(selectedObject.position, selectedObject.position);
+                console.log("进入移动模式:", selectedObject.name || "选中物体");
+            } else {
+                controls.enabled = true; // 恢复相机
+                container.style.cursor = 'pointer';
+                outlinePass.edgeStrength = 3.0; // 描边恢复
+                console.log("退出移动模式");
+            }
+        } else {
+            alert("请先点击选中一个物体（文字、背景或背板），再按 M 键。");
+        }
+    }
+
+    // --- 3. Delete / Backspace 键删除逻辑 ---
+   // --- 3. Delete / Backspace 键删除逻辑 ---
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedObject) {
+            // 判定并移除物体
+            if (selectedObject === lPlateGroup) {
+                scene.remove(lPlateGroup);
+                if (platePointLight) {
+                    scene.remove(platePointLight);
+                    platePointLight = null;
+                }
+                lPlateGroup = null; 
+                console.log("背板及光效已移除");
+            } else if (selectedObject === bgPlaneMesh) {
+                scene.remove(bgPlaneMesh);
+                bgPlaneMesh = null;
+                document.getElementById('clearBgBtn').classList.add('hidden');
+            } else if (selectedObject === textGroup) {
+                console.warn("文字组不可直接删除");
+                return;
+            }
+
+            // 执行完删除后，再统一清理选中状态
+            selectedObject = null;
+            outlinePass.selectedObjects = [];
+            isMoveModeActive = false;
+            controls.enabled = true;
+            container.style.cursor = 'default';
+        }
+    }
+});
+    // 4. 启动程序
     animate();
 </script>
 </body>
