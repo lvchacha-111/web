@@ -1,4 +1,5 @@
 const express = require('express');
+const os = require('os');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -576,4 +577,28 @@ function getBaseHtml(content) {
     </head><body>${content}</body></html>`;
 }
 
-app.listen(3000, () => console.log('✅ UI 升级完成：支持多图轮播！http://localhost:3000'));
+// --- 自动获取局域网 IP 的函数 ---
+function getLocalIp() {
+    const interfaces = os.networkInterfaces();
+    for (const devName in interfaces) {
+        const iface = interfaces[devName];
+        for (let i = 0; i < iface.length; i++) {
+            const alias = iface[i];
+            if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                return alias.address;
+            }
+        }
+    }
+    return 'localhost';
+}
+
+const PORT = 3000;
+const IP = getLocalIp();
+
+// --- 启动服务器 ---
+// 这里添加 '0.0.0.0' 是为了允许局域网内的其他设备连接
+app.listen(PORT, '0.0.0.0', () => {
+    console.log('✅ 服务已启动!');
+    console.log(`本地访问: http://localhost:${PORT}`);
+    console.log(`局域网访问: http://${IP}:${PORT}`);
+});
