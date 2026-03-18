@@ -795,7 +795,7 @@
                 <label>📏 字体高度 (单位cm)</label>
                 <input type="number" id="textSizeInput" class="num-input" value="26" step="0.1">
             </div>
-            <input type="range" id="textSizeSlider" min="10" max="100" step="0.1" value="26">
+            <input type="range" id="textSizeSlider" min="1" max="100" step="0.1" value="26">
             <div style="font-size:11px; color:#aaa;">控制文字的整体显示高度</div>
         </div>
 
@@ -1403,33 +1403,31 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
         }
         // 创建永远面向相机的数字标签
         // 增加 scaleFactor 参数，默认值为 1.0
-        function createTextLabel(text, position, scaleFactor = 1.0) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+      function createTextLabel(text, position, scaleFactor = 1.0, textColor = '#f39c12') {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-            // 1. 增大 Canvas 分辨率，防止文字变大后模糊
-            canvas.width = 512;  // 从 256 增加到 512
-            canvas.height = 256; // 从 128 增加到 256
+    // 1. 增大 Canvas 分辨率
+    canvas.width = 512;
+    canvas.height = 256;
 
-            // 2. 增大字体大小
-            ctx.font = 'Bold 100px Arial'; // 从 60px 增加到 100px
-            ctx.fillStyle = '#f39c12';
-            ctx.textAlign = 'center';
+    // 2. 增大字体大小并使用传入的颜色
+    ctx.font = 'Bold 100px Arial';
+    ctx.fillStyle = textColor; // <--- 这里从固定颜色改为变量
+    ctx.textAlign = 'center';
 
-            // 调整绘制位置（因为高度变了）
-            ctx.fillText(text, 256, 150);
+    ctx.fillText(text, 256, 150);
 
-            const texture = new THREE.CanvasTexture(canvas);
-            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
-            const sprite = new THREE.Sprite(spriteMaterial);
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(spriteMaterial);
 
-            // 3. 增大物理缩放比例（这是决定“看起来多大”的关键）
-            // 原来是 12 * scaleFactor, 现在改为 24
-            sprite.scale.set(24 * scaleFactor, 12 * scaleFactor, 1);
+    // 3. 物理缩放比例
+    sprite.scale.set(24 * scaleFactor, 12 * scaleFactor, 1);
 
-            sprite.position.copy(position);
-            return sprite;
-        }
+    sprite.position.copy(position);
+    return sprite;
+}
         // --- 截图功能实现 ---
         // --- 高级高清截图功能 ---
         // --- 修复版：高清截图功能（完美保留辉光与颜色） ---
@@ -1538,109 +1536,91 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
 
 
 
-  function updateDimensions() {
-    if (!dimensionGroup) return;
-    dimensionGroup.clear();
+
+    // ==========================================
+            function updateDimensions() {
+                if (!dimensionGroup) return;
+    dimensionGroup.clear(); // 清空所有旧标注
+
+    // 1. 基础安全检查：确保物体矩阵已更新
+    textGroup.updateMatrixWorld(true);
+    if (lPlateGroup) lPlateGroup.updateMatrixWorld(true);
 
     const scaleFactor = textSize / 26; 
     const visualOffset = 15 * scaleFactor;
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x888888 });
+    
+    // --- 定义文字相关的默认变量，防止后续逻辑崩溃 ---
+    let tMin = { x: 0, y: 0, z: 0 };
+    let tMax = { x: 0, y: 0, z: 0 };
+    let tCenter = new THREE.Vector3(0, 0, 0);
 
-    // 获取文字组的当前中心位置，用于定位标注线
+    // 2. 处理文字标注 (黄色)
     const textBox = new THREE.Box3().setFromObject(textGroup);
-    if (!textBox.isEmpty()) {
-        const center = new THREE.Vector3();
-        textBox.getCenter(center);
-        const min = textBox.min;
-        const max = textBox.max;
-        // 标注所在的深度：放在文字前方 2 个单位，防止重叠
+    
+    // 只有当文字包围盒有效（不是无限大或为空）时才生成文字标注
+    if (!textBox.isEmpty() && isFinite(textBox.min.x)) {
+        tMin = textBox.min;
+        tMax = textBox.max;
+        textBox.getCenter(tCenter);
+        
         const labelZ = textGroup.position.z + 2; 
 
-        // ==========================================
-        // --- 1. 高度数字 (H) --- 严格等于滑块数字
-        // ==========================================
-        // textSize 是 cm，乘以 10 得到 mm
-     // 1. 将 .toFixed(0) 改为 .toFixed(1)，这样 19.92cm 就会显示为 199.2mm
-const realH_mm = (textSize * 10).toFixed(1); 
+        // 文字高度 (H)
+        const realH_mm = (textSize * 10).toFixed(1); 
+        const yPos = new THREE.Vector3(tMin.x - visualOffset, tCenter.y, labelZ).add(labelManualOffsets.y);
+        dimensionGroup.add(createTextLabel(realH_mm + " mm", yPos, scaleFactor, '#f39c12'));
 
-// 2. 坐标计算保持不变
-const yPos = new THREE.Vector3(min.x - visualOffset, center.y, labelZ).add(labelManualOffsets.y);
+        // 文字宽度 (W)
+        const realW_mm = (textSize * svgOriginalAspectRatio * 10).toFixed(1); 
+        const xPos = new THREE.Vector3(tCenter.x, tMin.y - visualOffset, labelZ).add(labelManualOffsets.x);
+        dimensionGroup.add(createTextLabel(realW_mm + " mm", xPos, scaleFactor, '#f39c12'));
 
-// 3. 创建标签
-const yLabel = createTextLabel(realH_mm + " mm", yPos, scaleFactor);
-yLabel.userData.axis = 'y';
-dimensionGroup.add(yLabel);
-        // ==========================================
-        // --- 2. 宽度数字 (W) --- 基于滑块高度 * 原始比例
-        // ==========================================
-        // 同步修改宽度标注
-const realW_mm = (textSize * svgOriginalAspectRatio * 10).toFixed(1); 
-const xPos = new THREE.Vector3(center.x, min.y - visualOffset, labelZ).add(labelManualOffsets.x);
-const xLabel = createTextLabel(realW_mm + " mm", xPos, scaleFactor);
-xLabel.userData.axis = 'x';
-dimensionGroup.add(xLabel);
-
-        // ==========================================
-        // --- 3. 厚度数字 (T) --- 严格等于厚度滑块
-        // ==========================================
-        let baseThickness = (glowMode === 'testFrontGlow') ? backThickness : (['sideHalfGlowTest', 'backGlow', 'frontGlow', 'frontBackGlow'].includes(glowMode) ? (frontThickness + backThickness) : frontThickness);
-        const zPos = new THREE.Vector3(max.x + visualOffset, min.y, labelZ).add(labelManualOffsets.z);
-        const zLabel = createTextLabel(baseThickness.toFixed(0) + " mm", zPos, scaleFactor);
-        zLabel.userData.axis = 'z';
-        dimensionGroup.add(zLabel);
+        // 文字厚度 (T)
+        let baseThickness = (glowMode === 'frontBackGlow') ? frontThickness : 
+                           (glowMode === 'testFrontGlow' ? backThickness : 
+                           (['sideHalfGlowTest', 'backGlow', 'frontGlow'].includes(glowMode) ? (frontThickness + backThickness) : frontThickness));
+        
+        const zPos = new THREE.Vector3(tMax.x + visualOffset, tMin.y, labelZ).add(labelManualOffsets.z);
+        dimensionGroup.add(createTextLabel(baseThickness.toFixed(1) + " mm", zPos, scaleFactor, '#f39c12'));
     }
 
-    // --- 背板标注部分保持不变 ---
-    // ==========================================
-// --- B. 背板尺寸标注 (修正厚度标注丢失问题) ---
-// ==========================================
-if (lPlateGroup) {
-    // 强制更新世界矩阵，确保测量结果实时准确
-    lPlateGroup.updateMatrixWorld();
-    
-    const plateBox = new THREE.Box3().setFromObject(lPlateGroup);
-    const pMin = plateBox.min;
-    const pMax = plateBox.max;
-    const pCenter = new THREE.Vector3();
-    plateBox.getCenter(pCenter);
-    
-    // 标注基准高度和间距
-    const pZFront = pMax.z + 1; // 背板正前方
-    const pZMid = (pMin.z + pMax.z) / 2; // 背板侧向厚度中心
+    // --- B. 处理背板标注 (白色) ---
+    // 关键修复：确保这一块逻辑独立，不被文字逻辑干扰
+    if (lPlateGroup && lPlateGroup.parent) {
+        const plateBox = new THREE.Box3().setFromObject(lPlateGroup);
+        if (!plateBox.isEmpty() && isFinite(plateBox.min.x)) {
+            const pMin = plateBox.min;
+            const pMax = plateBox.max;
+            const pCenter = new THREE.Vector3();
+            plateBox.getCenter(pCenter);
+            
+            const pZFront = pMax.z + 2; 
 
-    // --- 1. 背板宽度 (W) ---
-    const pWPos = new THREE.Vector3(pCenter.x, pMin.y - visualOffset, pZFront).add(labelManualOffsets.pW);
-    const pWLabel = createTextLabel("W:" + plateWidth.toFixed(0) + " cm", pWPos, scaleFactor);
-    pWLabel.userData.axis = 'pW';
-    dimensionGroup.add(pWLabel);
+            // 1. 背板宽度 (W) - 放在文字宽度下方
+            const pWPos = new THREE.Vector3(pCenter.x, pMin.y - (visualOffset * 2.2), pZFront).add(labelManualOffsets.pW);
+            dimensionGroup.add(createTextLabel("W:" + (plateWidth * 10).toFixed(0) + " mm", pWPos, scaleFactor, '#ffffff'));
 
-    // --- 2. 背板高度 (H) ---
-    const pHPos = new THREE.Vector3(pMin.x - visualOffset, pCenter.y, pZFront).add(labelManualOffsets.pH);
-    const pHLabel = createTextLabel("H:" + plateHeight.toFixed(0) + " cm", pHPos, scaleFactor);
-    pHLabel.userData.axis = 'pH';
-    dimensionGroup.add(pHLabel);
+            // 2. 背板高度 (H) - 定位在文字高标注的【右上方】
+            // 即使没有文字(tMin为0)，它也会相对于原点偏移，不会消失
+            const pHPos = new THREE.Vector3(
+                (tMin.x - visualOffset) + (visualOffset * 0.8), 
+                tMax.y + 10, 
+                pZFront
+            ).add(labelManualOffsets.pH);
+            dimensionGroup.add(createTextLabel("H:" + (plateHeight * 10).toFixed(0) + " mm", pHPos, scaleFactor, '#ffffff'));
 
-    // --- 3. 背板厚度 (T) - 【核心修复】 ---
-    // 将标注放在背板的右下侧边缘
-    const pTPos = new THREE.Vector3(pMax.x + visualOffset, pMin.y + 5, pZMid).add(labelManualOffsets.pT);
-    // 这里使用 .toFixed(1) 以支持类似 1.5 cm 的显示
-    const pTLabel = createTextLabel("T:" + plateThickness.toFixed(1) + " cm", pTPos, scaleFactor);
-    pTLabel.userData.axis = 'pT';
-    dimensionGroup.add(pTLabel);
-    
-    // 绘制厚度的引线 (可选，为了视觉更清晰)
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x666666, transparent: true, opacity: 0.5 });
-    const pTLines = [
-        new THREE.Vector3(pMax.x + (visualOffset/2), pMin.y + 5, pMin.z),
-        new THREE.Vector3(pMax.x + (visualOffset/2), pMin.y + 5, pMax.z)
-    ];
-    const pTLineGeo = new THREE.BufferGeometry().setFromPoints(pTLines);
-    dimensionGroup.add(new THREE.Line(pTLineGeo, lineMat));
+            // 3. 背板厚度 (T) - 放在右上角
+            const pTPos = new THREE.Vector3(pMax.x + visualOffset, pMax.y - 5, (pMin.z + pMax.z) / 2).add(labelManualOffsets.pT);
+            dimensionGroup.add(createTextLabel("T:" + (plateThickness * 10).toFixed(0) + " mm", pTPos, scaleFactor, '#ffffff'));
+        }
+    }
+
+    // 确保 dimensionGroup 的显示状态正确
+    dimensionGroup.visible = (typeof isDimensionVisible !== 'undefined') ? isDimensionVisible : true;
 }
-
     // 关键：确保这里使用的是已经声明好的 isDimensionVisible
     dimensionGroup.visible = (typeof isDimensionVisible !== 'undefined') ? isDimensionVisible : true;
-}        // --- 标注显示/隐藏切换逻辑 ---
+       // --- 标注显示/隐藏切换逻辑 ---
       
 
         document.getElementById('toggleDimensionBtn').addEventListener('click', () => {
@@ -1808,31 +1788,42 @@ if (lPlateGroup) {
             }
 
       if (isSvgMode && svgPaths) {
-    const shapes = [];
-    svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
-    
-    // 测量原始像素高度
-    const tempShapeGeo = new THREE.ShapeGeometry(shapes);
-    tempShapeGeo.computeBoundingBox();
-    const pixelH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
+                const shapes = [];
+                svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
 
-    // 核心比例：由当前滑块数值 (textSize, 约19.9) 除以 像素高度 得到
-    const scale = textSize / pixelH;
+                // 测量原始像素高度
+                const tempShapeGeo = new THREE.ShapeGeometry(shapes);
+                tempShapeGeo.computeBoundingBox();
+                const pixelH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
 
-    // 应用变换：-scale 翻转 Y 轴
-    const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
+                // 核心比例：由当前滑块数值 / 像素高度
+                const scale = textSize / pixelH;
+                const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
 
-    // 生成几何体时，厚度 depth 会自动根据这个 scale 调整
-    // 假设正面厚度设为 5mm (0.5cm)
-    const currentFrontDepth = frontThickness / 10; 
-    
-    // 生成拉伸体
-    // 注意：这里的 depth 也要除以 scale，抵消后面的 matrix 缩放，确保厚度绝对准确
-    fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: currentFrontDepth / scale });
-    fGeo.applyMatrix4(matrix);
-    
-    // 后面的 bGeo, innerGeo 以此类推...
-}else {
+                const currentFrontDepth = frontThickness / 10; 
+                const currentBackDepth = backThickness / 10;
+                const ledThinness = 0.1; // 固定 1mm 灯板
+
+                // --- 核心修复：在这里必须把所有层都创建出来 ---
+                // 1. 生成材质壳几何体 (fGeo)
+                fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: currentFrontDepth / scale });
+                // 2. 生成背面几何体 (bGeo)
+                bGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: currentBackDepth / scale });
+                // 3. 生成 LED 灯板几何体 (innerGeo) - 这就是你之前缺失的部分
+                innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: ledThinness / scale });
+                // 4. 生成单体几何体 (用于其他模式)
+                singleGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: (currentFrontDepth + currentBackDepth) / scale });
+
+                // 对所有生成的几何体应用矩阵并居中
+                [fGeo, bGeo, innerGeo, singleGeo].forEach(geo => {
+                    geo.applyMatrix4(matrix);
+                    geo.computeBoundingBox();
+                    const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
+                    const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
+                    geo.translate(cx, cy, 0);
+                });
+
+            }else {
     const refSize = 10;
     const tempGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: refSize, height: 0 });
     tempGeo.computeBoundingBox();
@@ -1929,6 +1920,43 @@ if (lPlateGroup) {
 
                 textGroup.add(fixedMesh);
                 backMeshes = [fixedMesh];
+            }
+            // --- 新增/修复：正面与背面发光 (三层结构) ---
+else if (glowMode === 'frontBackGlow') {
+                const fDepth = frontThickness / 10; // 中间材质壳的厚度 (受正面滑块控制)
+                const ledThinness = 0.1;            // 前后LED固定厚度 (1mm)
+                const gap = 0.05;                   // 物理间隙
+
+                // 1. 正面发光层 (LED属性 - 固定薄层)
+                const mFrontLed = new THREE.Mesh(innerGeo, ledMat);
+                mFrontLed.userData.isLed = true;
+                mFrontLed.layers.enable(BLOOM_SCENE);
+                // 坐标：贴在中间壳表面 (Z=0) 往前挪一个间隙
+                mFrontLed.position.z = gap; 
+                textGroup.add(mFrontLed);
+
+                // 2. 中间最厚的材质壳 (Back属性 - 厚块)
+                // 使用 fGeo (受正面厚度滑块控制)
+                const mShell = new THREE.Mesh(fGeo, capMat);
+                // 坐标：将其定位在 -fDepth，使它的正面边缘刚好在 Z=0 处
+                mShell.position.z = -fDepth; 
+                textGroup.add(mShell);
+                backMeshes = [mShell]; 
+
+                // 3. 背面发光层 (LED属性 - 固定薄层)
+                // 同样使用 innerGeo 保证前后一样薄
+                const mBackLed = new THREE.Mesh(innerGeo, ledMat);
+                mBackLed.userData.isLed = true;
+                mBackLed.layers.enable(BLOOM_SCENE);
+                // 坐标：位于中间壳背面 (-fDepth) 再往后挪自身厚度和间隙
+                mBackLed.position.z = -fDepth - ledThinness - gap;
+                textGroup.add(mBackLed);
+
+                // 登记
+                frontMeshes = [mFrontLed, mBackLed];
+                colourMeshes = [];
+
+                if (isFlowRGB) flowMeshes.push(mFrontLed, mBackLed);
             }
             // --- 1. 拆分出的【半侧面发光】逻辑：依然跟随滑块 ---
             else if (glowMode === 'sideHalfGlowTest') {
@@ -2148,7 +2176,7 @@ if (lPlateGroup) {
             else if (glowMode === 'neonWord012') {
                 // --- 1. 参数定义 (保持与013一致的参数集) ---
                 const hDepth = frontThickness / 10;   // 支撑壳厚度 (由滑块控制)
-                const tRadius = 0.5;                  // 灯管半径 (固定 10mm 直径)
+                const tRadius = 1.0;                  // 灯管半径 (固定 10mm 直径)
                 const basePadding = 0.1;              // 支撑壳比灯管稍微小一点 (负值收缩)
                 const lift = 0.08;                    // 防穿透间隙
 
@@ -2247,7 +2275,7 @@ if (lPlateGroup) {
             else if (glowMode === 'neonWord013') {
                 // --- 1. 参数定义 ---
                 const hDepth = frontThickness / 10;   // 底座厚度
-                const tRadius = 0.5;                  // 灯管半径 (固定10mm直径)
+                const tRadius = 1.0;                  // 灯管半径 (固定10mm直径)
                 const basePadding = 1.5;              // 底座外扩
                 const lift = 0.08;                    // 防穿透间隙
 
@@ -2962,26 +2990,22 @@ function toggleNeonOptions(hide) {
                 flowMeshes = [];
 
             }
-            else if (glowMode === 'frontBackGlow') {
-                // 1. 设置标签文字：正面滑块控中间壳，背面滑块控发光层
-                frontLabel.innerText = '📏 中间材质层厚度 (mm)';
-                backLabel.innerText = '📏 后发光层厚度 (mm)';
-
-                // 2. 核心修改：确保背面滑块容器是显示的
-                const backControlContainer = document.getElementById('backThicknessSlider').closest('.thickness-control');
-                if (backControlContainer) {
-                    backControlContainer.classList.remove('hidden');
-                    backControlContainer.style.opacity = '1';
-                }
-                document.getElementById('backThicknessSlider').disabled = false;
-                document.getElementById('backThicknessInput').disabled = false;
-
-                // --- 【关键修改点】：强制隐藏面板颜色调色盘 ---
-                // 既然你不需要这个功能，我们在这里把它藏起来
-                if (colourSection) {
-                    colourSection.classList.add('hidden');
-                }
+           else if (glowMode === 'frontBackGlow') {
+            // 1. 正面滑块控制中间壳
+            frontLabel.innerText = '📏 中间材质壳厚度 (mm)';
+            
+            // 2. 核心：隐藏背面厚度滑块及其容器
+            const backControlContainer = document.getElementById('backThicknessSlider').closest('.thickness-control');
+            if (backControlContainer) {
+                backControlContainer.classList.add('hidden');
             }
+
+            // 3. 其他UI状态
+            matSection.classList.remove('hidden');
+            tintSection.classList.remove('hidden');
+            if (colourSection) colourSection.classList.add('hidden');
+            ledLabel.innerText = '💡 前后发光颜色';
+        }
             // --- 在 updateUIState 函数中添加对应逻辑 ---
 
             else if (glowMode === 'testFrontGlow') {
@@ -3398,41 +3422,43 @@ if (selectedOpt && selectedOpt.classList.contains('hidden')) {
             }
             // --- D. 三层结构通用逻辑 (修复 sideHalfGlow 关键点) ---
             // --- D. 三层结构通用逻辑 (侧发光、半侧发光、正背发光) ---
-            else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode)) {
+       else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode)) {
                 let layerFront, layerMid, layerBack;
-                let startZFront, startZBack;
+                let startZFront, startZBack, startZMid;
 
-                // 重新获取当前滑块定义的厚度，确保动画基准准确
                 const fDepth = frontThickness / 10;
-                const bDepth = backThickness / 10;
+                const ledThinness = 0.1; // 与生成逻辑保持一致
                 const explodeGap = 30;
 
                 if (glowMode === 'frontBackGlow') {
-                    layerFront = frontMeshes[0];
-                    layerMid = colourMeshes[0];
-                    layerBack = backMeshes[0];
+                    layerFront = frontMeshes[0]; 
+                    layerMid = backMeshes[0];    
+                    layerBack = frontMeshes[1];  
 
-                    // 【核心修复】：必须与 generate3DText 中的 0.05 gap 保持一致
                     const gap = 0.05;
-                    startZFront = 0.1 + gap;          // 归位到 0.15
-                    startZBack = -fDepth - bDepth - gap; // 归位到 -厚度 - 0.05
+                    // 归位坐标计算
+                    startZFront = gap;
+                    startZMid = -fDepth;
+                    startZBack = -fDepth - ledThinness - gap; 
                 } else {
+                    // 其他模式逻辑...
                     layerFront = colourMeshes[0];
                     layerMid = frontMeshes[0];
                     layerBack = backMeshes[0];
-
+                    const bDepth = backThickness / 10;
                     startZFront = fDepth + 0.01;
+                    startZMid = 0;
                     startZBack = (glowMode === 'sideGlowTest') ? -0.11 : (-bDepth - 0.01);
                 }
 
                 if (isDecomposed) {
-                    // 解体：前飞，后飞
                     gsap.to(layerFront.position, { z: startZFront + explodeGap, duration: 1, ease: "power2.inOut" });
                     gsap.to(layerBack.position, { z: startZBack - explodeGap, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+                    gsap.to(layerMid.position, { z: startZMid, duration: 1 });
                 } else {
-                    // 合并：精准回到原始位置
                     gsap.to(layerFront.position, { z: startZFront, duration: 1, ease: "power2.inOut" });
                     gsap.to(layerBack.position, { z: startZBack, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+                    gsap.to(layerMid.position, { z: startZMid, duration: 1 });
                 }
             }
             // --- E. 标准双层结构 (backGlow & frontGlow) 彻底修复重合 ---
@@ -3552,7 +3578,7 @@ if (textSizeInput) {
     textSizeInput.addEventListener('change', (e) => {
         let val = parseFloat(e.target.value); // 关键：使用 parseFloat
         if (isNaN(val)) val = 26.0;
-        val = Math.max(10, Math.min(100, val)); 
+        val = Math.max(1, Math.min(100, val)); 
         textSizeInput.value = val.toFixed(1); // 强制格式化为 19.9 这种形式
         textSizeSlider.value = val;
         textSize = val;
