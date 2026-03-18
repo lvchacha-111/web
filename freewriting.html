@@ -583,7 +583,7 @@
                 <option value="neonFont05">Balmonde_Regular</option>
                 <option value="neonFont">The Absolute_Regular</option>
                 <option value="neonFont02">NEONCITY Script_Regular</option>
-                <option value="neonFont03">Damion_Regular</option>
+                <option value="neonFont03">London Handlettering_Regular</option>
                 <option value="neonFont04">Damion_Regular</option>
             </select>
         </div>
@@ -793,9 +793,9 @@
         <div class="thickness-control">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <label>📏 字体高度 (单位cm)</label>
-                <input type="number" id="textSizeInput" class="num-input" value="26" step="1">
+                <input type="number" id="textSizeInput" class="num-input" value="26" step="0.1">
             </div>
-            <input type="range" id="textSizeSlider" min="10" max="100" step="1" value="26">
+            <input type="range" id="textSizeSlider" min="10" max="100" step="0.1" value="26">
             <div style="font-size:11px; color:#aaa;">控制文字的整体显示高度</div>
         </div>
 
@@ -960,7 +960,8 @@
         // 字体相关
         let currentFont = null;
         let fontLoader = new FontLoader();
-
+        let isDimensionVisible = true; // 挪到最上方
+let svgOriginalAspectRatio = 1.0; // 记录导入 SVG 的原始宽高比
         // 核心组
         let frontMeshes = [];    // 普通模式正面 / 盒子模式的内部金属字
         let backMeshes = [];     // 普通模式背面 / 盒子模式的外部发光盒
@@ -1537,116 +1538,110 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
 
 
 
-     function updateDimensions() {
+  function updateDimensions() {
+    if (!dimensionGroup) return;
     dimensionGroup.clear();
 
     const scaleFactor = textSize / 26; 
-    const visualOffset = 10 * scaleFactor;
-    const tick = 1.5 * scaleFactor;
+    const visualOffset = 15 * scaleFactor;
     const lineMat = new THREE.LineBasicMaterial({ color: 0x888888 });
 
-   // ==========================================
-    // --- A. 文字部件标注 (修正：增加身份标签) ---
-    // ==========================================
-    const textBox = new THREE.Box3();
-    let hasValidText = false;
-    textGroup.traverse(child => {
-        if (child.isMesh && child.userData.isCraftObject) {
-            textBox.expandByObject(child);
-            hasValidText = true;
-        }
-    });
-
-    if (hasValidText) {
-        const size = new THREE.Vector3();
-        textBox.getSize(size);
+    // 获取文字组的当前中心位置，用于定位标注线
+    const textBox = new THREE.Box3().setFromObject(textGroup);
+    if (!textBox.isEmpty()) {
+        const center = new THREE.Vector3();
+        textBox.getCenter(center);
         const min = textBox.min;
         const max = textBox.max;
-        const midZ = (min.z + max.z) / 2;
+        // 标注所在的深度：放在文字前方 2 个单位，防止重叠
+        const labelZ = textGroup.position.z + 2; 
 
-        // 1. X轴标注
-        const xLabel = createTextLabel((size.x * 10).toFixed(0) + " mm", new THREE.Vector3((min.x + max.x) / 2, min.y - visualOffset, midZ).add(labelManualOffsets.x), scaleFactor);
-        xLabel.userData.axis = 'x'; // 【核心修复：加上这一行】
-        dimensionGroup.add(xLabel);
+        // ==========================================
+        // --- 1. 高度数字 (H) --- 严格等于滑块数字
+        // ==========================================
+        // textSize 是 cm，乘以 10 得到 mm
+     // 1. 将 .toFixed(0) 改为 .toFixed(1)，这样 19.92cm 就会显示为 199.2mm
+const realH_mm = (textSize * 10).toFixed(1); 
 
-        // 2. Y轴标注
-        const yLabel = createTextLabel((textSize * 10).toFixed(0) + " mm", new THREE.Vector3(min.x - visualOffset, (min.y + max.y) / 2, midZ).add(labelManualOffsets.y), scaleFactor);
-        yLabel.userData.axis = 'y'; // 【核心修复：加上这一行】
-        dimensionGroup.add(yLabel);
-        
-        // 3. Z轴标注
-        let baseThickness = (glowMode === 'testFrontGlow') ? backThickness : (['sideHalfGlowTest', 'backGlow', 'frontGlow'].includes(glowMode) ? frontThickness + backThickness : frontThickness);
-        const zLabel = createTextLabel((baseThickness * scaleFactor).toFixed(0) + " mm", new THREE.Vector3(max.x + visualOffset, min.y, midZ).add(labelManualOffsets.z), scaleFactor);
-        zLabel.userData.axis = 'z'; // 【核心修复：加上这一行】
+// 2. 坐标计算保持不变
+const yPos = new THREE.Vector3(min.x - visualOffset, center.y, labelZ).add(labelManualOffsets.y);
+
+// 3. 创建标签
+const yLabel = createTextLabel(realH_mm + " mm", yPos, scaleFactor);
+yLabel.userData.axis = 'y';
+dimensionGroup.add(yLabel);
+        // ==========================================
+        // --- 2. 宽度数字 (W) --- 基于滑块高度 * 原始比例
+        // ==========================================
+        // 同步修改宽度标注
+const realW_mm = (textSize * svgOriginalAspectRatio * 10).toFixed(1); 
+const xPos = new THREE.Vector3(center.x, min.y - visualOffset, labelZ).add(labelManualOffsets.x);
+const xLabel = createTextLabel(realW_mm + " mm", xPos, scaleFactor);
+xLabel.userData.axis = 'x';
+dimensionGroup.add(xLabel);
+
+        // ==========================================
+        // --- 3. 厚度数字 (T) --- 严格等于厚度滑块
+        // ==========================================
+        let baseThickness = (glowMode === 'testFrontGlow') ? backThickness : (['sideHalfGlowTest', 'backGlow', 'frontGlow', 'frontBackGlow'].includes(glowMode) ? (frontThickness + backThickness) : frontThickness);
+        const zPos = new THREE.Vector3(max.x + visualOffset, min.y, labelZ).add(labelManualOffsets.z);
+        const zLabel = createTextLabel(baseThickness.toFixed(0) + " mm", zPos, scaleFactor);
+        zLabel.userData.axis = 'z';
         dimensionGroup.add(zLabel);
     }
+
+    // --- 背板标注部分保持不变 ---
     // ==========================================
-    // --- B. 背板尺寸标注 (修正坐标对齐) ---
-    // ==========================================
-   // ==========================================
-    // --- B. 背板尺寸标注 (位置优化版) ---
-    // ==========================================
-    if (lPlateGroup) {
-        const plateBox = new THREE.Box3().setFromObject(lPlateGroup);
-        const pMin = plateBox.min;
-        const pMax = plateBox.max;
-        const pCenter = new THREE.Vector3();
-        plateBox.getCenter(pCenter);
-        
-        // 标注的 Z 轴基准（正面）
-        const pZFront = pMax.z + 0.5; 
-        // 厚度标注的 Z 轴中点
-        const pZMid = (pMin.z + pMax.z) / 2;
-
-        // 1. 背板宽度 (W) - 保持在底部
-        const pWPos = new THREE.Vector3(pCenter.x, pMin.y - visualOffset, pZFront).add(labelManualOffsets.pW);
-        const pWLabel = createTextLabel("W:" + plateWidth.toFixed(0) + " cm", pWPos, scaleFactor);
-        pWLabel.userData.axis = 'pW';
-        dimensionGroup.add(pWLabel);
-
-        const pWLines = [
-            new THREE.Vector3(pMin.x, pMin.y - visualOffset, pZFront), new THREE.Vector3(pMax.x, pMin.y - visualOffset, pZFront),
-            new THREE.Vector3(pMin.x, pMin.y - visualOffset + tick, pZFront), new THREE.Vector3(pMin.x, pMin.y - visualOffset - tick, pZFront),
-            new THREE.Vector3(pMax.x, pMin.y - visualOffset + tick, pZFront), new THREE.Vector3(pMax.x, pMin.y - visualOffset - tick, pZFront)
-        ];
-        dimensionGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pWLines), lineMat));
-
-        // 2. 背板高度 (H) - 【优化】：移至左侧
-        const pHPos = new THREE.Vector3(pMin.x - visualOffset, pCenter.y, pZFront).add(labelManualOffsets.pH);
-        const pHLabel = createTextLabel("H:" + plateHeight.toFixed(0) + " cm", pHPos, scaleFactor);
-        pHLabel.userData.axis = 'pH';
-        dimensionGroup.add(pHLabel);
-
-        const pHLines = [
-            new THREE.Vector3(pMin.x - visualOffset, pMin.y, pZFront), new THREE.Vector3(pMin.x - visualOffset, pMax.y, pZFront),
-            new THREE.Vector3(pMin.x - visualOffset - tick, pMin.y, pZFront), new THREE.Vector3(pMin.x - visualOffset + tick, pMin.y, pZFront),
-            new THREE.Vector3(pMin.x - visualOffset - tick, pMax.y, pZFront), new THREE.Vector3(pMin.x - visualOffset + tick, pMax.y, pZFront)
-        ];
-        dimensionGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pHLines), lineMat));
-
-        // 3. 背板厚度 (T) - 【优化】：移至右侧边缘靠下位置
-        // 位置设定在背板右侧边缘 (pMax.x)，高度取底部向上一点点
-        const pTPos = new THREE.Vector3(pMax.x + visualOffset, pMin.y + (visualOffset/2), pZMid).add(labelManualOffsets.pT);
-        const pTLabel = createTextLabel("T:" + plateThickness.toFixed(1) + " cm", pTPos, scaleFactor);
-        pTLabel.userData.axis = 'pT';
-        dimensionGroup.add(pTLabel);
-
-        const pTLines = [
-            // 连通前后的线
-            new THREE.Vector3(pMax.x + visualOffset, pMin.y + (visualOffset/2), pMin.z), 
-            new THREE.Vector3(pMax.x + visualOffset, pMin.y + (visualOffset/2), pMax.z),
-            // 前后刻度线
-            new THREE.Vector3(pMax.x + visualOffset - tick, pMin.y + (visualOffset/2), pMin.z),
-            new THREE.Vector3(pMax.x + visualOffset + tick, pMin.y + (visualOffset/2), pMin.z),
-            new THREE.Vector3(pMax.x + visualOffset - tick, pMin.y + (visualOffset/2), pMax.z),
-            new THREE.Vector3(pMax.x + visualOffset + tick, pMin.y + (visualOffset/2), pMax.z)
-        ];
-        dimensionGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pTLines), lineMat));
-    }
+// --- B. 背板尺寸标注 (修正厚度标注丢失问题) ---
+// ==========================================
+if (lPlateGroup) {
+    // 强制更新世界矩阵，确保测量结果实时准确
+    lPlateGroup.updateMatrixWorld();
     
+    const plateBox = new THREE.Box3().setFromObject(lPlateGroup);
+    const pMin = plateBox.min;
+    const pMax = plateBox.max;
+    const pCenter = new THREE.Vector3();
+    plateBox.getCenter(pCenter);
+    
+    // 标注基准高度和间距
+    const pZFront = pMax.z + 1; // 背板正前方
+    const pZMid = (pMin.z + pMax.z) / 2; // 背板侧向厚度中心
+
+    // --- 1. 背板宽度 (W) ---
+    const pWPos = new THREE.Vector3(pCenter.x, pMin.y - visualOffset, pZFront).add(labelManualOffsets.pW);
+    const pWLabel = createTextLabel("W:" + plateWidth.toFixed(0) + " cm", pWPos, scaleFactor);
+    pWLabel.userData.axis = 'pW';
+    dimensionGroup.add(pWLabel);
+
+    // --- 2. 背板高度 (H) ---
+    const pHPos = new THREE.Vector3(pMin.x - visualOffset, pCenter.y, pZFront).add(labelManualOffsets.pH);
+    const pHLabel = createTextLabel("H:" + plateHeight.toFixed(0) + " cm", pHPos, scaleFactor);
+    pHLabel.userData.axis = 'pH';
+    dimensionGroup.add(pHLabel);
+
+    // --- 3. 背板厚度 (T) - 【核心修复】 ---
+    // 将标注放在背板的右下侧边缘
+    const pTPos = new THREE.Vector3(pMax.x + visualOffset, pMin.y + 5, pZMid).add(labelManualOffsets.pT);
+    // 这里使用 .toFixed(1) 以支持类似 1.5 cm 的显示
+    const pTLabel = createTextLabel("T:" + plateThickness.toFixed(1) + " cm", pTPos, scaleFactor);
+    pTLabel.userData.axis = 'pT';
+    dimensionGroup.add(pTLabel);
+    
+    // 绘制厚度的引线 (可选，为了视觉更清晰)
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x666666, transparent: true, opacity: 0.5 });
+    const pTLines = [
+        new THREE.Vector3(pMax.x + (visualOffset/2), pMin.y + 5, pMin.z),
+        new THREE.Vector3(pMax.x + (visualOffset/2), pMin.y + 5, pMax.z)
+    ];
+    const pTLineGeo = new THREE.BufferGeometry().setFromPoints(pTLines);
+    dimensionGroup.add(new THREE.Line(pTLineGeo, lineMat));
 }
-        // --- 标注显示/隐藏切换逻辑 ---
-        let isDimensionVisible = true; // 记录当前标注状态
+
+    // 关键：确保这里使用的是已经声明好的 isDimensionVisible
+    dimensionGroup.visible = (typeof isDimensionVisible !== 'undefined') ? isDimensionVisible : true;
+}        // --- 标注显示/隐藏切换逻辑 ---
+      
 
         document.getElementById('toggleDimensionBtn').addEventListener('click', () => {
             // 1. 切换布尔值状态
@@ -1812,28 +1807,45 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
                 commonExtrude.bevelSegments = 3;    // 倒角圆滑度
             }
 
-            if (isSvgMode && svgPaths) {
-                const shapes = [];
-                svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
-                fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth });
-                bGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: bDepth });
-                singleGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth + bDepth });
-                innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: 0.1 });
-                [fGeo, bGeo, singleGeo, innerGeo].forEach(geo => {
-                    geo.computeBoundingBox();
-                    const h = geo.boundingBox.max.y - geo.boundingBox.min.y;
-                    const scale = textSize / h;
-                    geo.applyMatrix4(new THREE.Matrix4().makeScale(scale, -scale * yScale, 1));
-                    geo.computeBoundingBox();
-                    const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
-                    const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
-                    geo.translate(cx, cy, 0);
-                });
-            } else {
-                const refSize = 10;
-                const tempGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: refSize, height: 0 });
-                tempGeo.computeBoundingBox();
-                const finalScale = textSize / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y);
+      if (isSvgMode && svgPaths) {
+    const shapes = [];
+    svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
+    
+    // 测量原始像素高度
+    const tempShapeGeo = new THREE.ShapeGeometry(shapes);
+    tempShapeGeo.computeBoundingBox();
+    const pixelH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
+
+    // 核心比例：由当前滑块数值 (textSize, 约19.9) 除以 像素高度 得到
+    const scale = textSize / pixelH;
+
+    // 应用变换：-scale 翻转 Y 轴
+    const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
+
+    // 生成几何体时，厚度 depth 会自动根据这个 scale 调整
+    // 假设正面厚度设为 5mm (0.5cm)
+    const currentFrontDepth = frontThickness / 10; 
+    
+    // 生成拉伸体
+    // 注意：这里的 depth 也要除以 scale，抵消后面的 matrix 缩放，确保厚度绝对准确
+    fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: currentFrontDepth / scale });
+    fGeo.applyMatrix4(matrix);
+    
+    // 后面的 bGeo, innerGeo 以此类推...
+}else {
+    const refSize = 10;
+    const tempGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: refSize, height: 0 });
+    tempGeo.computeBoundingBox();
+    
+    // --- 核心修改：在文字模式下也更新宽高比 ---
+    const rawW = tempGeo.boundingBox.max.x - tempGeo.boundingBox.min.x;
+    const rawH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
+    svgOriginalAspectRatio = rawW / rawH; // 这样标注 W 就会根据 H * 比例算出来
+    
+    const finalScale = textSize / rawH;
+                if (!isSvgMode) {
+    svgOriginalAspectRatio = (tempGeo.boundingBox.max.x - tempGeo.boundingBox.min.x) / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y);
+}
                 const scaledFontSize = refSize * finalScale;
                 fGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth });
                 bGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: bDepth });
@@ -2351,9 +2363,7 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
                     // 测量尺寸以计算缩放
                     const tempGeo = new THREE.ShapeGeometry(shapes);
                     tempGeo.computeBoundingBox();
-                    const svgH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
-                    const scale = textSize / svgH;
-
+                  const scale = isSvgMode ? 1.0 : (textSize / (tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y));
                     // 生成挤压几何体
                     meshGeo = new THREE.ExtrudeGeometry(shapes, {
                         depth: thickness / scale, // 缩放修正
@@ -2508,35 +2518,55 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
         const clearSvgBtn = document.getElementById('clearSvgBtn');
         const textInputEl = document.getElementById('textInput');
 
-        svgInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+   svgInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const parsed = svgLoader.parse(event.target.result);
-                    svgPaths = parsed.paths;
-                    isSvgMode = true;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const parsed = svgLoader.parse(event.target.result);
+            svgPaths = parsed.paths;
+            isSvgMode = true;
+ toggleNeonOptions(true);
+            const shapes = [];
+            svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
+            const tempGeo = new THREE.ShapeGeometry(shapes);
+            tempGeo.computeBoundingBox();
+            
+            // 1. 获取像素宽高
+            const pixelW = tempGeo.boundingBox.max.x - tempGeo.boundingBox.min.x;
+            const pixelH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
+            
+            // 2. 记录原始比例 (宽/高)
+            svgOriginalAspectRatio = pixelW / pixelH;
 
-                    // UI 更新
-                    clearSvgBtn.classList.remove('hidden');
-                    textInputEl.disabled = true; // 禁用文本输入
-                    textInputEl.style.opacity = 0.5;
-                    const fontSelector = document.getElementById('fontSelector');
-                    fontSelector.disabled = true;       // 禁用选择器
-                    fontSelector.style.opacity = 0.5;   // 变灰提示
+            // 3. 核心物理换算 (基于 96 DPI): 1像素 = 0.0264583 mm
+            // 换算成 cm 则再除以 10 -> 0.00264583
+            // 例如 CDR 里 199.21mm 换算后这里就是 19.921 cm
+            const importedHeightCm = pixelH * 0.00264583;
 
-                    // 生成 3D 模型
-                    generate3DText(textInputEl.value, true);
-                } catch (err) {
-                    alert("SVG 轮廓解析失败，请确保上传了规范的矢量文件！");
-                    console.error(err);
-                }
-            };
-            reader.readAsText(file);
-            e.target.value = ''; // 清空选择器以便能重复选同一个文件
-        });
+            // 4. 同步滑块数字
+          textSize = importedHeightCm;
+document.getElementById('textSizeInput').value = importedHeightCm.toFixed(1); 
+document.getElementById('textSizeSlider').value = importedHeightCm;
+
+            // UI 状态控制
+            clearSvgBtn.classList.remove('hidden');
+            textInputEl.disabled = true;
+            textInputEl.style.opacity = 0.5;
+            document.getElementById('fontSelector').disabled = true;
+
+            // 生成模型
+            generate3DText(textInputEl.value, true);
+
+        } catch (err) {
+            alert("SVG 轮廓解析失败！");
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+});
         const bgInput = document.getElementById('bgInput');
         const clearBgBtn = document.getElementById('clearBgBtn');
 
@@ -2604,19 +2634,22 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
             clearBgBtn.classList.add('hidden');
         });
         // 清除图纸并恢复文字模式
-        clearSvgBtn.addEventListener('click', () => {
-            isSvgMode = false;
-            svgPaths = null;
+       clearSvgBtn.addEventListener('click', () => {
+    isSvgMode = false;
+    svgPaths = null;
 
-            clearSvgBtn.classList.add('hidden');
-            textInputEl.disabled = false;
-            textInputEl.style.opacity = 1;
-            const fontSelector = document.getElementById('fontSelector');
-            fontSelector.disabled = false;     // 重新启用
-            fontSelector.style.opacity = 1;     // 恢复亮度
+    // --- 核心修改：恢复霓虹选项显示 ---
+    toggleNeonOptions(false);
 
-            generate3DText(textInputEl.value, true);
-        });
+    clearSvgBtn.classList.add('hidden');
+    textInputEl.disabled = false;
+    textInputEl.style.opacity = 1;
+    const fontSelector = document.getElementById('fontSelector');
+    fontSelector.disabled = false;
+    fontSelector.style.opacity = 1;
+
+    generate3DText(textInputEl.value, true);
+});
         // 创建LED像素矩阵（用于流水灯效果）
 
         console.log("当前流水灯模式状态:", isFlowRGB);
@@ -2625,33 +2658,65 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
         }
         // 为双层发光字创建LED像素矩阵
 
-        function centerAndFitCamera() {
-            if (textGroup.children.length === 0) return;
-            if (textGroup.children.length === 0) return;
-            const box = new THREE.Box3().setFromObject(textGroup);
-            const center = box.getCenter(new THREE.Vector3());
+    function centerAndFitCamera() {
+    if (textGroup.children.length === 0) return;
 
-            textGroup.position.x = -center.x;
-            textGroup.position.y = -center.y;
+    const box = new THREE.Box3().setFromObject(textGroup);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
 
-            const newBox = new THREE.Box3().setFromObject(textGroup);
-            const bottomY = newBox.min.y;
-            const floorHeight = bottomY - 0.5;
-            /* gridHelper.position.y = floorHeight;网格*/
-            xAxis.position.y = floorHeight;
-            zAxis.position.y = floorHeight;
+    // 文字组对齐原点
+    textGroup.position.x = -center.x;
+    textGroup.position.y = -center.y;
 
-            const size = newBox.getSize(new THREE.Vector3());
-            let cameraDist = Math.max(size.x, size.y, size.z) * 1.5;
-            camera.position.set(0, 0, cameraDist);
-            controls.target.set(0, 0, 0);
-            controls.update();
+    // 动态计算相机距离
+    const maxDim = Math.max(size.x, size.y);
+    const fov = camera.fov * (Math.PI / 180);
+    
+    // 自动计算合适的后退距离，并留出 20% 的余量
+    let cameraDist = Math.abs((maxDim / 2) / Math.tan(fov / 2)) * 1.5;
+    
+    // 如果物体很大（如 77cm），cameraDist 会自动计算到 150cm 左右
+    cameraDist = Math.max(cameraDist, 60); 
 
-            /* scene.fog.near = cameraDist * 0.5;
-                scene.fog.far = cameraDist * 5.0;*/
+    camera.position.set(0, 0, cameraDist);
+    camera.far = cameraDist * 10; // 调大远裁剪面
+    camera.updateProjectionMatrix();
+
+    controls.target.set(0, 0, 0);
+    controls.update();
+}// --- 新增：控制霓虹相关选项的显示与隐藏 ---
+function toggleNeonOptions(hide) {
+    const craftSelect = document.getElementById('craftSelect');
+    const fontSelector = document.getElementById('fontSelector');
+
+    // 1. 自动处理所有以 "neon" 开头的工艺
+    Array.from(craftSelect.options).forEach(opt => {
+        if (opt.value.toLowerCase().startsWith('neon')) {
+            opt.classList.toggle('hidden', hide);
         }
+    });
 
+    // 2. 自动处理所有以 "neon" 开头的字体
+    Array.from(fontSelector.options).forEach(opt => {
+        if (opt.value.toLowerCase().startsWith('neon')) {
+            opt.classList.toggle('hidden', hide);
+        }
+    });
 
+    // 3. 安全回退逻辑保持不变
+    if (hide) {
+        // 如果当前选中的值包含 neon，强制跳回默认
+        if (craftSelect.value.toLowerCase().startsWith('neon')) {
+            craftSelect.value = 'backGlow'; 
+            glowMode = 'backGlow';
+            updateUIState();
+        }
+        if (fontSelector.value.toLowerCase().startsWith('neon')) {
+            fontSelector.value = 'helvetiker';
+        }
+    }
+}
         // ==========================================
         // UI 状态控制函数
         // ==========================================
@@ -2939,6 +3004,41 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
             if (swatchContainer && glowMode !== 'metalCut') {
                 swatchContainer.classList.remove('disabled');
             }
+            // --- 新增：工艺与字体的联动过滤 ---
+// --- 核心：工艺与字体的双向过滤逻辑 ---
+const craftSelect = document.getElementById('craftSelect');
+const fontSelector = document.getElementById('fontSelector');
+const currentCraft = craftSelect.value;
+
+// 1. 判断当前是不是霓虹类工艺 (以 neon 开头)
+const isNeonCraft = currentCraft.toLowerCase().startsWith('neon');
+
+Array.from(fontSelector.options).forEach(opt => {
+    // 2. 判断该字体是不是霓虹类字体 (包含 neo 或 neon)
+    const isNeonFont = opt.value.toLowerCase().includes('neo') || opt.value.toLowerCase().includes('neon');
+
+    if (isNeonCraft) {
+        // 【霓虹模式】：只留霓虹字体，隐藏普通字体
+        opt.classList.toggle('hidden', !isNeonFont);
+    } else {
+        // 【普通模式】：隐藏霓虹字体，只留普通字体
+        opt.classList.toggle('hidden', isNeonFont);
+    }
+});
+
+// --- 3. 安全自动跳转：防止当前选中的字体变“无形” ---
+const selectedOpt = fontSelector.options[fontSelector.selectedIndex];
+if (selectedOpt && selectedOpt.classList.contains('hidden')) {
+    if (isNeonCraft) {
+        fontSelector.value = 'neonFont'; // 自动切到第一个霓虹字体
+    } else {
+        fontSelector.value = 'helvetiker'; // 自动切到默认英文字体
+    }
+    
+    // 立即执行一次加载和生成，确保模型同步更新
+    const currentText = document.getElementById('textInput').value;
+    loadFontAndGenerate(fontSelector.value, currentText, false);
+}
         }
         // ==========================================
         // 交互逻辑
@@ -3438,26 +3538,27 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
         const textSizeInput = document.getElementById('textSizeInput');
 
         // 这里注意：要删掉你代码里之前可能存在的旧 textSizeSlider 监听器
-        if (textSizeSlider) {
-            textSizeSlider.addEventListener('input', (e) => {
-                const val = parseInt(e.target.value);
-                if (textSizeInput) textSizeInput.value = val; // 同步数字框
-                textSize = val;
-                generate3DText(document.getElementById('textInput').value, false);
-            });
-        }
+     // --- 修改监听器，支持小数 ---
+if (textSizeSlider) {
+    textSizeSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value); // 关键：使用 parseFloat 替代 parseInt
+        if (textSizeInput) textSizeInput.value = val.toFixed(1); // 保持显示一位小数
+        textSize = val;
+        generate3DText(document.getElementById('textInput').value, false);
+    });
+}
 
-        if (textSizeInput) {
-            textSizeInput.addEventListener('change', (e) => {
-                let val = parseInt(e.target.value);
-                if (isNaN(val)) val = 26;
-                val = Math.max(10, Math.min(100, val)); // 限制范围 10~100
-                textSizeInput.value = val;
-                textSizeSlider.value = val; // 同步滑块
-                textSize = val;
-                generate3DText(document.getElementById('textInput').value, false);
-            });
-        }
+if (textSizeInput) {
+    textSizeInput.addEventListener('change', (e) => {
+        let val = parseFloat(e.target.value); // 关键：使用 parseFloat
+        if (isNaN(val)) val = 26.0;
+        val = Math.max(10, Math.min(100, val)); 
+        textSizeInput.value = val.toFixed(1); // 强制格式化为 19.9 这种形式
+        textSizeSlider.value = val;
+        textSize = val;
+        generate3DText(document.getElementById('textInput').value, false);
+    });
+}
 
         // --- 以下是原本就有的初始化代码，保持不动 ---
         updateUIState();
