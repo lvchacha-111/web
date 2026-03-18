@@ -542,7 +542,7 @@
 <body>
     <div id="sidebar">
         <div class="header-box">
-            <h1 id="pageTitle">自由书写 · 中文支持</h1>
+            <h1 id="pageTitle">Freewriting-svg导入</h1>
             <a href="index.html" class="back-btn">← 返回</a>
         </div>
 
@@ -550,19 +550,19 @@
         <div>
             <label>⚙️ 工艺选择</label>
             <select id="craftSelect">
-                <option value="backGlow" selected>测试 侧面与背面发光</option>
-                <option value="frontGlow">测试 侧面一半和正面发光</option>
-                <option value="testFrontGlow">测试正面发光</option>
-                <option value="frontBackGlow">测试 正面与背面发光</option>
-                <option value="sideGlowTest">测试 侧面发光</option>
-                <option value="sideHalfGlowTest">测试 侧面一半发光</option>
-                <option value="testBackGlow">测试 背面发光</option>
-                <option value="neonWord">测试 霓虹灯字</option>
-                <option value="neonWord012">测试 霓虹灯字 012</option> <!-- 新增 -->
-                <option value="neonWord013">测试 霓虹灯字 013 (内嵌槽)</option>
-                <option value="neonBorder">测试 霓虹字围边</option> <!-- 新增 -->
-                <option value="acrylicCut">亚克力切割字 (Acrylic Cut)</option>
-                <option value="metalCut">金属字 (Metal Cut)</option>
+                <option value="backGlow" selected>侧面与背面发光-M005C-N001</option>
+                <option value="frontGlow">侧面一半和正面发光-M006</option>
+                <option value="testFrontGlow">正面发光-M024</option>
+                <option value="frontBackGlow">正面与背面发光N008</option>
+                <option value="sideGlowTest">侧面发光-N015</option>
+                <option value="sideHalfGlowTest">侧面一半发光-N013</option>
+                <option value="testBackGlow">背面发光-M005B</option>
+                <option value="neonWord">霓虹灯字N019</option>
+                <option value="neonWord012">霓虹灯字-N018</option> 
+                <option value="neonWord013">霓虹灯字(内嵌槽)</option>
+                <option value="neonBorder">霓虹字围边</option> 
+                <option value="acrylicCut">亚克力切割字(Acrylic Cut)</option>
+                <option value="metalCut">金属字(Metal Cut)</option>
 
             </select>
         </div>
@@ -734,7 +734,7 @@
         <div id="ledSection">
             <div style="margin-bottom: 10px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <label style="margin: 0;">🎨led颜色选择</label>
+                    <label id="ledMainLabel" style="margin: 0;">🎨led颜色选择</label>
                     <span id="currentColorName"
                         style="font-size: 12px; color: #f39c12; font-weight: bold; letter-spacing: 1px;">当前：标准白</span>
                 </div>
@@ -971,13 +971,16 @@ let svgOriginalAspectRatio = 1.0; // 记录导入 SVG 的原始宽高比
         let flowMeshes = [];
         // 1. 先声明这些变量
         let textGroup = new THREE.Group();
+         let clock = new THREE.Clock();
+        let delta = 0;
+        const interval = 1 / 40; // 限制在 40 帧每秒 (FPS)
         let dimensionGroup = new THREE.Group();
         let textSize = 26;
         let yScale = 1.0;
 
         let platePointLight = null; // 专门照亮背板的光源
         let lPlateGroup = null; // 全局变量，用于存储L型背板
-
+let debounceTimer = null; // 用于滑块防抖的计时器
         // --- 拖拽标注相关的全局变量 ---
         let isDraggingLabel = false;
         let selectedLabel = null;
@@ -1152,7 +1155,7 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
         renderer.setSize(container.clientWidth, container.clientHeight);
 
         // 提升分辨率：不再硬性限制在 2。允许使用设备最高的像素比（比如 iPhone 或 Mac 视网膜屏的 3）
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); 
 
         // 色彩映射与曝光优化
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1179,7 +1182,10 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
         const materials = {};
 
         const renderScene = new RenderPass(scene, camera);
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.5, 0.2, 0.2); //辉光强度 强度半径 阈值
+       const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2), // 关键：分辨率减半
+    0.5, 0.2, 0.2
+);
         const bloomComposer = new EffectComposer(renderer);
         bloomComposer.renderToScreen = false;
         bloomComposer.addPass(renderScene);
@@ -1431,63 +1437,92 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
         // --- 截图功能实现 ---
         // --- 高级高清截图功能 ---
         // --- 修复版：高清截图功能（完美保留辉光与颜色） ---
-        function takeSnapshot() {
-            // 1. 记录原始尺寸和配置
+function takeSnapshot() {
+            // 1. 基础尺寸与配置
             const originalWidth = container.clientWidth;
             const originalHeight = container.clientHeight;
             const originalPixelRatio = renderer.getPixelRatio();
             const originalBg = scene.background;
 
-            // 2. 设置高清倍率 (3倍通常能达到 4K 级别)
+            // 2. 高清倍率处理
             const zoom = 3;
+            const finalWidth = originalWidth * zoom;
+            const finalHeight = originalHeight * zoom;
 
-            // 3. 调整所有合成器尺寸
-            renderer.setSize(originalWidth * zoom, originalHeight * zoom, false);
-            bloomComposer.setSize(originalWidth * zoom, originalHeight * zoom);
-            finalComposer.setSize(originalWidth * zoom, originalHeight * zoom);
+            renderer.setSize(finalWidth, finalHeight, false);
+            bloomComposer.setSize(finalWidth, finalHeight);
+            finalComposer.setSize(finalWidth, finalHeight);
 
-            // 4. 【核心修复】：执行完整的辉光渲染流程
-            // A. 背景变黑
+            // 3. 辉光渲染流程
             scene.background = new THREE.Color(0x000000);
-
-            // B. 隐藏非发光物体（变黑）
             scene.traverse(darkenNonBloomed);
-
-            // C. 渲染辉光层（这步决定了截图里有没有光晕）
             bloomComposer.render();
-
-            // D. 恢复材质
             scene.traverse(restoreMaterial);
-
-            // E. 恢复原始背景（如你的深灰色）
             scene.background = originalBg;
-
-            // F. 最终合成渲染
             finalComposer.render();
 
-            // 5. 导出最高质量图片
-            const dataURL = renderer.domElement.toDataURL('image/png', 1.0);
+            // --- 4. 【核心新增：平铺文字水印逻辑】 ---
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = finalWidth;
+            tempCanvas.height = finalHeight;
+            const ctx = tempCanvas.getContext('2d');
 
-            // 6. 下载图片
+            // A. 先画底图
+            ctx.drawImage(renderer.domElement, 0, 0);
+
+            // B. 创建一个小的“水印单元”画布 (以此为基础平铺)
+            const patternCanvas = document.createElement('canvas');
+            const pCtx = patternCanvas.getContext('2d');
+            const pWidth = 400 * zoom;  // 水印单元宽度
+            const pHeight = 300 * zoom; // 水印单元高度
+            patternCanvas.width = pWidth;
+            patternCanvas.height = pHeight;
+
+            // C. 设置水印单元内的文字样式
+            pCtx.translate(pWidth / 2, pHeight / 2);
+            pCtx.rotate(-25 * Math.PI / 180); // 旋转 -25 度 (斜向)
+            
+            // 第一行：品牌名
+            pCtx.font = `bold ${22 * zoom}px "Microsoft YaHei", sans-serif`;
+            pCtx.fillStyle = "rgba(255, 255, 255, 0.12)"; // 白色，低透明度
+            pCtx.textAlign = "center";
+            pCtx.fillText("YiJiao · Design Pro", 0, 0);
+
+            // 第二行：官网网址
+            pCtx.font = `${14 * zoom}px Arial`;
+            pCtx.fillStyle = "rgba(255, 255, 255, 0.08)"; // 网址更淡一点
+            pCtx.fillText("www.yijiaosign.com", 0, 25 * zoom);
+
+            // D. 使用该单元在主画布上平铺
+            const pattern = ctx.createPattern(patternCanvas, 'repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, finalWidth, finalHeight);
+
+            // E. 可选：右下角保留一个醒目的主 Logo
+            const mainFontSize = Math.round(finalHeight * 0.02);
+            ctx.textAlign = "right";
+            ctx.textBaseline = "bottom";
+            ctx.font = `bold ${mainFontSize}px Arial`;
+            ctx.fillStyle = "rgba(243, 156, 18, 0.8)"; // 你的品牌橙色
+            ctx.fillText("YiJiao · Design Pro", finalWidth - 50, finalHeight - 50);
+
+            // 5. 导出下载
+            const dataURL = tempCanvas.toDataURL('image/png', 1.0);
             const link = document.createElement('a');
             const timestamp = new Date().getTime();
-            link.download = `YiJiao_Pro_Design_${timestamp}.png`;
+            link.download = `YiJiao_Pro_Snapshot_${timestamp}.png`;
             link.href = dataURL;
             link.click();
 
-            // 7. 还原现场（防止 UI 变大或渲染异常）
+            // 6. 还原现场
             renderer.setPixelRatio(originalPixelRatio);
             renderer.setSize(originalWidth, originalHeight);
             bloomComposer.setSize(originalWidth, originalHeight);
             finalComposer.setSize(originalWidth, originalHeight);
 
-            // 重新渲染一帧正常的画面
             animate();
-
-            console.log("📸 高清实拍图（带辉光效果）已导出");
+            console.log("📸 已生成全屏文字防盗水印高清图");
         }
-
-
 
 
         // --- L型背板：承接灯光与反射的“展台” ---
@@ -2102,7 +2137,7 @@ else if (glowMode === 'frontBackGlow') {
             // 在 generate3DText 函数内部的 Mesh 生成部分
             else if (glowMode === 'neonWord') {
                 // --- 1. 参数设定：锁定 20mm 直径 (半径为 1.0) ---
-                const fixedTubeRadius = 1.0;
+                const fixedTubeRadius = 1.5;
                 const tubeSettings = {
                     bevelEnabled: true,
                     bevelThickness: fixedTubeRadius, // 倒角深度
@@ -2538,6 +2573,15 @@ else if (glowMode === 'frontBackGlow') {
             // 在 generate3DText 结尾，创建完所有 Mesh 并 add 到 textGroup 之后：
 
         }
+
+        // 封装后的防抖生成函数
+function debouncedGenerate(delay = 50) {
+    // delay 是延迟毫秒数。50ms 既能保证视觉流畅，又能极大地减轻性能压力
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        generate3DText(document.getElementById('textInput').value, false);
+    }, delay);
+}
         // ==========================================
         // 新增：监听 SVG 上传并解析
         // ==========================================
@@ -2945,6 +2989,8 @@ function toggleNeonOptions(hide) {
                 brightDiv.style.opacity = '1';
                 document.getElementById('brightnessSlider').disabled = false;
             } else if (glowMode === 'acrylicCut') {
+                  if (ledMainLabel) ledMainLabel.innerText = '🎨 亚克力喷漆颜色';
+                if (ledLabel) ledLabel.innerText = '🎨 颜色调色盘';
                 // --- 1. 滑块控制 ---
                 if (fCont) fCont.classList.remove('hidden');
                 if (bCont) bCont.classList.add('hidden'); // 隐藏背面滑块，单层切割只用一个滑块
@@ -2967,7 +3013,7 @@ function toggleNeonOptions(hide) {
                 isFlowRGB = false;
                 isRGBGlow = false;
 
-                ledLabel.innerText = '🎨 本体颜色';
+                ledLabel.innerText = '🎨 调色盘';
                 colourSection.classList.add('hidden');
             } if (glowMode === 'metalCut') {
                 // --- 【核心修改：金属切割模式】 ---
@@ -3308,12 +3354,14 @@ if (selectedOpt && selectedOpt.classList.contains('hidden')) {
         const frontSlider = document.getElementById('frontThicknessSlider');
         const frontInput = document.getElementById('frontThicknessInput');
 
-        frontSlider.addEventListener('input', (e) => {
-            const val = parseFloat(e.target.value);
-            if (frontInput) frontInput.value = val;
-            frontThickness = val;
-            generate3DText(document.getElementById('textInput').value, false);
-        });
+      frontSlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (frontInput) frontInput.value = val.toFixed(1); // 数字显示依然实时
+    frontThickness = val;
+    
+    // --- 修改这里 ---
+    debouncedGenerate(50); 
+});
 
         if (frontInput) {
             frontInput.addEventListener('change', (e) => {
@@ -3333,12 +3381,14 @@ if (selectedOpt && selectedOpt.classList.contains('hidden')) {
         const backInput = document.getElementById('backThicknessInput');
 
         // 滑块滑动时
-        backSlider.addEventListener('input', (e) => {
-            const val = parseFloat(e.target.value);
-            if (backInput) backInput.value = val;
-            backThickness = val;
-            generate3DText(document.getElementById('textInput').value, false);
-        });
+      backSlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (backInput) backInput.value = val.toFixed(1);
+    backThickness = val;
+    
+    // --- 修改这里 ---
+    debouncedGenerate(50);
+});
 
         // 手动输入数值时
         if (backInput) {
@@ -3496,9 +3546,10 @@ if (selectedOpt && selectedOpt.classList.contains('hidden')) {
             document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并 (Merge)' : '一键解体 (Explode)';
         });
         // --- 5. 文字和字体输入监听 ---
-        document.getElementById('textInput').addEventListener('input', (e) => {
-            if (currentFont) generate3DText(e.target.value, true);
-        });
+       document.getElementById('textInput').addEventListener('input', (e) => {
+    // 输入文字时也加上延迟，防止打字太快导致卡顿
+    debouncedGenerate(200); 
+});
 
         document.getElementById('fontSelector').addEventListener('change', (e) => {
             const selected = e.target.value;
@@ -3565,15 +3616,14 @@ if (selectedOpt && selectedOpt.classList.contains('hidden')) {
 
         // 这里注意：要删掉你代码里之前可能存在的旧 textSizeSlider 监听器
      // --- 修改监听器，支持小数 ---
-if (textSizeSlider) {
-    textSizeSlider.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value); // 关键：使用 parseFloat 替代 parseInt
-        if (textSizeInput) textSizeInput.value = val.toFixed(1); // 保持显示一位小数
-        textSize = val;
-        generate3DText(document.getElementById('textInput').value, false);
-    });
-}
-
+textSizeSlider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    if (textSizeInput) textSizeInput.value = val.toFixed(1);
+    textSize = val;
+    
+    // --- 修改这里 ---
+    debouncedGenerate(60); // 字体缩放计算量大，可以稍微再长一点点
+});
 if (textSizeInput) {
     textSizeInput.addEventListener('change', (e) => {
         let val = parseFloat(e.target.value); // 关键：使用 parseFloat
@@ -3775,8 +3825,18 @@ if (textSizeInput) {
             });
         }
         // 2. 主动画循环
-        function animate() {
+       function animate() {
+            // 必须先请求下一帧，保证循环持续
             requestAnimationFrame(animate);
+
+            // 优化 1：如果用户切换了标签页（去聊微信了），彻底停止执行后面所有代码
+            if (document.hidden) return;
+
+            // 优化 2：锁帧逻辑。如果距离上一帧的时间不够 1/40 秒，就跳过这一帧
+            delta += clock.getDelta();
+            if (delta < interval) return;
+
+            // --- 只有到了渲染时间，才会执行下面的重计算逻辑 ---
             if (controls) controls.update();
 
             const brightnessSlider = document.getElementById('brightnessSlider');
@@ -3787,39 +3847,27 @@ if (textSizeInput) {
             let activeColor = new THREE.Color(document.getElementById('ledColorPicker').value);
 
             if (isFlowRGB) {
-                // 流水灯：随时间平滑改变色相
                 activeColor.setHSL((currentTime * 0.5) % 1, 0.8, 0.5);
             } else if (isRGBGlow) {
-                // 呼吸灯：平滑改变色相
                 rgbHue += 0.002;
                 activeColor.setHSL(rgbHue % 1, 1.0, 0.5);
             }
 
-            // --- 2. 更新主物体颜色 ---
-            // --- 2. 更新主物体颜色 ---
+            // --- 2. 更新主物体颜色 (这是最吃性能的循环) ---
             if ((isRGBGlow || isFlowRGB) && glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
                 [...frontMeshes, ...backMeshes, ...colourMeshes].forEach(obj => {
                     if (obj && obj.material && obj.userData.isLed) {
-
-                        // 【修改核心】：如果是流水灯，跳过颜色赋值，保留 Shader 效果
                         if (!isFlowRGB) {
-                            // 1. 改变灯光的颜色 (只有非流水灯时才执行)
                             obj.material.color.copy(activeColor);
-
-                            // 2. 处理发光效果 (只有非流水灯时才执行 emissive)
                             if (obj.layers.test(bloomLayer) && obj.material.emissive) {
                                 obj.material.emissive.copy(activeColor);
                             }
                         }
-
-                        // 发光强度在流水灯和呼吸灯模式下都可以执行
                         if (obj.layers.test(bloomLayer) && obj.material.emissive) {
                             if (isRGBGlow) {
-                                // 呼吸灯独有的强弱波动效果
                                 const breath = (Math.sin(currentTime * 2.0) + 1.0) / 2.0;
                                 obj.material.emissiveIntensity = safeBrightness * (0.5 + breath * 1.5);
                             } else {
-                                // 流水灯或其他模式
                                 obj.material.emissiveIntensity = safeBrightness * 1.5;
                             }
                         }
@@ -3827,46 +3875,20 @@ if (textSizeInput) {
                 });
             }
 
-            // --- 3. 投影与背板逻辑 (极简版) ---
-            // --- 3. 投影与背板逻辑 (适配 1单位=1cm 逻辑) ---
-         /*   if (lPlateGroup && textGroup) {                           倒影注释3
-                const tPos = textGroup.position;
-                const pPos = lPlateGroup.position;
-
-                // 边界检测：如果背板宽 80cm，一半就是 40。
-                const isWithinX = Math.abs(tPos.x - pPos.x) < (plateWidth / 2);
-
-                textGroup.traverse(child => {
-                    if (child.userData.isWallRef) {
-                        child.visible = isWithinX;
-                        // 影子贴墙：背板位置(z) - 50 改为 -10 左右的比例
-                        // 让影子刚好落在墙面上
-                        child.position.z = -10 - tPos.z + 0.05;
-
-                        // 调暗倒影，配合新的尺寸
-                        child.material.color.copy(activeColor).multiplyScalar(0.2);
-                        child.material.opacity = safeBrightness * 0.15;
-                    }
-                });
-            } else if (textGroup) {
-                // 如果背板被删除了，倒影必须瞬间隐藏！
-                textGroup.traverse(child => {
-                    if (child.userData.isWallRef || child.userData.isFloorRef || child.userData.isRef) {
-                        child.visible = false;
-                    }
-                });
-            }
-*/
-            // --- 4. 动画 Shader 时间更新 (驱动流水灯运转) ---
+            // --- 3. 动画 Shader 时间更新 ---
             if (isFlowRGB && flowMeshes.length > 0) {
                 flowMeshes.forEach(mesh => {
                     if (mesh.material && mesh.material.userData && mesh.material.userData.uTime) {
-                        // 必须更新 uniform 的值
                         mesh.material.userData.uTime.value = currentTime;
                     }
                 });
             }
+
+            // 执行核心渲染
             renderSceneAll();
+
+            // 渲染完成后，减去间隔时间，为下一帧做准备
+            delta = delta % interval;
         }
         // 3. 窗口自适应监听
         // --- 终极整合键盘监听器 (放在 animate() 之后) ---
