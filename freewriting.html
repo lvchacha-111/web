@@ -569,7 +569,7 @@
 
         <div>
             <label style="color:#f39c12">✎ 输入文字 (中 / 英)</label>
-            <input type="text" id="textInput" value="YiJiao" maxlength="10" placeholder="输入中文或英文">
+            <input type="text" id="textInput" value="YiJiao" placeholder="输入中文或英文">
         </div>
 
         <div>
@@ -580,11 +580,11 @@
                 <option value="STXingkai_Regular">中文字体 行书 </option>
                 <option value="SimHei">中文字体 黑体</option>
 
-                <option value="neonFont05">霓虹字05</option>
-                <option value="neonFont">霓虹字01</option>
-                <option value="neonFont02">霓虹字02</option>
-                <option value="neonFont03">霓虹字03</option>
-                <option value="neonFont04">霓虹字04</option>
+                <option value="neonFont05">Balmonde_Regular</option>
+                <option value="neonFont">The Absolute_Regular</option>
+                <option value="neonFont02">NEONCITY Script_Regular</option>
+                <option value="neonFont03">Damion_Regular</option>
+                <option value="neonFont04">Damion_Regular</option>
             </select>
         </div>
 
@@ -850,8 +850,46 @@
             <button class="action-btn toggle-btn" id="toggleDimensionBtn">👁️ 隐藏标注 (Labels)</button>
             <button class="action-btn snapshot-btn" id="snapshotBtn">📸 导出实拍图 (Snapshot)</button>
 
+
+            <!-- 新增：背板尺寸与颜色控制 -->
+         <!-- 背板尺寸控制区域：一行三列对齐版 -->
+<div class="thickness-control" style="margin-bottom: 10px; border-left: 3px solid #8e44ad;">
+    <div style="margin-bottom: 8px;">
+        <label style="margin:0; color:#8e44ad;">📏 背板尺寸 (宽 x 高 x 厚 cm)</label>
+    </div>
+    
+    <!-- 核心排版：使用 flex 布局平分三列 -->
+    <div style="display: flex; gap: 5px;">
+        <!-- 第一列：宽度 -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 10px; color: #888; white-space: nowrap;">宽度(W)</span>
+            <input type="number" id="plateWidthInput" class="num-input" value="80" style="width: 100%; box-sizing: border-box;">
+        </div>
+        
+        <!-- 第二列：高度 -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 10px; color: #888; white-space: nowrap;">高度(H)</span>
+            <input type="number" id="plateHeightInput" class="num-input" value="40" style="width: 100%; box-sizing: border-box;">
+        </div>
+        
+        <!-- 第三列：厚度 -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 10px; color: #888; white-space: nowrap;">厚度(T)</span>
+            <input type="number" id="plateThicknessInput" class="num-input" value="1" step="0.1" style="width: 100%; box-sizing: border-box;">
+        </div>
+    </div>
+
+    <!-- 下方的调色盘 -->
+    <div style="margin-top: 10px;">
+        <label style="margin-bottom:5px; color:#8e44ad; font-size: 11px;">🎨 背板背景颜色</label>
+        <input type="color" id="plateColorPicker" value="#1a1a1a" style="width: 100%; height: 25px; cursor: pointer; border: 1px solid #444; background: none; border-radius: 4px;">
+    </div>
+</div>
             <button class="action-btn" id="addPlateBtn"
                 style="background: #8e44ad !important; border-color: #7d3c98 !important; margin-top: 8px;">🏗️ 添加/重置背板
+
+
+
                 (Add Plate)</button>
             <div class="svg-note">快捷键: [ 显示 | ] 隐藏</div>
         </div>
@@ -915,7 +953,10 @@
         let backThickness = 50;
         let neonTubeSize = 20;   // 霓虹管默认直径 20mm
         let neonPlateDepth = 5;  // 底板默认厚度 5mm
-
+        let plateWidth = 80;  // 默认宽 80cm背板
+        let plateHeight = 40; // 默认高 40cm
+        let plateThickness = 1;
+        let plateColor = '#1a1a1a'; // 默认深灰色
         // 字体相关
         let currentFont = null;
         let fontLoader = new FontLoader();
@@ -939,13 +980,17 @@
         // --- 拖拽标注相关的全局变量 ---
         let isDraggingLabel = false;
         let selectedLabel = null;
+        let selectedLabelAxis = null;
         let raycaster = new THREE.Raycaster();
         let mouse = new THREE.Vector2();
         // 记录 X, Y, Z 三个标注的手动偏移量
         let labelManualOffsets = {
             x: new THREE.Vector3(0, 0, 0),
             y: new THREE.Vector3(0, 0, 0),
-            z: new THREE.Vector3(0, 0, 0)
+            z: new THREE.Vector3(0, 0, 0),
+             pW: new THREE.Vector3(0, 0, 0), // 新增：背板宽度标注偏移
+    pH: new THREE.Vector3(0, 0, 0),
+     pT: new THREE.Vector3(0, 0, 0)
         };
         // --- 1. 面板拖拽逻辑 (原生 DOM 拖拽) ---
         const panel = document.getElementById('svg-upload-container');
@@ -1045,7 +1090,11 @@
             outlinePass.edgeStrength = 3.0; // 恢复描边强度
         });
 
-
+document.getElementById('plateThicknessInput').addEventListener('change', (e) => {
+    plateThickness = Math.max(0.1, parseFloat(e.target.value) || 0.1);
+    if (lPlateGroup) createLPlate(); // 重新生成带厚度的背板
+    updateDimensions(); // 同步更新标注
+});
         // --- 2. 键盘快捷键逻辑 ---
         // --- 2. 键盘快捷键逻辑 ---
         // --- 最终整合的键盘快捷键逻辑 ---
@@ -1308,10 +1357,10 @@
                 case 'SimHei': return 'fonts/SimHei_Regular.json';
 
 
-                case 'neonFont': return 'fonts/nhd01.json'; // 假设你的文件名是这个
-                case 'neonFont02': return 'fonts/Damion_Regular.json';
+                case 'neonFont': return 'fonts/The Absolute_Regular.json'; // 假设你的文件名是这个
+                case 'neonFont02': return 'fonts/NEONCITY Script_Regular.json';
                 case 'neonFont03': return 'fonts/London Handlettering_Regular.json';
-                case 'neonFont04': return 'fonts/GilaniSign_Regular.json';
+                case 'neonFont04': return 'fonts/Damion_Regular.json';
                 case 'neonFont05': return 'fonts/Balmonde_Regular.json';
                 default: return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
             }
@@ -1356,62 +1405,87 @@
         function createTextLabel(text, position, scaleFactor = 1.0) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 256;
-            canvas.height = 128;
-            ctx.font = 'Bold 60px Arial';
+
+            // 1. 增大 Canvas 分辨率，防止文字变大后模糊
+            canvas.width = 512;  // 从 256 增加到 512
+            canvas.height = 256; // 从 128 增加到 256
+
+            // 2. 增大字体大小
+            ctx.font = 'Bold 100px Arial'; // 从 60px 增加到 100px
             ctx.fillStyle = '#f39c12';
             ctx.textAlign = 'center';
-            ctx.fillText(text, 128, 80);
+
+            // 调整绘制位置（因为高度变了）
+            ctx.fillText(text, 256, 150);
 
             const texture = new THREE.CanvasTexture(canvas);
             const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
             const sprite = new THREE.Sprite(spriteMaterial);
-            sprite.scale.set(12 * scaleFactor, 6 * scaleFactor, 1);
+
+            // 3. 增大物理缩放比例（这是决定“看起来多大”的关键）
+            // 原来是 12 * scaleFactor, 现在改为 24
+            sprite.scale.set(24 * scaleFactor, 12 * scaleFactor, 1);
+
             sprite.position.copy(position);
             return sprite;
         }
-
         // --- 截图功能实现 ---
         // --- 高级高清截图功能 ---
+        // --- 修复版：高清截图功能（完美保留辉光与颜色） ---
         function takeSnapshot() {
-            // 1. 记录原始尺寸和像素比
+            // 1. 记录原始尺寸和配置
             const originalWidth = container.clientWidth;
             const originalHeight = container.clientHeight;
             const originalPixelRatio = renderer.getPixelRatio();
+            const originalBg = scene.background;
 
-            // 2. 设置截图倍率 (2 代表 2倍清晰度，3 代表超高清/4K级别)
+            // 2. 设置高清倍率 (3倍通常能达到 4K 级别)
             const zoom = 3;
 
-            // 3. 临时放大渲染器
+            // 3. 调整所有合成器尺寸
             renderer.setSize(originalWidth * zoom, originalHeight * zoom, false);
-            // 辉光合成器也要跟着放大，否则发光效果会变小
             bloomComposer.setSize(originalWidth * zoom, originalHeight * zoom);
             finalComposer.setSize(originalWidth * zoom, originalHeight * zoom);
 
-            // 4. 执行高清渲染
-            // 这一步非常关键：必须完整渲染后处理通道
+            // 4. 【核心修复】：执行完整的辉光渲染流程
+            // A. 背景变黑
+            scene.background = new THREE.Color(0x000000);
+
+            // B. 隐藏非发光物体（变黑）
+            scene.traverse(darkenNonBloomed);
+
+            // C. 渲染辉光层（这步决定了截图里有没有光晕）
+            bloomComposer.render();
+
+            // D. 恢复材质
+            scene.traverse(restoreMaterial);
+
+            // E. 恢复原始背景（如你的深灰色）
+            scene.background = originalBg;
+
+            // F. 最终合成渲染
             finalComposer.render();
 
-            // 5. 导出图片 (使用最高质量)
+            // 5. 导出最高质量图片
             const dataURL = renderer.domElement.toDataURL('image/png', 1.0);
 
-            // 6. 触发下载
+            // 6. 下载图片
             const link = document.createElement('a');
             const timestamp = new Date().getTime();
-            link.download = `YiJiao_4K_Design_${timestamp}.png`;
+            link.download = `YiJiao_Pro_Design_${timestamp}.png`;
             link.href = dataURL;
             link.click();
 
-            // 7. 恢复原始尺寸，避免用户界面变大
+            // 7. 还原现场（防止 UI 变大或渲染异常）
             renderer.setPixelRatio(originalPixelRatio);
             renderer.setSize(originalWidth, originalHeight);
             bloomComposer.setSize(originalWidth, originalHeight);
             finalComposer.setSize(originalWidth, originalHeight);
 
-            // 8. 重新渲染一次正常的画面，确保 UI 回归正常
-            finalComposer.render();
+            // 重新渲染一帧正常的画面
+            animate();
 
-            console.log("高清 4K 实拍图已导出");
+            console.log("📸 高清实拍图（带辉光效果）已导出");
         }
 
 
@@ -1425,154 +1499,151 @@
 
         // --- L型背板改为：纯平后背墙，无任何附加光源 ---
         function createLPlate() {
-            // 移除旧的背板组
-            if (lPlateGroup) scene.remove(lPlateGroup);
+    if (lPlateGroup) {
+        scene.remove(lPlateGroup);
+        lPlateGroup.traverse(child => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+        });
+    }
 
-            lPlateGroup = new THREE.Group();
-            lPlateGroup.name = "L_Plate";
+    lPlateGroup = new THREE.Group();
+    lPlateGroup.name = "L_Plate";
 
-            // 匹配高级工业风的深灰色墙面
-            const plateMat = new THREE.MeshStandardMaterial({
-                color: 0x1a1a1a,      // 极深的炭灰色，接近黑但保留结构感
-                roughness: 0.9,       // 极高粗糙度，实现高级哑光效果
-                metalness: 0.05,      // 极低金属感，防止出现明显的反光点
-                side: THREE.DoubleSide
-            });
+    const plateMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(plateColor),
+        roughness: 0.9,
+        metalness: 0.05,
+        side: THREE.DoubleSide
+    });
 
-            // 墙面尺寸：宽800，高400 (足够大，防止移动时穿帮)
-            const w = 800;
-            const h = 400;
+    // 【核心修改】：从 PlaneGeometry 升级为 BoxGeometry (宽, 高, 深)
+    const geometry = new THREE.BoxGeometry(plateWidth, plateHeight, plateThickness);
+    const wall = new THREE.Mesh(geometry, plateMat);
 
-            // 1. 创建纯平墙面 (Wall)
-            const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, h), plateMat);
-            // 居中
-            wall.position.y = 0;
-            // 墙面放在文字后方 20 个单位处
-            wall.position.z = -50;
+    // 设置位置：
+    // 我们希望背板的【正面】固定在 z = -10 的位置
+    // 因为 BoxGeometry 的中心在 0,0,0，所以中心点要设在 -10 减去厚度的一半
+    wall.position.z = -10 - (plateThickness / 2);
 
-            lPlateGroup.add(wall);
-            lPlateGroup.position.set(0, 0, 0);
-
-            // 给墙面组分配层 (PLATE_LAYER 为 2)
-            lPlateGroup.traverse(child => {
-                if (child.isMesh) {
-                    child.layers.set(2);
-                }
-            });
-
-            scene.add(lPlateGroup);
-
-            // 【核心修改】：彻底删除了 platePointLight 和 haloSprite 
-            // 这里再也没有任何发光的东西了！
-        }
+    lPlateGroup.add(wall);
+    lPlateGroup.layers.set(2); 
+    scene.add(lPlateGroup);
+    
+    updateDimensions(); // 每次创建后刷新标注
+}
         // 在页面加载完成时默认调用
         createLPlate();
 
 
 
-    function updateDimensions() {
+     function updateDimensions() {
     dimensionGroup.clear();
 
-    // 1. 获取模型包围盒（用于计算宽度和标注线的物理显示位置）
-    const box = new THREE.Box3();
-    let hasValidObject = false;
+    const scaleFactor = textSize / 26; 
+    const visualOffset = 10 * scaleFactor;
+    const tick = 1.5 * scaleFactor;
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x888888 });
+
+   // ==========================================
+    // --- A. 文字部件标注 (修正：增加身份标签) ---
+    // ==========================================
+    const textBox = new THREE.Box3();
+    let hasValidText = false;
     textGroup.traverse(child => {
         if (child.isMesh && child.userData.isCraftObject) {
-            box.expandByObject(child);
-            hasValidObject = true;
+            textBox.expandByObject(child);
+            hasValidText = true;
         }
     });
 
-    if (!hasValidObject) return;
+    if (hasValidText) {
+        const size = new THREE.Vector3();
+        textBox.getSize(size);
+        const min = textBox.min;
+        const max = textBox.max;
+        const midZ = (min.z + max.z) / 2;
 
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const min = box.min;
-    const max = box.max;
-    // 标注线处于模型厚度的中心
-    const midZ = (min.z + max.z) / 2;
+        // 1. X轴标注
+        const xLabel = createTextLabel((size.x * 10).toFixed(0) + " mm", new THREE.Vector3((min.x + max.x) / 2, min.y - visualOffset, midZ).add(labelManualOffsets.x), scaleFactor);
+        xLabel.userData.axis = 'x'; // 【核心修复：加上这一行】
+        dimensionGroup.add(xLabel);
 
-    // 【核心系数】：计算当前高度相对于默认高度(26)的比例
-    const scaleFactor = textSize / 26; 
+        // 2. Y轴标注
+        const yLabel = createTextLabel((textSize * 10).toFixed(0) + " mm", new THREE.Vector3(min.x - visualOffset, (min.y + max.y) / 2, midZ).add(labelManualOffsets.y), scaleFactor);
+        yLabel.userData.axis = 'y'; // 【核心修复：加上这一行】
+        dimensionGroup.add(yLabel);
+        
+        // 3. Z轴标注
+        let baseThickness = (glowMode === 'testFrontGlow') ? backThickness : (['sideHalfGlowTest', 'backGlow', 'frontGlow'].includes(glowMode) ? frontThickness + backThickness : frontThickness);
+        const zLabel = createTextLabel((baseThickness * scaleFactor).toFixed(0) + " mm", new THREE.Vector3(max.x + visualOffset, min.y, midZ).add(labelManualOffsets.z), scaleFactor);
+        zLabel.userData.axis = 'z'; // 【核心修复：加上这一行】
+        dimensionGroup.add(zLabel);
+    }
+    // ==========================================
+    // --- B. 背板尺寸标注 (修正坐标对齐) ---
+    // ==========================================
+   // ==========================================
+    // --- B. 背板尺寸标注 (位置优化版) ---
+    // ==========================================
+    if (lPlateGroup) {
+        const plateBox = new THREE.Box3().setFromObject(lPlateGroup);
+        const pMin = plateBox.min;
+        const pMax = plateBox.max;
+        const pCenter = new THREE.Vector3();
+        plateBox.getCenter(pCenter);
+        
+        // 标注的 Z 轴基准（正面）
+        const pZFront = pMax.z + 0.5; 
+        // 厚度标注的 Z 轴中点
+        const pZMid = (pMin.z + pMax.z) / 2;
+
+        // 1. 背板宽度 (W) - 保持在底部
+        const pWPos = new THREE.Vector3(pCenter.x, pMin.y - visualOffset, pZFront).add(labelManualOffsets.pW);
+        const pWLabel = createTextLabel("W:" + plateWidth.toFixed(0) + " cm", pWPos, scaleFactor);
+        pWLabel.userData.axis = 'pW';
+        dimensionGroup.add(pWLabel);
+
+        const pWLines = [
+            new THREE.Vector3(pMin.x, pMin.y - visualOffset, pZFront), new THREE.Vector3(pMax.x, pMin.y - visualOffset, pZFront),
+            new THREE.Vector3(pMin.x, pMin.y - visualOffset + tick, pZFront), new THREE.Vector3(pMin.x, pMin.y - visualOffset - tick, pZFront),
+            new THREE.Vector3(pMax.x, pMin.y - visualOffset + tick, pZFront), new THREE.Vector3(pMax.x, pMin.y - visualOffset - tick, pZFront)
+        ];
+        dimensionGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pWLines), lineMat));
+
+        // 2. 背板高度 (H) - 【优化】：移至左侧
+        const pHPos = new THREE.Vector3(pMin.x - visualOffset, pCenter.y, pZFront).add(labelManualOffsets.pH);
+        const pHLabel = createTextLabel("H:" + plateHeight.toFixed(0) + " cm", pHPos, scaleFactor);
+        pHLabel.userData.axis = 'pH';
+        dimensionGroup.add(pHLabel);
+
+        const pHLines = [
+            new THREE.Vector3(pMin.x - visualOffset, pMin.y, pZFront), new THREE.Vector3(pMin.x - visualOffset, pMax.y, pZFront),
+            new THREE.Vector3(pMin.x - visualOffset - tick, pMin.y, pZFront), new THREE.Vector3(pMin.x - visualOffset + tick, pMin.y, pZFront),
+            new THREE.Vector3(pMin.x - visualOffset - tick, pMax.y, pZFront), new THREE.Vector3(pMin.x - visualOffset + tick, pMax.y, pZFront)
+        ];
+        dimensionGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pHLines), lineMat));
+
+        // 3. 背板厚度 (T) - 【优化】：移至右侧边缘靠下位置
+        // 位置设定在背板右侧边缘 (pMax.x)，高度取底部向上一点点
+        const pTPos = new THREE.Vector3(pMax.x + visualOffset, pMin.y + (visualOffset/2), pZMid).add(labelManualOffsets.pT);
+        const pTLabel = createTextLabel("T:" + plateThickness.toFixed(1) + " cm", pTPos, scaleFactor);
+        pTLabel.userData.axis = 'pT';
+        dimensionGroup.add(pTLabel);
+
+        const pTLines = [
+            // 连通前后的线
+            new THREE.Vector3(pMax.x + visualOffset, pMin.y + (visualOffset/2), pMin.z), 
+            new THREE.Vector3(pMax.x + visualOffset, pMin.y + (visualOffset/2), pMax.z),
+            // 前后刻度线
+            new THREE.Vector3(pMax.x + visualOffset - tick, pMin.y + (visualOffset/2), pMin.z),
+            new THREE.Vector3(pMax.x + visualOffset + tick, pMin.y + (visualOffset/2), pMin.z),
+            new THREE.Vector3(pMax.x + visualOffset - tick, pMin.y + (visualOffset/2), pMax.z),
+            new THREE.Vector3(pMax.x + visualOffset + tick, pMin.y + (visualOffset/2), pMax.z)
+        ];
+        dimensionGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pTLines), lineMat));
+    }
     
-    const visualOffset = 5 * scaleFactor;
-    const tick = 1 * scaleFactor;
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x888888 });
-
-    // --- A. X轴标注 (宽度) ---
-    const widthText = (size.x * 10).toFixed(0) + " mm";
-    const xBasePos = new THREE.Vector3((min.x + max.x) / 2, min.y - visualOffset - (4 * scaleFactor), midZ);
-    const xLabel = createTextLabel(widthText, xBasePos.clone().add(labelManualOffsets.x), scaleFactor);
-    xLabel.userData.axis = 'x';
-    dimensionGroup.add(xLabel);
-
-    const xLinePoints = [
-        new THREE.Vector3(min.x, min.y - visualOffset, midZ), new THREE.Vector3(max.x, min.y - visualOffset, midZ),
-        new THREE.Vector3(min.x, min.y - visualOffset + tick, midZ), new THREE.Vector3(min.x, min.y - visualOffset - tick, midZ),
-        new THREE.Vector3(max.x, min.y - visualOffset + tick, midZ), new THREE.Vector3(max.x, min.y - visualOffset - tick, midZ)
-    ];
-    dimensionGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(xLinePoints), lineMat));
-
-    // --- B. Y轴标注 (高度：保持与滑块同步) ---
-    const heightText = (textSize * 10).toFixed(0) + " mm";
-    const yBasePos = new THREE.Vector3(min.x - visualOffset - (8 * scaleFactor), (min.y + max.y) / 2, midZ);
-    const yLabel = createTextLabel(heightText, yBasePos.clone().add(labelManualOffsets.y), scaleFactor);
-    yLabel.userData.axis = 'y';
-    dimensionGroup.add(yLabel);
-
-    const yLinePoints = [
-        new THREE.Vector3(min.x - visualOffset, min.y, midZ), new THREE.Vector3(min.x - visualOffset, max.y, midZ),
-        new THREE.Vector3(min.x - visualOffset + tick, min.y, midZ), new THREE.Vector3(min.x - visualOffset - tick, min.y, midZ),
-        new THREE.Vector3(min.x - visualOffset + tick, max.y, midZ), new THREE.Vector3(min.x - visualOffset - tick, max.y, midZ)
-    ];
-    dimensionGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(yLinePoints), lineMat));
-
-    // ========================================================
-    // --- C. Z轴标注 (厚度：基础值 * 缩放比例) ---
-    // ========================================================
-    let baseThickness = 0;
-
-    // 1. 先根据工艺确定“基础厚度”（即滑块上的原始设定值）
-    if (glowMode === 'testFrontGlow') {
-        baseThickness = backThickness;
-    } 
-    else if (glowMode === 'sideGlowTest') {
-        baseThickness = frontThickness;
-    } 
-    else if (['sideHalfGlowTest', 'backGlow', 'frontGlow'].includes(glowMode)) {
-        baseThickness = frontThickness + backThickness;
-    } 
-    else if (glowMode === 'testBackGlow') {
-        baseThickness = frontThickness;
-    } 
-    else if (glowMode === 'frontBackGlow') {
-        // 正背发光的基础值 (包含1mm固定层)
-        baseThickness = frontThickness + backThickness;
-    }
-    else if (glowMode === 'neonWord013' || glowMode === 'neonWord012' || glowMode === 'metalCut' || glowMode === 'acrylicCut' || glowMode === 'neonBorder') {
-        baseThickness = frontThickness;
-    }
-    else if (glowMode === 'neonWord') {
-        baseThickness = 20;
-    } else {
-        baseThickness = frontThickness;
-    }
-
-    // 2. 【核心改动】：将基础厚度乘以缩放比例
-    const finalDisplayThickness = baseThickness * scaleFactor;
-
-    const thicknessText = finalDisplayThickness.toFixed(0) + " mm";
-    const zBasePos = new THREE.Vector3(max.x + visualOffset + (6 * scaleFactor), min.y, midZ);
-    const zLabel = createTextLabel(thicknessText, zBasePos.clone().add(labelManualOffsets.z), scaleFactor);
-    zLabel.userData.axis = 'z';
-    dimensionGroup.add(zLabel);
-
-    const zLinePoints = [
-        new THREE.Vector3(max.x + visualOffset, min.y, min.z), new THREE.Vector3(max.x + visualOffset, min.y, max.z),
-        new THREE.Vector3(max.x + visualOffset - tick, min.y, min.z), new THREE.Vector3(max.x + visualOffset + tick, min.y, min.z),
-        new THREE.Vector3(max.x + visualOffset - tick, min.y, min.z), new THREE.Vector3(max.x + visualOffset + tick, min.y, min.z)
-    ];
-    dimensionGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(zLinePoints), lineMat));
 }
         // --- 标注显示/隐藏切换逻辑 ---
         let isDimensionVisible = true; // 记录当前标注状态
@@ -1712,14 +1783,14 @@
             // 【5. 生成 ASD 形状的光影字母】
             // 只有在几何体 fGeo 准备好之后才能执行！
             // --- 在 generate3DText 结尾处 ---
-            // 此时 fGeo 和 activeScale 已经算好了
-            if (!isNaN(activeScale) && activeScale !== 0) {
-                // 只有发光模式才生成倒影
-                if (glowMode !== 'metalCut' && glowMode !== 'acrylicCut') {
-                    const wallBlurGroup = createBlurRef(fGeo, true, ledColor);
-                    textGroup.add(wallBlurGroup);
-                }
-            }
+            // 此时 fGeo 和 activeScale 已经算好了  倒影注释1
+            /* if (!isNaN(activeScale) && activeScale !== 0) {
+                 // 只有发光模式才生成倒影
+                 if (glowMode !== 'metalCut' && glowMode !== 'acrylicCut') {
+                     const wallBlurGroup = createBlurRef(fGeo, true, ledColor);
+                     textGroup.add(wallBlurGroup);
+                 }
+             }*/
             // 【6. 最后创建 Mesh 并加入 textGroup】
             if (glowMode === 'testFrontGlow') {
                 const mLED = new THREE.Mesh(innerGeo, ledMat);
@@ -2398,11 +2469,11 @@
                     }
                     return group;
                 };
-
-                const wallGroup = createRefLayer(fGeo, true);
-                const floorGroup = createRefLayer(fGeo, false);
-
-                textGroup.add(wallGroup, floorGroup);
+                /*倒影注释2
+                                const wallGroup = createRefLayer(fGeo, true);
+                                const floorGroup = createRefLayer(fGeo, false);
+                
+                                textGroup.add(wallGroup, floorGroup);*/
                 textGroup.add(fMesh, bMesh);
 
                 // 6. 【最关键的修改】重新登记数组 (完全对应 testFrontGlow)
@@ -2415,14 +2486,14 @@
                     flowMeshes.push(lightMesh);
                 }
             }
-         // --- 核心修复：使用 traverse 深度遍历所有嵌套的 Mesh ---
-textGroup.traverse(child => {
-    // 只有 Mesh 才能被计算包围盒
-    // 排除掉投影面片 (isRef)
-    if (child.isMesh && !child.userData.isRef) {
-        child.userData.isCraftObject = true;
-    }
-});
+            // --- 核心修复：使用 traverse 深度遍历所有嵌套的 Mesh ---
+            textGroup.traverse(child => {
+                // 只有 Mesh 才能被计算包围盒
+                // 排除掉投影面片 (isRef)
+                if (child.isMesh && !child.userData.isRef) {
+                    child.userData.isCraftObject = true;
+                }
+            });
             updateBrightness(document.getElementById('brightnessSlider').value);
             if (adjustCamera) centerAndFitCamera();
             setTimeout(() => updateDimensions(), 50);
@@ -3169,135 +3240,135 @@ textGroup.traverse(child => {
 
         // --- 4. 一键解体按钮 完整整合版 (修复 012/013 及所有工艺逻辑) ---
         document.getElementById('decomposeBtn').addEventListener('click', () => {
-    if (glowMode === 'neonWord') {
-        alert("霓虹灯字为整体单层工艺，无需解体预览。");
-        return;
-    }
-
-    isDecomposed = !isDecomposed;
-
-    const fDepth = frontThickness / 10;
-    const bDepth = backThickness / 10;
-    const tRadius012 = neonTubeSize / 20; 
-    const tRadius013 = 0.5;               
-    const explodeGap = 30;                
-
-    // --- A. 霓虹字 013 模式 ---
-    if (glowMode === 'neonWord013') {
-        if (frontMeshes.length > 0 && backMeshes.length > 0) {
-            const mHouse = frontMeshes[0]; // 底座
-            const mStrip = backMeshes[0];  // 灯带
-            const lift = 0.08;
-            if (isDecomposed) {
-                gsap.to(mStrip.position, { z: tRadius013 + lift + explodeGap, duration: 1 });
-                gsap.to(mHouse.position, { z: -fDepth - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
-            } else {
-                gsap.to(mStrip.position, { z: tRadius013 + lift, duration: 1 });
-                gsap.to(mHouse.position, { z: -fDepth, duration: 1, onUpdate: () => updateDimensions() });
+            if (glowMode === 'neonWord') {
+                alert("霓虹灯字为整体单层工艺，无需解体预览。");
+                return;
             }
-        }
-    }
-    // --- B. 霓虹围边 ---
-    else if (glowMode === 'neonBorder') {
-        const tubes = backMeshes;  
-        const bases = frontMeshes; 
-        const tRadius = neonTubeSize / 40;
-        const bRadius = tRadius * 0.85;
-        if (isDecomposed) {
-            tubes.forEach(m => gsap.to(m.position, { z: bRadius + tRadius + 0.01 + explodeGap, duration: 1 }));
-            bases.forEach(m => gsap.to(m.position, { z: -explodeGap, duration: 1, onUpdate: () => updateDimensions() }));
-        } else {
-            tubes.forEach(m => gsap.to(m.position, { z: bRadius + tRadius + 0.01, duration: 1 }));
-            bases.forEach(m => gsap.to(m.position, { z: 0, duration: 1, onUpdate: () => updateDimensions() }));
-        }
-    }
-    // --- C. 霓虹 012 ---
-    else if (glowMode === 'neonWord012') {
-        if (frontMeshes.length > 0 && backMeshes.length > 0) {
-            const mLED = backMeshes[0];    
-            const mShell = frontMeshes[0];  
-            if (isDecomposed) {
-                gsap.to(mLED.position, { z: tRadius012 + 0.08 + explodeGap, duration: 1 });
-                gsap.to(mShell.position, { z: -fDepth - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
-            } else {
-                gsap.to(mLED.position, { z: tRadius012 + 0.08, duration: 1 });
-                gsap.to(mShell.position, { z: -fDepth, duration: 1, onUpdate: () => updateDimensions() });
+
+            isDecomposed = !isDecomposed;
+
+            const fDepth = frontThickness / 10;
+            const bDepth = backThickness / 10;
+            const tRadius012 = neonTubeSize / 20;
+            const tRadius013 = 0.5;
+            const explodeGap = 30;
+
+            // --- A. 霓虹字 013 模式 ---
+            if (glowMode === 'neonWord013') {
+                if (frontMeshes.length > 0 && backMeshes.length > 0) {
+                    const mHouse = frontMeshes[0]; // 底座
+                    const mStrip = backMeshes[0];  // 灯带
+                    const lift = 0.08;
+                    if (isDecomposed) {
+                        gsap.to(mStrip.position, { z: tRadius013 + lift + explodeGap, duration: 1 });
+                        gsap.to(mHouse.position, { z: -fDepth - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
+                    } else {
+                        gsap.to(mStrip.position, { z: tRadius013 + lift, duration: 1 });
+                        gsap.to(mHouse.position, { z: -fDepth, duration: 1, onUpdate: () => updateDimensions() });
+                    }
+                }
             }
-        }
-    }
-    // --- D. 三层结构通用逻辑 (修复 sideHalfGlow 关键点) ---
- // --- D. 三层结构通用逻辑 (侧发光、半侧发光、正背发光) ---
-else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode)) {
-    let layerFront, layerMid, layerBack;
-    let startZFront, startZBack;
+            // --- B. 霓虹围边 ---
+            else if (glowMode === 'neonBorder') {
+                const tubes = backMeshes;
+                const bases = frontMeshes;
+                const tRadius = neonTubeSize / 40;
+                const bRadius = tRadius * 0.85;
+                if (isDecomposed) {
+                    tubes.forEach(m => gsap.to(m.position, { z: bRadius + tRadius + 0.01 + explodeGap, duration: 1 }));
+                    bases.forEach(m => gsap.to(m.position, { z: -explodeGap, duration: 1, onUpdate: () => updateDimensions() }));
+                } else {
+                    tubes.forEach(m => gsap.to(m.position, { z: bRadius + tRadius + 0.01, duration: 1 }));
+                    bases.forEach(m => gsap.to(m.position, { z: 0, duration: 1, onUpdate: () => updateDimensions() }));
+                }
+            }
+            // --- C. 霓虹 012 ---
+            else if (glowMode === 'neonWord012') {
+                if (frontMeshes.length > 0 && backMeshes.length > 0) {
+                    const mLED = backMeshes[0];
+                    const mShell = frontMeshes[0];
+                    if (isDecomposed) {
+                        gsap.to(mLED.position, { z: tRadius012 + 0.08 + explodeGap, duration: 1 });
+                        gsap.to(mShell.position, { z: -fDepth - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
+                    } else {
+                        gsap.to(mLED.position, { z: tRadius012 + 0.08, duration: 1 });
+                        gsap.to(mShell.position, { z: -fDepth, duration: 1, onUpdate: () => updateDimensions() });
+                    }
+                }
+            }
+            // --- D. 三层结构通用逻辑 (修复 sideHalfGlow 关键点) ---
+            // --- D. 三层结构通用逻辑 (侧发光、半侧发光、正背发光) ---
+            else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode)) {
+                let layerFront, layerMid, layerBack;
+                let startZFront, startZBack;
 
-    // 重新获取当前滑块定义的厚度，确保动画基准准确
-    const fDepth = frontThickness / 10;
-    const bDepth = backThickness / 10;
-    const explodeGap = 30;
+                // 重新获取当前滑块定义的厚度，确保动画基准准确
+                const fDepth = frontThickness / 10;
+                const bDepth = backThickness / 10;
+                const explodeGap = 30;
 
-    if (glowMode === 'frontBackGlow') {
-        layerFront = frontMeshes[0];  
-        layerMid   = colourMeshes[0]; 
-        layerBack  = backMeshes[0];   
-        
-        // 【核心修复】：必须与 generate3DText 中的 0.05 gap 保持一致
-        const gap = 0.05;
-        startZFront = 0.1 + gap;          // 归位到 0.15
-        startZBack  = -fDepth - bDepth - gap; // 归位到 -厚度 - 0.05
-    } else {
-        layerFront = colourMeshes[0]; 
-        layerMid   = frontMeshes[0];
-        layerBack  = backMeshes[0];   
-        
-        startZFront = fDepth + 0.01;
-        startZBack  = (glowMode === 'sideGlowTest') ? -0.11 : (-bDepth - 0.01);
-    }
+                if (glowMode === 'frontBackGlow') {
+                    layerFront = frontMeshes[0];
+                    layerMid = colourMeshes[0];
+                    layerBack = backMeshes[0];
 
-    if (isDecomposed) {
-        // 解体：前飞，后飞
-        gsap.to(layerFront.position, { z: startZFront + explodeGap, duration: 1, ease: "power2.inOut" });
-        gsap.to(layerBack.position,  { z: startZBack - explodeGap,  duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
-    } else {
-        // 合并：精准回到原始位置
-        gsap.to(layerFront.position, { z: startZFront, duration: 1, ease: "power2.inOut" });
-        gsap.to(layerBack.position,  { z: startZBack,  duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
-    }
-}
-    // --- E. 标准双层结构 (backGlow & frontGlow) 彻底修复重合 ---
-    else if (glowMode === 'backGlow' || glowMode === 'frontGlow') {
-        const isBack = (glowMode === 'backGlow');
-        // 【关键】根据 backGlow 逻辑，重新定义谁是前，谁是后
-        // backGlow 下：frontMeshes[0]是发光件(在后)，backMeshes[0]是壳(在前)
-        const meshPhysicalFront = isBack ? backMeshes[0] : frontMeshes[0]; 
-        const meshPhysicalBack  = isBack ? frontMeshes[0] : backMeshes[0];
+                    // 【核心修复】：必须与 generate3DText 中的 0.05 gap 保持一致
+                    const gap = 0.05;
+                    startZFront = 0.1 + gap;          // 归位到 0.15
+                    startZBack = -fDepth - bDepth - gap; // 归位到 -厚度 - 0.05
+                } else {
+                    layerFront = colourMeshes[0];
+                    layerMid = frontMeshes[0];
+                    layerBack = backMeshes[0];
 
-        if (isDecomposed) {
-            gsap.to(meshPhysicalFront.position, { z: explodeGap, duration: 1 });
-            gsap.to(meshPhysicalBack.position,  { z: -bDepth - 0.01 - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
-        } else {
-            gsap.to(meshPhysicalFront.position, { z: 0, duration: 1 });
-            gsap.to(meshPhysicalBack.position,  { z: -bDepth - 0.01, duration: 1, onUpdate: () => updateDimensions() });
-        }
-    }
-    // --- F. 测试模式两层 (固定坐标版) ---
-    else if (glowMode === 'testBackGlow' || glowMode === 'testFrontGlow') {
-        const m1 = frontMeshes[0];
-        const m2 = backMeshes[0];
-        const z1 = (glowMode === 'testFrontGlow') ? 0.11 : 0;
-        const z2 = (glowMode === 'testFrontGlow') ? -bDepth : -0.11;
+                    startZFront = fDepth + 0.01;
+                    startZBack = (glowMode === 'sideGlowTest') ? -0.11 : (-bDepth - 0.01);
+                }
 
-        if (isDecomposed) {
-            gsap.to(m1.position, { z: z1 + explodeGap, duration: 1 });
-            gsap.to(m2.position, { z: z2 - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
-        } else {
-            gsap.to(m1.position, { z: z1, duration: 1 });
-            gsap.to(m2.position, { z: z2, duration: 1, onUpdate: () => updateDimensions() });
-        }
-    }
+                if (isDecomposed) {
+                    // 解体：前飞，后飞
+                    gsap.to(layerFront.position, { z: startZFront + explodeGap, duration: 1, ease: "power2.inOut" });
+                    gsap.to(layerBack.position, { z: startZBack - explodeGap, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+                } else {
+                    // 合并：精准回到原始位置
+                    gsap.to(layerFront.position, { z: startZFront, duration: 1, ease: "power2.inOut" });
+                    gsap.to(layerBack.position, { z: startZBack, duration: 1, ease: "power2.inOut", onUpdate: () => updateDimensions() });
+                }
+            }
+            // --- E. 标准双层结构 (backGlow & frontGlow) 彻底修复重合 ---
+            else if (glowMode === 'backGlow' || glowMode === 'frontGlow') {
+                const isBack = (glowMode === 'backGlow');
+                // 【关键】根据 backGlow 逻辑，重新定义谁是前，谁是后
+                // backGlow 下：frontMeshes[0]是发光件(在后)，backMeshes[0]是壳(在前)
+                const meshPhysicalFront = isBack ? backMeshes[0] : frontMeshes[0];
+                const meshPhysicalBack = isBack ? frontMeshes[0] : backMeshes[0];
 
-    document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并 (Merge)' : '一键解体 (Explode)';
-});
+                if (isDecomposed) {
+                    gsap.to(meshPhysicalFront.position, { z: explodeGap, duration: 1 });
+                    gsap.to(meshPhysicalBack.position, { z: -bDepth - 0.01 - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
+                } else {
+                    gsap.to(meshPhysicalFront.position, { z: 0, duration: 1 });
+                    gsap.to(meshPhysicalBack.position, { z: -bDepth - 0.01, duration: 1, onUpdate: () => updateDimensions() });
+                }
+            }
+            // --- F. 测试模式两层 (固定坐标版) ---
+            else if (glowMode === 'testBackGlow' || glowMode === 'testFrontGlow') {
+                const m1 = frontMeshes[0];
+                const m2 = backMeshes[0];
+                const z1 = (glowMode === 'testFrontGlow') ? 0.11 : 0;
+                const z2 = (glowMode === 'testFrontGlow') ? -bDepth : -0.11;
+
+                if (isDecomposed) {
+                    gsap.to(m1.position, { z: z1 + explodeGap, duration: 1 });
+                    gsap.to(m2.position, { z: z2 - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
+                } else {
+                    gsap.to(m1.position, { z: z1, duration: 1 });
+                    gsap.to(m2.position, { z: z2, duration: 1, onUpdate: () => updateDimensions() });
+                }
+            }
+
+            document.getElementById('decomposeBtn').innerText = isDecomposed ? '一键合并 (Merge)' : '一键解体 (Explode)';
+        });
         // --- 5. 文字和字体输入监听 ---
         document.getElementById('textInput').addEventListener('input', (e) => {
             if (currentFont) generate3DText(e.target.value, true);
@@ -3446,7 +3517,9 @@ else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode
             // 3. 标注标签检测 (优先级最高)
             const labelIntersects = raycaster.intersectObjects(dimensionGroup.children);
             if (labelIntersects.length > 0) {
-                selectedLabel = labelIntersects[0].object;
+                const hitLabel = labelIntersects[0].object;
+                // 【核心修改】：记录轴向字符串（如 'x', 'pW'），而不是记录物体本身
+                selectedLabelAxis = hitLabel.userData.axis; 
                 isDraggingLabel = true;
                 controls.enabled = false;
                 return;
@@ -3495,39 +3568,38 @@ else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode
         // --- 2. 键盘快捷键逻辑 ---
         // --- 统一的鼠标移动事件 ---
         // --- 完整替换你的 window.addEventListener('pointermove', ...) ---
-        window.addEventListener('pointermove', (event) => {
-            // 标注平移
-            if (isDraggingLabel && selectedLabel) {
-                const movementScale = textSize * 0.002;
+      window.addEventListener('pointermove', (event) => {
+            // --- A. 标注平移逻辑 (修复后的版本) ---
+            if (isDraggingLabel && selectedLabelAxis) {
+                const movementScale = textSize * 0.002; 
                 const dx = event.movementX * movementScale;
                 const dy = -event.movementY * movementScale;
-                const axis = selectedLabel.userData.axis;
+
+                // 根据记录的轴向名称更新对应的偏移量
+                const axis = selectedLabelAxis;
                 if (axis === 'x') { labelManualOffsets.x.x += dx; labelManualOffsets.x.y += dy; }
                 else if (axis === 'y') { labelManualOffsets.y.x += dx; labelManualOffsets.y.y += dy; }
                 else if (axis === 'z') { labelManualOffsets.z.x += dx; labelManualOffsets.z.z -= dy; }
-                updateDimensions();
-                return;
+                else if (axis === 'pW') { labelManualOffsets.pW.x += dx; labelManualOffsets.pW.y += dy; }
+                else if (axis === 'pH') { labelManualOffsets.pH.x += dx; labelManualOffsets.pH.y += dy; }
+                else if (axis === 'pT') { labelManualOffsets.pT.x += dx; labelManualOffsets.pT.y += dy; }
+                
+                updateDimensions(); // 重新绘制
+                return; 
             }
 
-            // 【Blender 风格平移逻辑】
+            // --- B. 物体移动逻辑 (Blender 风格) ---
             if (isMoveModeActive && selectedObject) {
-
-                // 情况 A：按住鼠标中键 (event.buttons === 4) -> 轴向平移 (X/Y)
-                if (event.buttons === 4) {
-                    controls.enabled = false; // 拖动时禁用相机
-                    const moveScale = textSize * 0.005; // 灵敏度
-
-                    // X轴平移 (鼠标横移)
+                if (event.buttons === 4) { // 中键平移
+                    controls.enabled = false;
+                    const moveScale = 0.05; 
                     selectedObject.position.x += event.movementX * moveScale;
-                    // Y轴平移 (鼠标纵移)
                     selectedObject.position.y -= event.movementY * moveScale;
-
-                    if (selectedObject === textGroup) updateDimensions();
-                    container.style.cursor = 'move';
-                    return; // 只要按着中键，就不执行下面的射线跟随逻辑
+                    updateDimensions();
+                    return;
                 }
 
-                // 情况 B：自由跟随模式 (不按中键)
+                // 自由跟随模式
                 const rect = container.getBoundingClientRect();
                 mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
                 mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -3535,7 +3607,7 @@ else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode
 
                 if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
                     selectedObject.position.copy(dragIntersection);
-                    if (selectedObject === textGroup) updateDimensions();
+                    updateDimensions(); 
                 }
                 container.style.cursor = 'move';
             }
@@ -3545,10 +3617,10 @@ else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode
         // --- 完整替换你的 window.addEventListener('pointerup', ...) ---
         window.addEventListener('pointerup', () => {
             isDraggingLabel = false;
+            selectedLabelAxis = null; // 清理轴向记录
             isDraggingObject = false;
-            selectedLabel = null;
-            controls.enabled = true; // 抬起中键或完成操作后恢复相机
-            container.style.cursor = isMoveModeActive ? 'move' : 'default';
+            controls.enabled = true;
+            container.style.cursor = isMoveModeActive ? 'move' : (selectedObject ? 'pointer' : 'default');
         });
         // 统一渲染逻辑，避免在 if-else 中重复书写，减少渲染中断风险
         // ==========================================
@@ -3629,25 +3701,22 @@ else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode
             }
 
             // --- 3. 投影与背板逻辑 (极简版) ---
-            if (lPlateGroup && textGroup) {
+            // --- 3. 投影与背板逻辑 (适配 1单位=1cm 逻辑) ---
+         /*   if (lPlateGroup && textGroup) {                           倒影注释3
                 const tPos = textGroup.position;
                 const pPos = lPlateGroup.position;
 
-                // 判断是否超出了墙的边界 (宽800，一半是400)
-                const isWithinX = Math.abs(tPos.x - pPos.x) < 400;
+                // 边界检测：如果背板宽 80cm，一半就是 40。
+                const isWithinX = Math.abs(tPos.x - pPos.x) < (plateWidth / 2);
 
                 textGroup.traverse(child => {
-                    // 只处理倒影 Mesh
-                    if (child.userData.isWallRef || child.userData.isFloorRef) {
-                        if (child.userData.isWallRef) {
-                            child.visible = isWithinX;
-                            // 让影子永远贴在背墙上
-                            child.position.z = (pPos.z - 50) - tPos.z + 0.1;
-                        } else if (child.userData.isFloorRef) {
-                            // 地面倒影永久隐藏
-                            child.visible = false;
-                        }
-                        // 倒影颜色取 activeColor 并调暗
+                    if (child.userData.isWallRef) {
+                        child.visible = isWithinX;
+                        // 影子贴墙：背板位置(z) - 50 改为 -10 左右的比例
+                        // 让影子刚好落在墙面上
+                        child.position.z = -10 - tPos.z + 0.05;
+
+                        // 调暗倒影，配合新的尺寸
                         child.material.color.copy(activeColor).multiplyScalar(0.2);
                         child.material.opacity = safeBrightness * 0.15;
                     }
@@ -3660,7 +3729,7 @@ else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode
                     }
                 });
             }
-
+*/
             // --- 4. 动画 Shader 时间更新 (驱动流水灯运转) ---
             if (isFlowRGB && flowMeshes.length > 0) {
                 flowMeshes.forEach(mesh => {
@@ -3730,6 +3799,10 @@ else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode
                         }
                         lPlateGroup = null;
                         console.log("背板及光效已移除");
+                           labelManualOffsets.pW.set(0,0,0);
+            labelManualOffsets.pH.set(0,0,0);
+            labelManualOffsets.pT.set(0,0,0);
+            updateDimensions(); // 立即重新计算，此时 if(lPlateGroup) 为假，背板标注会消失
                     } else if (selectedObject === bgPlaneMesh) {
                         scene.remove(bgPlaneMesh);
                         bgPlaneMesh = null;
@@ -3758,6 +3831,30 @@ else if (['sideGlowTest', 'sideHalfGlowTest', 'frontBackGlow'].includes(glowMode
             centerAndFitCamera();
 
             console.log("背板已重新生成并添加至场景");
+        });
+        // 监听宽度输入
+        document.getElementById('plateWidthInput').addEventListener('change', (e) => {
+            plateWidth = Math.max(10, parseFloat(e.target.value) || 10);
+            if (lPlateGroup) createLPlate(); // 如果背板存在，立即更新
+        });
+
+        // 监听高度输入
+        document.getElementById('plateHeightInput').addEventListener('change', (e) => {
+            plateHeight = Math.max(10, parseFloat(e.target.value) || 10);
+            if (lPlateGroup) createLPlate();
+        });
+
+        // 监听颜色选择器
+        document.getElementById('plateColorPicker').addEventListener('input', (e) => {
+            plateColor = e.target.value;
+            // 如果背板已经存在，直接修改材质颜色，不需要重新创建几何体（更流畅）
+            if (lPlateGroup) {
+                lPlateGroup.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        child.material.color.set(plateColor);
+                    }
+                });
+            }
         });
         // 4. 启动程序
         animate();

@@ -260,27 +260,36 @@
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
    const NOTES_DB = {
         
-                "YJ-005A": "images/m005a.jpg", //notes
-        "YJ-005B": "images/m005b.jpg", //notes
-                "YJ-005C": "images/12.jpg", //notes
-        "YJ-006": "images/13.jpg", //notes
-        "YJ-014": "images/13.jpg", //notes
-                "YJ-002": "images/15.jpg", //notes
-        "YJ-003": "images/17.jpg", //notes
-        "YJ-004": "images/17.jpg", //notes
-        "YJ-007": "images/18.jpg", //notes
-        "YJ-011": "images/19.jpg", //notes
-        "YJ-012": "images/20.jpg", //notes
-        "YJ-013": "images/21.jpg", //notes
-        "YJ-015": "images/22.jpg", //notes
-        "YJ-016": "images/22.jpg", //notes
-        "YJ-017": "images/23.jpg", //notes
-        "YJ-018": "images/24.jpg", //notes
-        "YJ-019": "images/25.jpg", //notes
-        "YJ-020": "images/26.jpg|images/27.jpg", //notes
-        "YJ-M002": "images/QL9A0071.JPG", //notes
-        "YJ-M000A": "images/000a.jpg", //notes
-        "YJ-N001": "images/14.jpg", //notes
+                                                                                                                                        
+        
+        
+        
+        
+                        "YJ-N001": "images/14.jpg", //notes
+                "YJ-M002": "images/01941129-1.png", //notes
+        "YJ-M000A": "images/5f9b93bb-1.png", //notes
+        
+        
+        
+        "YJ-M006": "images/dd3f160f-1.png", //notes
+        "YJ-M014": "images/f5790272-1.png", //notes
+        "YJ-N002": "images/310a9d78-1.png", //notes
+        "YJ-N003": "images/7b1734f1-1.png", //notes
+        "YJ-N004": "images/ad3e4b9a-1.png", //notes
+                "YJ-N007": "images/9ffca629-1.png", //notes
+        "YJ-N008": "images/0dbaebfb-1.png", //notes
+        "YJ-N011": "images/3487040b-1.png", //notes
+        "YJ-N012": "images/fd2e9b56-1.png", //notes
+        "YJ-N013": "images/a5f26ce5-1.png", //notes
+        "YJ-N015": "images/32c1b0f8-1.png", //notes
+        "YJ-M005A": "images/d5d63cee-1.png", //notes
+        "YJ-M005B": "images/fa37c8cd-1.png", //notes
+        "YJ-M005C": "images/2af6a339-1.png", //notes
+        "YJ-N016": "images/22.jpg", //notes
+        "YJ-N020": "images/26.jpg|images/27.jpg", //notes
+        "YJ-N017": "images/23.jpg", //notes
+        "YJ-N019": "images/25.jpg", //notes
+        "YJ-N018": "images/24.jpg", //notes
         /* === 自动插入点：注意事项 === */
     };
 
@@ -317,7 +326,7 @@
             { file: "fixed01.glb",  type: "fixed", move: { z: -10 } },
             { file: "fixed.glb",  type: "fixed", move: null }
         ],
-        "YJ-003": [
+        "YJ-N003": [
             { file: "FRONT.glb",  type: "front", move: { z: 10 } },
             { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
@@ -326,7 +335,7 @@
             { file: "FIXED.FRONT2.glb",  type: "fixed", move: { z: 10 } },
             { file: "FIXED.FRONT.glb",  type: "fixed", move: { z: 10 } }
         ],
-        "YJ-004": [
+        "YJ-N004": [
             { file: "FRONT.glb",  type: "front", move: { z: 10 } },
             { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
@@ -334,7 +343,7 @@
             { file: "FIXED.glb",  type: "fixed", move: { z: -10 } },
             { file: "FIXED-LED.glb",  type: "fixed", move: null }
         ],
-        "YJ-002": [
+        "YJ-N002": [
             { file: "front.glb",  type: "front", move: { z: 10 } },
             { file: "plate.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
@@ -343,14 +352,14 @@
             { file: "fixed-front.glb",  type: "fixed", move: { z: 10 } },
             { file: "fixed-led.glb",  type: "fixed", move: null }
         ],
-        "YJ-005A": [
+        "YJ-M005A": [
             { file: "FRONT.glb",  type: "front", move: { z: 10 } },
             { file: "plate.glb",  type: "front", move: { z: 10 } },
             { file: "LED.glb",  type: "led", move: null },
             { file: "fixed-front.glb",  type: "fixed", move: { z: 10 } },
             { file: "fixed-led.glb",  type: "fixed", move: null }
         ],
-        "YJ-005B": [
+        "YJ-M005B": [
             { file: "FRONT.glb",  type: "front", move: { z: 10 } },
             { file: "PLATE.glb",  type: "front", move: { z: 10 } },
             { file: "LED.glb",  type: "led", move: null },
@@ -358,27 +367,27 @@
             { file: "FIXED-FRONT.glb",  type: "fixed", move: { z: 10 } },
             { file: "FIXED-LED.glb",  type: "fixed", move: null }
         ],
-        "YJ-005C": [
+        "YJ-M005C": [
             { file: "FRONR.glb",  type: "front", move: { z: 10 } },
             { file: "PLATE.glb",  type: "plate", move: { z: -10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED.glb",  type: "fixed", move: null }
         ],
-        "YJ-006": [
+        "YJ-M006": [
             { file: "FRONT.glb",  type: "front", move: null, change: true },
             { file: "PLATE.glb",  type: "plate", move: { z: 20 }, emissive: true },
             { file: "LED.glb",  type: "led", move: { z: 10 } },
             { file: "FIXED-LED.glb",  type: "fixed", move: { z: 10 } },
             { file: "FIXED-SQUARE.glb",  type: "fixed", move: null }
         ],
-        "YJ-007": [
+        "YJ-N007": [
             { file: "front.glb",  type: "front", move: { z: 10 } },
             { file: "frontmid.glb",  type: "front", move: { z: 10 } },
             { file: "PLATE.glb",  type: "plate", move: { z: -10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED-LED.glb",  type: "fixed", move: null }
         ],
-        "YJ-008": [
+        "YJ-N008": [
             { file: "front.glb",  type: "front", move: { z: 10 } },
             { file: "plate-back.glb",  type: "plate", move: { z: -10 }, emissive: true },
             { file: "plate-front.glb",  type: "plate", move: { z: 10 }, emissive: true },
@@ -388,32 +397,32 @@
         ],
         
         
-        "YJ-011": [
+        "YJ-N011": [
             { file: "FRONT.glb",  type: "front", move: { z: 10 } },
             { file: "PLATE.glb",  type: "plate", move: { z: -10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED-LED.glb",  type: "fixed", move: null }
         ],
-        "YJ-012": [
+        "YJ-N012": [
             { file: "FRONT-BACK.glb",  type: "front", move: { z: -10 } },
             { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED-LED.glb",  type: "fixed", move: null }
         ],
-        "YJ-013": [
+        "YJ-N013": [
             { file: "FRONT-BACK.glb",  type: "front", move: { z: -10 } },
             { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXEDLED.glb",  type: "fixed", move: null }
         ],
-        "YJ-014": [
+        "YJ-M014": [
             { file: "FRONT-BACK.glb",  type: "front", move: { z: -20 } },
             { file: "TRANSPARENT.glb",  type: "plate", move: { z: 20 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED-LED.glb",  type: "fixed", move: null },
             { file: "PLATE.glb",  type: "transparent", move: { z: 10 } }
         ],
-        "YJ-015": [
+        "YJ-N015": [
             { file: "015front.glb",  type: "front", move: { z: 10 } },
             { file: "015plate.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "led.glb",  type: "led", move: null },
@@ -421,31 +430,31 @@
             { file: "fixed-led.glb",  type: "fixed", move: null },
             { file: "fixed-plate.glb",  type: "fixed", move: { z: 10 } }
         ],
-        "YJ-016": [
+        "YJ-N016": [
             { file: "plate.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "led.glb",  type: "led", move: null },
             { file: "fixed-back.glb",  type: "fixed", move: { z: -10 } },
             { file: "fixed-led.glb",  type: "fixed", move: null },
             { file: "fixed-plate.glb",  type: "fixed", move: { z: 10 } }
         ],
-        "YJ-017": [
+        "YJ-N017": [
             { file: "LED.glb",  type: "led", move: { z: 10 } },
             { file: "FIXED.glb",  type: "fixed", move: null },
             { file: "TRANSPARENT.glb",  type: "transparent", move: { z: -10 } }
         ],
-        "YJ-018": [
+        "YJ-N018": [
             { file: "FRONT.glb",  type: "front", move: { z: -10 } },
             { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED-LED.glb",  type: "fixed", move: null }
         ],
-        "YJ-019": [
+        "YJ-N019": [
             { file: "PLATE.glb",  type: "plate", move: { z: 20 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED-LED.glb",  type: "fixed", move: null },
             { file: "PLATE-BACK.glb",  type: "fixed", move: { z: -10 } }
         ],
-        "YJ-020": [
+        "YJ-N020": [
             { file: "FIXED-BACK.glb",  type: "front", move: { z: -10 } },
             { file: "PLATE-BACK.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "PLATE-FRONT.glb",  type: "plate", move: { z: 30 }, emissive: true },
@@ -453,7 +462,7 @@
             { file: "FIXED-LED.glb",  type: "fixed", move: { z: 20 } },
             { file: "FIXED.glb",  type: "fixed", move: { z: -10 } }
         ],
-        "YJ-022": [
+        "YJ-N022": [
             { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: { z: 5 } },
             { file: "FIXED-LED.glb",  type: "fixed", move: null },
@@ -463,21 +472,21 @@
         "YJ-M201": [
             { file: "FRONT.glb",  type: "back", move: { z: -20 }, texture: true }
         ],
-        "YJ-023A": [
+        "YJ-M023A": [
             { file: "fixed-back.glb",  type: "front", move: { z: 10 } },
             { file: "back.glb",  type: "back", move: { z: 20 }, texture: true },
             { file: "plate.glb",  type: "plate", move: { z: -10 }, emissive: true },
             { file: "led.glb",  type: "led", move: null },
             { file: "fixed-led.glb",  type: "fixed", move: null }
         ],
-        "YJ-023B": [
+        "YJ-M023B": [
             { file: "BACK.glb",  type: "back", move: { z: 20 }, texture: true },
             { file: "PLATE.glb",  type: "plate", move: { z: -20 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED-LED.glb",  type: "fixed", move: null }
         ],
         "YJ-M000A": [
-            { file: "front.glb",  type: "front", move: { z: 10 }, change: true },
+            { file: "front.glb",  type: "front", move: { z: 10 } },
             { file: "plate.glb",  type: "plate", move: { z: 25 }, emissive: true },
             { file: "led.glb",  type: "led", move: null },
             { file: "FIXED-frpnt.glb",  type: "fixed", move: { z: 10 } },
@@ -855,7 +864,7 @@ if (productId === 'YJ-023A' || productId === 'YJ-023B') {
     });
 }
 
-if (productId === 'YJ-007') {
+if (productId === 'YJ-N007') {
     const ledSection = document.getElementById('ledColorPicker').closest('div');
     // 隐藏颜色方块
     ledSection.querySelectorAll('.color-swatch').forEach(swatch => {
@@ -1038,8 +1047,8 @@ if (part.type === 'back') {
     const picker = document.getElementById('ledColorPicker');
     let currentColor = new THREE.Color(picker.value);
 
-    // 【核心修改】：针对 YJ-007 的特殊颜色逻辑
-    if (productId === 'YJ-007') {
+    // 【核心修改】：针对 YJ-N007 的特殊颜色逻辑
+    if (productId === 'YJ-N007') {
         // 当 val=0 时为黑色，val=100 时为 picker 的颜色
         const black = new THREE.Color(0x000000);
         currentColor = new THREE.Color().lerpColors(black, currentColor, val / 100);
@@ -1081,8 +1090,8 @@ if (part.type === 'back') {
     // LED 颜色选择器
    document.getElementById('ledColorPicker').addEventListener('input', (e) => {
 
-    if (productId === 'YJ-007') {
-        alert('YJ-007 模型颜色固定为自动调节模式。');
+    if (productId === 'YJ-N007') {
+        alert('YJ-N007 模型颜色固定为自动调节模式。');
         e.target.value = '#FFFFFF'; 
         return;
     }
