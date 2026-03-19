@@ -587,7 +587,8 @@
                 <option value="neonFont04">Damion_Regular</option>
             </select>
         </div>
-
+<!-- 在 #canvas-container 内部最前面添加 -->
+<div id="gizmo-container" style="position: absolute; top: 20px; right: 20px; width: 120px; height: 120px; z-index: 100; cursor: pointer;"></div>
         <div id="materialSection">
             <!-- 修改为左右对齐的 Flex 布局 -->
             <div
@@ -847,7 +848,11 @@
             <hr style="border: 0; border-top: 1px solid #444; margin: 8px 0;">
 
             <!-- 第三组：操作按钮 -->
-            <button class="action-btn toggle-btn" id="toggleDimensionBtn">👁️ 隐藏标注 (Labels)</button>
+            <!-- 替换原来的 <button id="toggleDimensionBtn">... -->
+<div style="display: flex; gap: 8px;">
+    <button class="action-btn small-btn" id="toggleObjLabelsBtn" style="background: #2980b9 !important;">👁️ 文字标注</button>
+    <button class="action-btn small-btn" id="togglePlateLabelsBtn" style="background: #8e44ad !important;">👁️ 背板标注</button>
+</div>
             <button class="action-btn snapshot-btn" id="snapshotBtn">📸 导出实拍图 (Snapshot)</button>
 
 
@@ -855,30 +860,29 @@
          <!-- 背板尺寸控制区域：一行三列对齐版 -->
 <div class="thickness-control" style="margin-bottom: 10px; border-left: 3px solid #8e44ad;">
     <div style="margin-bottom: 8px;">
-        <label style="margin:0; color:#8e44ad;">📏 背板尺寸 (宽 x 高 x 厚 cm)</label>
+        <!-- 单位改为 mm -->
+        <label style="margin:0; color:#8e44ad;">📏 背板尺寸 (宽 x 高 x 厚 mm)</label>
     </div>
     
-    <!-- 核心排版：使用 flex 布局平分三列 -->
     <div style="display: flex; gap: 5px;">
-        <!-- 第一列：宽度 -->
         <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 10px; color: #888; white-space: nowrap;">宽度(W)</span>
-            <input type="number" id="plateWidthInput" class="num-input" value="80" style="width: 100%; box-sizing: border-box;">
+            <!-- 初始值改为 1000 -->
+            <input type="number" id="plateWidthInput" class="num-input" value="1000" style="width: 100%; box-sizing: border-box;">
         </div>
         
-        <!-- 第二列：高度 -->
         <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 10px; color: #888; white-space: nowrap;">高度(H)</span>
-            <input type="number" id="plateHeightInput" class="num-input" value="40" style="width: 100%; box-sizing: border-box;">
+            <!-- 初始值改为 400 -->
+            <input type="number" id="plateHeightInput" class="num-input" value="400" style="width: 100%; box-sizing: border-box;">
         </div>
         
-        <!-- 第三列：厚度 -->
         <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 10px; color: #888; white-space: nowrap;">厚度(T)</span>
-            <input type="number" id="plateThicknessInput" class="num-input" value="1" step="0.1" style="width: 100%; box-sizing: border-box;">
+            <!-- 初始值改为 10 -->
+            <input type="number" id="plateThicknessInput" class="num-input" value="10" step="1" style="width: 100%; box-sizing: border-box;">
         </div>
     </div>
-
     <!-- 下方的调色盘 -->
     <div style="margin-top: 10px;">
         <label style="margin-bottom:5px; color:#8e44ad; font-size: 11px;">🎨 背板背景颜色</label>
@@ -953,14 +957,15 @@
         let backThickness = 50;
         let neonTubeSize = 20;   // 霓虹管默认直径 20mm
         let neonPlateDepth = 5;  // 底板默认厚度 5mm
-        let plateWidth = 80;  // 默认宽 80cm背板
-        let plateHeight = 40; // 默认高 40cm
-        let plateThickness = 1;
+        let plateWidth = 1000;  // 默认宽 80cm背板
+        let plateHeight = 400; // 默认高 40cm
+        let plateThickness = 10;
         let plateColor = '#1a1a1a'; // 默认深灰色
         // 字体相关
         let currentFont = null;
         let fontLoader = new FontLoader();
-        let isDimensionVisible = true; // 挪到最上方
+        let isObjectLabelsVisible = true; // 控制文字/物体标注
+let isPlateLabelsVisible = true;  // 控制背板标注
 let svgOriginalAspectRatio = 1.0; // 记录导入 SVG 的原始宽高比
         // 核心组
         let frontMeshes = [];    // 普通模式正面 / 盒子模式的内部金属字
@@ -1372,7 +1377,102 @@ document.getElementById('plateThicknessInput').addEventListener('change', (e) =>
                 default: return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
             }
         }
+// ==========================================
+// 导航球 (ViewCube) 逻辑实现
+// ==========================================
 
+const gizmoContainer = document.getElementById('gizmo-container');
+const gizmoScene = new THREE.Scene();
+const gizmoCamera = new THREE.OrthographicCamera(-2, 2, 2, -2, 1, 100);
+gizmoCamera.position.set(0, 0, 10);
+
+const gizmoRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+gizmoRenderer.setSize(120, 120);
+gizmoRenderer.setPixelRatio(window.devicePixelRatio);
+gizmoContainer.appendChild(gizmoRenderer.domElement);
+
+// 创建立方体面贴图 (Canvas 绘制文字)
+function createCubeFaceTexture(text, bgColor, textColor) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    
+    // 背景
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, 128, 128);
+    
+    // 边框
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(0, 0, 128, 128);
+    
+    // 文字
+    ctx.fillStyle = textColor;
+    ctx.font = 'bold 70px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 64, 64);
+    
+    const tex = new THREE.CanvasTexture(canvas);
+    return new THREE.MeshBasicMaterial({ map: tex });
+}
+
+const faceMaterials = [
+    createCubeFaceTexture('X', '#444', '#ff4444'),  // +X (Right)
+    createCubeFaceTexture('-X', '#444', '#ff4444'), // -X (Left)
+    createCubeFaceTexture('Y', '#444', '#44ff44'),  // +Y (Top)
+    createCubeFaceTexture('-Y', '#444', '#44ff44'), // -Y (Bottom)
+    createCubeFaceTexture('Z', '#f39c12', '#fff'),  // +Z (Front) - 橙色高亮主视角
+    createCubeFaceTexture('-Z', '#444', '#4444ff')  // -Z (Back)
+];
+
+const gizmoCube = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), faceMaterials);
+gizmoScene.add(gizmoCube);
+
+// 点击导航球切换视角
+const gizmoRaycaster = new THREE.Raycaster();
+const gizmoMouse = new THREE.Vector2();
+
+gizmoContainer.addEventListener('click', (event) => {
+    const rect = gizmoContainer.getBoundingClientRect();
+    gizmoMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    gizmoMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    gizmoRaycaster.setFromCamera(gizmoMouse, gizmoCamera);
+    const intersects = gizmoRaycaster.intersectObject(gizmoCube);
+
+    if (intersects.length > 0) {
+        const faceIndex = intersects[0].faceIndex;
+        // 判定点击了哪个面
+        // faceIndex: 0,1 (+X); 2,3 (-X); 4,5 (+Y); 6,7 (-Y); 8,9 (+Z); 10,11 (-Z)
+        let targetPos = new THREE.Vector3();
+        const dist = camera.position.distanceTo(controls.target);
+
+        if (faceIndex < 2) targetPos.set(dist, 0, 0);       // Right
+        else if (faceIndex < 4) targetPos.set(-dist, 0, 0);  // Left
+        else if (faceIndex < 6) targetPos.set(0, dist, 0);   // Top
+        else if (faceIndex < 8) targetPos.set(0, -dist, 0);  // Bottom
+        else if (faceIndex < 10) targetPos.set(0, 0, dist);  // Front
+        else targetPos.set(0, 0, -dist);                     // Back
+
+        // 使用 GSAP 平滑旋转相机
+        gsap.to(camera.position, {
+            x: targetPos.x,
+            y: targetPos.y,
+            z: targetPos.z,
+            duration: 0.8,
+            ease: "power2.inOut",
+            onUpdate: () => controls.update()
+        });
+    }
+});
+
+// 在渲染循环中同步导航球角度
+function updateGizmo() {
+    gizmoCube.quaternion.copy(camera.quaternion).invert();
+    gizmoRenderer.render(gizmoScene, gizmoCamera);
+}
         function loadFontAndGenerate(fontType, text, adjustCamera = true) {
             const url = getFontUrlByType(fontType);
             loadingEl.style.display = 'flex';
@@ -1532,7 +1632,7 @@ function takeSnapshot() {
         let haloSprite = null;
 
         // --- L型背板改为：纯平后背墙，无任何附加光源 ---
-        function createLPlate() {
+function createLPlate() {
     if (lPlateGroup) {
         scene.remove(lPlateGroup);
         lPlateGroup.traverse(child => {
@@ -1551,20 +1651,18 @@ function takeSnapshot() {
         side: THREE.DoubleSide
     });
 
-    // 【核心修改】：从 PlaneGeometry 升级为 BoxGeometry (宽, 高, 深)
-    const geometry = new THREE.BoxGeometry(plateWidth, plateHeight, plateThickness);
+    // 关键：将 mm 转换为 cm 渲染 (除以 10)
+    const geometry = new THREE.BoxGeometry(plateWidth / 10, plateHeight / 10, plateThickness / 10);
     const wall = new THREE.Mesh(geometry, plateMat);
 
-    // 设置位置：
-    // 我们希望背板的【正面】固定在 z = -10 的位置
-    // 因为 BoxGeometry 的中心在 0,0,0，所以中心点要设在 -10 减去厚度的一半
-    wall.position.z = -10 - (plateThickness / 2);
+    // 计算 Z 轴偏移，依然使用 cm 单位
+    wall.position.z = -(plateThickness / 10 / 2); 
 
     lPlateGroup.add(wall);
     lPlateGroup.layers.set(2); 
     scene.add(lPlateGroup);
     
-    updateDimensions(); // 每次创建后刷新标注
+    updateDimensions(); 
 }
         // 在页面加载完成时默认调用
         createLPlate();
@@ -1573,108 +1671,160 @@ function takeSnapshot() {
 
 
     // ==========================================
-            function updateDimensions() {
-                if (!dimensionGroup) return;
-    dimensionGroup.clear(); // 清空所有旧标注
+function updateDimensions() {
+    if (!dimensionGroup) return;
+    dimensionGroup.clear(); 
 
-    // 1. 基础安全检查：确保物体矩阵已更新
-    textGroup.updateMatrixWorld(true);
-    if (lPlateGroup) lPlateGroup.updateMatrixWorld(true);
-
+    const fDepth = frontThickness / 10; 
+    const bDepth = backThickness / 10;
     const scaleFactor = textSize / 26; 
-    const visualOffset = 15 * scaleFactor;
     
-    // --- 定义文字相关的默认变量，防止后续逻辑崩溃 ---
-    let tMin = { x: 0, y: 0, z: 0 };
-    let tMax = { x: 0, y: 0, z: 0 };
-    let tCenter = new THREE.Vector3(0, 0, 0);
+    const cadOffset = 14 * scaleFactor;   
+    const tickLength = 3 * scaleFactor;   
+    const labelZ = 15;                    
 
-    // 2. 处理文字标注 (黄色)
-    const textBox = new THREE.Box3().setFromObject(textGroup);
-    
-    // 只有当文字包围盒有效（不是无限大或为空）时才生成文字标注
-    if (!textBox.isEmpty() && isFinite(textBox.min.x)) {
-        tMin = textBox.min;
-        tMax = textBox.max;
-        textBox.getCenter(tCenter);
+    const drawIndustrialDim = (p1, p2, offsetVec, text, color = 0xf39c12, axisName = '') => {
+        const group = new THREE.Group();
+        const lineMat = new THREE.LineBasicMaterial({ 
+            color: color, 
+            transparent: true, 
+            opacity: 0.8,
+            depthTest: false 
+        });
+
+        const dimStart = p1.clone().add(offsetVec);
+        const dimEnd = p2.clone().add(offsetVec);
+
+        const mainLineGeo = new THREE.BufferGeometry().setFromPoints([dimStart, dimEnd]);
+        const mainLine = new THREE.Line(mainLineGeo, lineMat);
+        mainLine.renderOrder = 999;
+        group.add(mainLine);
+
+        const dir = new THREE.Vector3().subVectors(dimEnd, dimStart).normalize();
+        const sideDir = new THREE.Vector3(-dir.y, dir.x, 0).multiplyScalar(tickLength);
         
-        const labelZ = textGroup.position.z + 2; 
-
-        // 文字高度 (H)
-        const realH_mm = (textSize * 10).toFixed(1); 
-        const yPos = new THREE.Vector3(tMin.x - visualOffset, tCenter.y, labelZ).add(labelManualOffsets.y);
-        dimensionGroup.add(createTextLabel(realH_mm + " mm", yPos, scaleFactor, '#f39c12'));
-
-        // 文字宽度 (W)
-        const realW_mm = (textSize * svgOriginalAspectRatio * 10).toFixed(1); 
-        const xPos = new THREE.Vector3(tCenter.x, tMin.y - visualOffset, labelZ).add(labelManualOffsets.x);
-        dimensionGroup.add(createTextLabel(realW_mm + " mm", xPos, scaleFactor, '#f39c12'));
-
-        // 文字厚度 (T)
-        let baseThickness = (glowMode === 'frontBackGlow') ? frontThickness : 
-                           (glowMode === 'testFrontGlow' ? backThickness : 
-                           (['sideHalfGlowTest', 'backGlow', 'frontGlow'].includes(glowMode) ? (frontThickness + backThickness) : frontThickness));
+        const tick1Points = [dimStart.clone().add(sideDir), dimStart.clone().sub(sideDir)];
+        const tick2Points = [dimEnd.clone().add(sideDir), dimEnd.clone().sub(sideDir)];
         
-        const zPos = new THREE.Vector3(tMax.x + visualOffset, tMin.y, labelZ).add(labelManualOffsets.z);
-        dimensionGroup.add(createTextLabel(baseThickness.toFixed(1) + " mm", zPos, scaleFactor, '#f39c12'));
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick1Points), lineMat));
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick2Points), lineMat));
+
+        const center = new THREE.Vector3().addVectors(dimStart, dimEnd).multiplyScalar(0.5);
+        const textMargin = offsetVec.clone().normalize().multiplyScalar(2 * scaleFactor);
+        const labelPos = center.clone().add(textMargin).add(labelManualOffsets[axisName] || new THREE.Vector3());
+        
+        const label = createTextLabel(text, labelPos, scaleFactor * 0.9, color);
+        label.userData.axis = axisName;
+        group.add(label);
+
+        dimensionGroup.add(group);
+    };
+
+    // --- 始终执行：背板物理位置修正 ---
+    if (lPlateGroup) {
+        let plateZ = 0;
+        const antiFight = 0.001;
+        switch (glowMode) {
+            case 'backGlow': case 'frontGlow': case 'sideHalfGlowTest':
+                plateZ = -bDepth - 0.01 - antiFight; break;
+            case 'testFrontGlow': plateZ = -bDepth - antiFight; break;
+            case 'frontBackGlow': plateZ = -fDepth - 0.1 - 0.05 - antiFight; break;
+            case 'sideGlowTest': case 'testBackGlow': plateZ = -0.11 - antiFight; break;
+            default: plateZ = 0 - antiFight;
+        }
+        lPlateGroup.position.z = plateZ;
     }
 
-    // --- B. 处理背板标注 (白色) ---
-    // 关键修复：确保这一块逻辑独立，不被文字逻辑干扰
-    if (lPlateGroup && lPlateGroup.parent) {
-        const plateBox = new THREE.Box3().setFromObject(lPlateGroup);
-        if (!plateBox.isEmpty() && isFinite(plateBox.min.x)) {
-            const pMin = plateBox.min;
-            const pMax = plateBox.max;
-            const pCenter = new THREE.Vector3();
-            plateBox.getCenter(pCenter);
+    // --- A. 文字标注 (Object Labels) ---
+    if (isObjectLabelsVisible) {
+        const textBox = new THREE.Box3().setFromObject(textGroup);
+        if (!textBox.isEmpty() && isFinite(textBox.min.x)) {
+            const tMin = textBox.min;
+            const tMax = textBox.max;
+
+            drawIndustrialDim(
+                new THREE.Vector3(tMin.x, tMax.y, labelZ),
+                new THREE.Vector3(tMax.x, tMax.y, labelZ),
+                new THREE.Vector3(0, cadOffset, 0),
+                (textSize * svgOriginalAspectRatio * 10).toFixed(0) + " mm",
+                '#f39c12', 'x'
+            );
+
+            drawIndustrialDim(
+                new THREE.Vector3(tMin.x, tMin.y, labelZ),
+                new THREE.Vector3(tMin.x, tMax.y, labelZ),
+                new THREE.Vector3(-cadOffset, 0, 0),
+                (textSize * 10).toFixed(0) + " mm",
+                '#f39c12', 'y'
+            );
+
+            let baseThickness = (glowMode === 'frontBackGlow' || glowMode === 'acrylicCut' || glowMode === 'metalCut') ? frontThickness : 
+                               (glowMode === 'testFrontGlow' ? backThickness : 
+                               (['sideHalfGlowTest', 'backGlow', 'frontGlow'].includes(glowMode) ? (frontThickness + backThickness) : frontThickness));
             
-            const pZFront = pMax.z + 2; 
-
-            // 1. 背板宽度 (W) - 放在文字宽度下方
-            const pWPos = new THREE.Vector3(pCenter.x, pMin.y - (visualOffset * 2.2), pZFront).add(labelManualOffsets.pW);
-            dimensionGroup.add(createTextLabel("W:" + (plateWidth * 10).toFixed(0) + " mm", pWPos, scaleFactor, '#ffffff'));
-
-            // 2. 背板高度 (H) - 定位在文字高标注的【右上方】
-            // 即使没有文字(tMin为0)，它也会相对于原点偏移，不会消失
-            const pHPos = new THREE.Vector3(
-                (tMin.x - visualOffset) + (visualOffset * 0.8), 
-                tMax.y + 10, 
-                pZFront
-            ).add(labelManualOffsets.pH);
-            dimensionGroup.add(createTextLabel("H:" + (plateHeight * 10).toFixed(0) + " mm", pHPos, scaleFactor, '#ffffff'));
-
-            // 3. 背板厚度 (T) - 放在右上角
-            const pTPos = new THREE.Vector3(pMax.x + visualOffset, pMax.y - 5, (pMin.z + pMax.z) / 2).add(labelManualOffsets.pT);
-            dimensionGroup.add(createTextLabel("T:" + (plateThickness * 10).toFixed(0) + " mm", pTPos, scaleFactor, '#ffffff'));
+            drawIndustrialDim(
+                new THREE.Vector3(tMax.x, tMin.y, tMax.z),
+                new THREE.Vector3(tMax.x, tMin.y, tMin.z),
+                new THREE.Vector3(cadOffset * 0.8, -cadOffset * 0.5, 0),
+                baseThickness.toFixed(1) + " mm",
+                '#f39c12', 'z'
+            );
         }
     }
 
-    // 确保 dimensionGroup 的显示状态正确
-    dimensionGroup.visible = (typeof isDimensionVisible !== 'undefined') ? isDimensionVisible : true;
+    // --- B. 背板标注 (Plate Labels) ---
+    if (isPlateLabelsVisible && lPlateGroup) {
+        const plateBox = new THREE.Box3().setFromObject(lPlateGroup);
+        const pMin = plateBox.min, pMax = plateBox.max;
+        const pZ = pMax.z + 1;
+
+        drawIndustrialDim(
+            new THREE.Vector3(pMin.x, pMin.y, pZ),
+            new THREE.Vector3(pMax.x, pMin.y, pZ),
+            new THREE.Vector3(0, -cadOffset * 2.5, 0),
+            "W: " + (plateWidth).toFixed(0) + " mm",
+            '#ffffff', 'pW'
+        );
+
+        drawIndustrialDim(
+            new THREE.Vector3(pMin.x, pMin.y, pZ),
+            new THREE.Vector3(pMin.x, pMax.y, pZ),
+            new THREE.Vector3(-cadOffset * 2.5, 0, 0),
+            "H: " + (plateHeight).toFixed(0) + " mm",
+            '#ffffff', 'pH'
+        );
+
+        drawIndustrialDim(
+            new THREE.Vector3(pMax.x, pMax.y, pMax.z),
+            new THREE.Vector3(pMax.x, pMax.y, pMin.z),
+            new THREE.Vector3(cadOffset, cadOffset * 0.5, 0),
+            "T: " + (plateThickness).toFixed(1) + " mm",
+            '#ffffff', 'pT'
+        );
+    }
+
+    // 只要有任何一组标注开启，组就设为可见
+    dimensionGroup.visible = true; 
 }
     // 关键：确保这里使用的是已经声明好的 isDimensionVisible
     dimensionGroup.visible = (typeof isDimensionVisible !== 'undefined') ? isDimensionVisible : true;
        // --- 标注显示/隐藏切换逻辑 ---
       
 
-        document.getElementById('toggleDimensionBtn').addEventListener('click', () => {
-            // 1. 切换布尔值状态
-            isDimensionVisible = !isDimensionVisible;
+   document.getElementById('toggleObjLabelsBtn').addEventListener('click', (e) => {
+    isObjectLabelsVisible = !isObjectLabelsVisible;
+    updateDimensions(); // 触发重绘
+    e.target.innerText = isObjectLabelsVisible ? '👁️ 文字标注' : '🚫 隐藏文字标注';
+    e.target.style.background = isObjectLabelsVisible ? '#2980b9' : '#4a4a4a';
+});
 
-            // 2. 核心：设置 Three.js 组的可见性
-            // dimensionGroup 是你存放所有线和数字标签的容器
-            if (dimensionGroup) {
-                dimensionGroup.visible = isDimensionVisible;
-            }
-
-            // 3. 更新按钮文字，提供 UI 反馈
-            const btn = document.getElementById('toggleDimensionBtn');
-            btn.innerText = isDimensionVisible ? '👁️ 隐藏标注 (Hide Labels)' : '👁️ 显示标注 (Show Labels)';
-
-            // 4. 可选：改变按钮颜色
-            btn.style.background = isDimensionVisible ? '#2980b9' : '#4a4a4a';
-        });
+// 控制背板标注显示隐藏
+document.getElementById('togglePlateLabelsBtn').addEventListener('click', (e) => {
+    isPlateLabelsVisible = !isPlateLabelsVisible;
+    updateDimensions(); // 触发重绘
+    e.target.innerText = isPlateLabelsVisible ? '👁️ 背板标注' : '🚫 隐藏背板标注';
+    e.target.style.background = isPlateLabelsVisible ? '#8e44ad' : '#4a4a4a';
+});
 
         // 绑定按钮点击事件
         document.getElementById('snapshotBtn').addEventListener('click', takeSnapshot);
@@ -3826,6 +3976,19 @@ if (textSizeInput) {
         }
         // 2. 主动画循环
        function animate() {
+         requestAnimationFrame(animate);
+    if (document.hidden) return;
+
+    delta += clock.getDelta();
+    if (delta < interval) return;
+
+    if (controls) controls.update();
+    
+    // --- 新增：同步导航球 ---
+    updateGizmo(); 
+
+    // 原有的渲染逻辑...
+    const currentTime = performance.now() * 0.001;
             // 必须先请求下一帧，保证循环持续
             requestAnimationFrame(animate);
 
@@ -3841,8 +4004,7 @@ if (textSizeInput) {
 
             const brightnessSlider = document.getElementById('brightnessSlider');
             const safeBrightness = brightnessSlider ? (parseFloat(brightnessSlider.value) / 100) : 0.15;
-            const currentTime = performance.now() * 0.001;
-
+            
             // --- 1. 计算当前基准颜色 ---
             let activeColor = new THREE.Color(document.getElementById('ledColorPicker').value);
 
@@ -3889,6 +4051,8 @@ if (textSizeInput) {
 
             // 渲染完成后，减去间隔时间，为下一帧做准备
             delta = delta % interval;
+            renderSceneAll();
+    delta = delta % interval;
         }
         // 3. 窗口自适应监听
         // --- 终极整合键盘监听器 (放在 animate() 之后) ---
