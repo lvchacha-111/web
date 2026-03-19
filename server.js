@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const app = express();
 const port = 5000;
-
+app.use(compression());
 // 允许所有静态文件访问
 app.use(express.static(path.join(__dirname)));
 
