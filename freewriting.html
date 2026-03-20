@@ -315,21 +315,38 @@
             box-shadow: 0 0 8px #f39c12, 0 0 12px rgba(243, 156, 18, 0.5);
         }
 
-        #textInput {
-            width: 100%;
-            padding: 12px;
-            background: #eee;
-            border: none;
-            color: #000;
-            font-size: 20px;
-            border-radius: 4px;
-            outline: none;
-            font-weight: bold;
-            text-align: center;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            box-sizing: border-box;
-        }
+      /* 修改文本域样式以适应多行 */
+#textInput {
+    width: 100%;
+    padding: 10px;
+    background: #eee;
+    border: none;
+    color: #000;
+    font-size: 16px; /* 多行时稍微减小字号 */
+    border-radius: 4px;
+    outline: none;
+    font-weight: bold;
+    text-align: inherit; /* 继承对齐方式 */
+    letter-spacing: 1px;
+    box-sizing: border-box;
+    font-family: 'Microsoft YaHei', sans-serif;
+    resize: vertical; /* 允许垂直拉伸 */
+    min-height: 60px;
+}
+
+/* 对齐按钮激活样式 */
+.align-btn {
+    background: #444 !important;
+    border: 1px solid #666 !important;
+    color: #888;
+    cursor: pointer;
+}
+
+.align-btn.active {
+    background: #f39c12 !important;
+    border-color: #f39c12 !important;
+    color: white !important;
+}
 
         #textInput:focus {
             box-shadow: 0 0 0 3px #f39c12;
@@ -569,10 +586,19 @@
             </select>
         </div>
 
-        <div>
-            <label style="color:#f39c12">✎ 输入文字 (中 / 英)</label>
-            <input type="text" id="textInput" value="YiJiao" placeholder="输入中文或英文">
+      <div>
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; margin-top: 10px;">
+        <label style="color:#f39c12; margin: 0;">✎ 输入文字 (支持换行)</label>
+        <!-- 对齐按钮组 -->
+        <div class="align-group" style="display: flex; gap: 2px;">
+            <button class="small-btn align-btn active" data-align="left" title="左对齐" style="padding: 2px 6px !important; border-radius: 3px 0 0 3px;">左</button>
+            <button class="small-btn align-btn" data-align="center" title="居中对齐" style="padding: 2px 6px !important; border-radius: 0;">中</button>
+            <button class="small-btn align-btn" data-align="right" title="右对齐" style="padding: 2px 6px !important; border-radius: 0 3px 3px 0;">右</button>
         </div>
+    </div>
+    <!-- 将 input 换成 textarea -->
+    <textarea id="textInput" rows="3" placeholder="输入文字...&#10;支持回车换行">YiJiao</textarea>
+</div>
 
         <div>
             <label>🔤 字体选择</label>
@@ -837,6 +863,7 @@
                     <button class="action-btn small-btn hidden danger-btn" id="clearSvgBtn">移除</button>
                 </div>
             </div>
+<!-- 找到这一块，直接替换 -->
 
             <!-- 第二组：背景图片上传 -->
             <div class="upload-row">
@@ -933,6 +960,7 @@
         // ==========================================
 
         // --- 物体拖拽相关变量 ---
+// 在 let svgPaths 附近添加：
 
         let colourAttrColor = 0xffffff; // 存储 Colour 属性的颜色
         let isMoveModeActive = false; // 是否处于 M 键激活的移动模式中
@@ -1022,6 +1050,22 @@ let lastText = "";
         let isMovingPanel = false;
         let panelOffsetX = 0;
         let panelOffsetY = 0;
+        let textAlign = 'left'; // 默认左对齐
+
+// 绑定对齐按钮点击事件
+document.querySelectorAll('.align-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.align-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        textAlign = btn.dataset.align;
+        
+        // 同步输入框的文字预览对齐
+        document.getElementById('textInput').style.textAlign = textAlign;
+        
+        // 重新生成3D模型
+        generate3DText(document.getElementById('textInput').value, false);
+    });
+});
         // --- 处理面板颜色 (Colour Attribute) 的色块点击 ---
         // 处理面板颜色 (Colour Attribute) 的色块点击
         // --- 专门处理【面板颜色】的点击 ---
@@ -1959,73 +2003,75 @@ function createWallGlow(geo, color) {
     
     return glowGroup;
 }
-      function generate3DText(textString, adjustCamera = true) {
+async function parseSvgToShapes(file) {
+    const text = await file.text();
+    const parsed = svgLoader.parse(text);
+    const shapes = [];
+    parsed.paths.forEach(path => shapes.push(...path.toShapes(true)));
+    return shapes;
+}
+
+
+
+
+
+    function generate3DText(textString, adjustCamera = true) {
+    console.log("=== 开始生成 3D 模型 ===");
+
     // 1. 基础检查
     if (!isSvgMode && !currentFont) {
         loadFontAndGenerate('helvetiker', textString, adjustCamera);
         return;
     }
 
-    // --- 【优化点：创建后台缓冲区容器】 ---
     const backstageGroup = new THREE.Group();
-    let newFlowMeshes = [];
-    let newFrontMeshes = [];
-    let newBackMeshes = [];
-    let newColourMeshes = [];
-    let newSingleMesh = null;
-// 【3. 材质更新（优化：持久化复用，杜绝重复创建）】
-            const ledColorVal = document.getElementById('ledColorPicker').value;
-            const ledColor = new THREE.Color(ledColorVal);
+    let newFlowMeshes = [], newFrontMeshes = [], newBackMeshes = [], newColourMeshes = [];
 
-            // 1. 复用面板材质
-            if (!sharedColourAttrMat) {
-                sharedColourAttrMat = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide });
-            }
-            sharedColourAttrMat.color.set(document.getElementById('colourAttrPicker').value);
+    // 2. 材质更新逻辑
+    const ledColorVal = document.getElementById('ledColorPicker').value;
+    const ledColor = new THREE.Color(ledColorVal);
 
-            // 2. 复用外壳材质 (Paint / Metal)
-            if (isPaintMode) {
-                if (!sharedCapMat || !sharedCapMat.userData.isPaint) {
-                    sharedCapMat = new THREE.MeshStandardMaterial({ roughness: 0.2, metalness: 0.05, side: THREE.DoubleSide, depthWrite: true });
-                    sharedCapMat.userData.isPaint = true;
-                }
-                sharedCapMat.color.set(currentPaintColor);
-            } else {
-                // 金属模式：涉及贴图切换，暂时调用原有函数（建议在 createBackMaterial 内部也做缓存）
-                sharedCapMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
-            }
+    if (!sharedColourAttrMat) {
+        sharedColourAttrMat = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide });
+    }
+    sharedColourAttrMat.color.set(document.getElementById('colourAttrPicker').value);
 
-            // 3. 复用 LED 材质 (这是解决卡顿的核心)
-            if (!sharedLedMat) {
-                sharedLedMat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
-                // 只有在第一次创建时，注入 Shader 代码
-                if (isFlowRGB && glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
-                    sharedLedMat.userData.uTime = { value: 0 };
-                    sharedLedMat.onBeforeCompile = (shader) => {
-                        shader.uniforms.uTime = sharedLedMat.userData.uTime;
-                        shader.vertexShader = `varying vec3 vWorldPos;\n` + shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
-                        shader.fragmentShader = `uniform float uTime; varying vec3 vWorldPos;\n` + shader.fragmentShader.replace('#include <emissivemap_fragment>', `float xPos = vWorldPos.x * 0.05; float t = uTime * 4.0 - xPos; vec3 rainbow = vec3(0.5 + 0.5 * sin(t), 0.5 + 0.5 * sin(t + 2.094), 0.5 + 0.5 * sin(t + 4.188)); vec3 softColor = mix(rainbow, vec3(1.0), 0.3); totalEmissiveRadiance *= softColor;`);
-                    };
-                }
-            }
-            
-            // 实时更新属性值，而非重新创建对象
-            sharedLedMat.color.set(isFlowRGB ? 0x000000 : ledColor);
-            sharedLedMat.emissive.set(isFlowRGB ? 0xffffff : ledColor);
-            sharedLedMat.emissiveIntensity = isFlowRGB ? 1.5 : (document.getElementById('brightnessSlider').value / 100) * 1.2;
-            sharedLedMat.needsUpdate = true;
-    // 3. 几何体生成逻辑
+    if (isPaintMode) {
+        if (!sharedCapMat || !sharedCapMat.userData.isPaint) {
+            sharedCapMat = new THREE.MeshStandardMaterial({ roughness: 0.2, metalness: 0.05, side: THREE.DoubleSide, depthWrite: true });
+            sharedCapMat.userData.isPaint = true;
+        }
+        sharedCapMat.color.set(currentPaintColor);
+    } else {
+        sharedCapMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
+    }
+
+    if (!sharedLedMat) {
+        sharedLedMat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
+        // 此处保留原有的 Shader 注入逻辑 (用于流水灯)
+        if (isFlowRGB && glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
+            sharedLedMat.userData.uTime = { value: 0 };
+            sharedLedMat.onBeforeCompile = (shader) => {
+                shader.uniforms.uTime = sharedLedMat.userData.uTime;
+                shader.vertexShader = `varying vec3 vWorldPos;\n` + shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
+                shader.fragmentShader = `uniform float uTime; varying vec3 vWorldPos;\n` + shader.fragmentShader.replace('#include <emissivemap_fragment>', `float xPos = vWorldPos.x * 0.05; float t = uTime * 4.0 - xPos; vec3 rainbow = vec3(0.5 + 0.5 * sin(t), 0.5 + 0.5 * sin(t + 2.094), 0.5 + 0.5 * sin(t + 4.188)); vec3 softColor = mix(rainbow, vec3(1.0), 0.3); totalEmissiveRadiance *= softColor;`);
+            };
+        }
+    }
+    sharedLedMat.color.set(isFlowRGB ? 0x000000 : ledColor);
+    sharedLedMat.emissive.set(isFlowRGB ? 0xffffff : ledColor);
+    sharedLedMat.emissiveIntensity = isFlowRGB ? 1.5 : (document.getElementById('brightnessSlider').value / 100) * 1.2;
+    sharedLedMat.needsUpdate = true;
+
+    // 3. 几何体生成参数
+    const commonExtrude = { bevelEnabled: false, steps: 1, caps: true, curveSegments: 5 };
     const fDepth = frontThickness / 10;
     const bDepth = backThickness / 10;
-    let fGeo, bGeo, singleGeo, innerGeo;
-   const commonExtrude = { 
-    bevelEnabled: false, 
-    steps: 1, 
-    caps: true, 
-    curveSegments: 5  // 将精度从默认的 12 降到 5，计算量直接砍掉一大半
-};
+    const lineSpacing = 1.3; // 行高间距系数
 
+    // 4. 判断模式生成
     if (isSvgMode && svgPaths) {
+        // SVG 模式通常为单块图形，保持原逻辑
         const shapes = [];
         svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
         const tempShapeGeo = new THREE.ShapeGeometry(shapes);
@@ -2034,178 +2080,194 @@ function createWallGlow(geo, color) {
         const scale = textSize / pixelH;
         const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
 
-        fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth / scale });
-        bGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: bDepth / scale });
-        innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: 0.1 / scale });
-        singleGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: (fDepth + bDepth) / scale });
+        const fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth / scale });
+        const bGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: bDepth / scale });
+        const innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: 0.1 / scale });
 
-        [fGeo, bGeo, innerGeo, singleGeo].forEach(geo => {
+        [fGeo, bGeo, innerGeo].forEach(geo => {
             geo.applyMatrix4(matrix);
             geo.computeBoundingBox();
             const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
             const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
             geo.translate(cx, cy, 0);
         });
+        
+        // 此处组装逻辑直接调用下方组装块即可 (为了简洁，SVG暂不支持拆行对齐)
+        assembleMeshes(fGeo, bGeo, innerGeo, 0, 0, backstageGroup);
     } else {
+        // --- 多行文本处理逻辑 ---
+        const lines = textString.split('\n');
         const refSize = 10;
-        const tempGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: refSize, height: 0 });
+        
+        // 计算缩放基准 (以第一行非空字符为准)
+        const sampleText = lines.find(l => l.trim() !== "") || "A";
+        const tempGeo = new TextGeometry(sampleText, { font: currentFont, size: refSize, height: 0 });
         tempGeo.computeBoundingBox();
         const rawH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
         const finalScale = textSize / rawH;
-        if (!isSvgMode) svgOriginalAspectRatio = (tempGeo.boundingBox.max.x - tempGeo.boundingBox.min.x) / rawH;
         const scaledFontSize = refSize * finalScale;
 
-        fGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth });
-        bGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: bDepth });
-        singleGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth + bDepth });
-        innerGeo = new TextGeometry(textString, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: 0.1 });
+        lines.forEach((lineText, index) => {
+            if (lineText.trim() === "") return; // 跳过空行
 
-        [fGeo, bGeo, singleGeo, innerGeo].forEach(geo => {
-            geo.scale(1, yScale, 1);
-            geo.computeBoundingBox();
-            const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
-            const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
-            geo.translate(cx, cy, 0);
+            // 为每一行创建独立的几何体
+            const lineFGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth });
+            const lineBGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: bDepth });
+            const lineInnerGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: 0.1 });
+
+            [lineFGeo, lineBGeo, lineInnerGeo].forEach(geo => {
+                geo.scale(1, yScale, 1);
+                geo.computeBoundingBox();
+            });
+
+            // 计算对齐偏移
+            const lineWidth = lineFGeo.boundingBox.max.x - lineFGeo.boundingBox.min.x;
+            let xOffset = 0;
+            if (textAlign === 'center') xOffset = -lineWidth / 2;
+            else if (textAlign === 'right') xOffset = -lineWidth;
+            else xOffset = 0; // 左对齐
+
+            // 计算行高偏移 (向下位移)
+            const yOffset = -index * (textSize * lineSpacing);
+
+            // 调用组装函数
+            assembleMeshes(lineFGeo, lineBGeo, lineInnerGeo, xOffset, yOffset, backstageGroup);
         });
     }
 
-    // 4. 根据工艺模式组装到 backstageGroup (保持原有分支逻辑)
-    if (glowMode === 'testFrontGlow') {
-        const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
-        const mShell = new THREE.Mesh(bGeo, capMat);
-        mLED.position.z = 0.11;
-        mShell.position.z = -bDepth;
-        mLED.userData.isLed = true;
-        mLED.layers.enable(BLOOM_SCENE);
-        backstageGroup.add(mLED, mShell);
-        newFrontMeshes = [mLED]; newBackMeshes = [mShell];
-        if (isFlowRGB) newFlowMeshes.push(mLED);
-    } 
-    else if (glowMode === 'sideGlowTest') {
-        const glowMesh = new THREE.Mesh(fGeo, sharedLedMat);
-        glowMesh.userData.isLed = true; glowMesh.layers.enable(BLOOM_SCENE);
-        const colourMesh = new THREE.Mesh(innerGeo,sharedColourAttrMat);
-        colourMesh.position.z = fDepth + 0.01;
-        const fixedMesh = new THREE.Mesh(innerGeo, createBackMaterial('Metal011', true, 0xffffff));
-        fixedMesh.position.z = -0.11;
-        backstageGroup.add(glowMesh, colourMesh, fixedMesh);
-        newFrontMeshes = [glowMesh]; newColourMeshes = [colourMesh]; newBackMeshes = [fixedMesh];
-        if (isFlowRGB) newFlowMeshes.push(glowMesh);
-    }
-  else if (glowMode === 'frontBackGlow') {
-        const mFrontLed = new THREE.Mesh(innerGeo, sharedLedMat);
-        const mShell = new THREE.Mesh(fGeo, sharedCapMat);
-        const mBackLed = new THREE.Mesh(innerGeo, sharedLedMat);
-        mFrontLed.position.z = 0.05;
-        mShell.position.z = -fDepth;
-        mBackLed.position.z = -fDepth - 0.1 - 0.05;
-        mFrontLed.userData.isLed = true; mBackLed.userData.isLed = true;
-        mFrontLed.layers.enable(BLOOM_SCENE); mBackLed.layers.enable(BLOOM_SCENE);
-        
-        // --- 🌟 新增：背部洗墙光晕 ---
-       // --- 🌟 修复：直接贴在 LED 灯片的位置 ---
-        const wallGlow = createWallGlow(fGeo, ledColor);
-        wallGlow.position.z = -0.11; // 之前是 -0.13，陷进去了。现在改为和 mLED 一样
-        
-        backstageGroup.add(mFrontLed, mShell, mBackLed, wallGlow);
-        
-        const lightElements = [mFrontLed, mBackLed, ...wallGlow.children];
-        newFrontMeshes = lightElements; 
-        newBackMeshes = [mShell];
-        if (isFlowRGB) newFlowMeshes.push(...lightElements);
-    }
-    else if (glowMode === 'sideHalfGlowTest') {
-        const m1 = new THREE.Mesh(fGeo, sharedLedMat);
-        const m2 = new THREE.Mesh(bGeo, sharedCapMat);
-        const colourMesh = new THREE.Mesh(innerGeo,sharedColourAttrMat);
-        m1.userData.isLed = true; m1.layers.enable(BLOOM_SCENE);
-        m2.position.z = -bDepth - 0.01;
-        colourMesh.position.z = fDepth + 0.01;
-        backstageGroup.add(m1, m2, colourMesh);
-        newFrontMeshes = [m1]; newBackMeshes = [m2]; newColourMeshes = [colourMesh];
-        if (isFlowRGB) newFlowMeshes.push(m1);
-    }
-    else if (glowMode === 'testBackGlow') {
-        const mShell = new THREE.Mesh(fGeo, sharedCapMat);
-        const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
-        mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
-        mShell.position.z = 0; mLED.position.z = -0.11;
-        
-        // --- 🌟 新增：背部洗墙光晕 ---
-     // --- 🌟 修复：直接贴在背部 LED 的位置 ---
-        const wallGlow = createWallGlow(fGeo, ledColor);
-        wallGlow.position.z = -fDepth - 0.15; // 之前是 -0.18，现在改为和 mBackLed 一样
-        backstageGroup.add(mShell, mLED, wallGlow); // 记得把 wallGlow 放进组里
-        
-        const lightElements = [mLED, ...wallGlow.children]; // 把灯片和光晕打包
-        newFrontMeshes = [mShell]; 
-        newBackMeshes = lightElements;
-        if (isFlowRGB) newFlowMeshes.push(...lightElements);
-    }
-    else if (glowMode === 'metalCut' || glowMode === 'acrylicCut') {
-        const isMetal = (glowMode === 'metalCut');
-        const meshMat = isMetal ? sharedCapMat : new THREE.MeshStandardMaterial({ color: ledColor, roughness: 0.3, metalness: 0.1, side: THREE.DoubleSide });
-        const mesh = new THREE.Mesh(fGeo, meshMat);
-        mesh.position.z = 0;
-        backstageGroup.add(mesh);
-        if (isMetal) newBackMeshes = [mesh]; else newFrontMeshes = [mesh];
-    }
-   else {
-        // 兜底逻辑
-        const isBack = (glowMode === 'backGlow');
-        const fMesh = new THREE.Mesh(fGeo, isBack ? sharedCapMat : sharedLedMat);
-        const bMesh = new THREE.Mesh(bGeo, isBack ? sharedLedMat : sharedCapMat);
-        const lightMesh = isBack ? bMesh : fMesh;
-        lightMesh.userData.isLed = true; lightMesh.layers.enable(BLOOM_SCENE);
-        bMesh.position.z = -bDepth - 0.01;
-        
-        const lightElements = [lightMesh];
-        
-        // --- 🌟 新增：如果是背面发光，加上光晕 ---
-        if (isBack) {
-            const wallGlow = createWallGlow(fGeo, ledColor);
-            wallGlow.position.z = -bDepth - 0.01; // 之前是 -0.03，现在改为和 bMesh 一样
-            backstageGroup.add(wallGlow);
-            lightElements.push(...wallGlow.children); // 融合到灯光数组里
+    // 辅助函数：根据工艺组装 Mesh
+    function assembleMeshes(fGeo, bGeo, innerGeo, x, y, group) {
+        const lineGroup = new THREE.Group();
+
+        if (glowMode === 'testFrontGlow') {
+            const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
+            const mShell = new THREE.Mesh(bGeo, sharedCapMat);
+            mLED.position.set(x, y, 0.11);
+            mShell.position.set(x, y, -bDepth);
+            mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
+            lineGroup.add(mLED, mShell);
+            newFrontMeshes.push(mLED); newBackMeshes.push(mShell);
+            if (isFlowRGB) newFlowMeshes.push(mLED);
+        } 
+        else if (glowMode === 'sideGlowTest') {
+            const glowMesh = new THREE.Mesh(fGeo, sharedLedMat);
+            glowMesh.userData.isLed = true; glowMesh.layers.enable(BLOOM_SCENE);
+            const colourMesh = new THREE.Mesh(innerGeo, sharedColourAttrMat);
+            colourMesh.position.set(x, y, fDepth + 0.01);
+            const fixedMesh = new THREE.Mesh(innerGeo, createBackMaterial('Metal011', true, 0xffffff));
+            fixedMesh.position.set(x, y, -0.11);
+            glowMesh.position.set(x, y, 0);
+            lineGroup.add(glowMesh, colourMesh, fixedMesh);
+            newFrontMeshes.push(glowMesh); newColourMeshes.push(colourMesh); newBackMeshes.push(fixedMesh);
+            if (isFlowRGB) newFlowMeshes.push(glowMesh);
         }
-
-        backstageGroup.add(fMesh, bMesh);
-        newFrontMeshes = lightElements; 
-        newBackMeshes = [isBack ? fMesh : bMesh];
-        if (isFlowRGB) newFlowMeshes.push(...lightElements);
+        else if (glowMode === 'frontBackGlow') {
+            const mFrontLed = new THREE.Mesh(innerGeo, sharedLedMat);
+            const mShell = new THREE.Mesh(fGeo, sharedCapMat);
+            const mBackLed = new THREE.Mesh(innerGeo, sharedLedMat);
+            mFrontLed.position.set(x, y, 0.05);
+            mShell.position.set(x, y, -fDepth);
+            mBackLed.position.set(x, y, -fDepth - 0.1 - 0.05);
+            mFrontLed.userData.isLed = true; mBackLed.userData.isLed = true;
+            mFrontLed.layers.enable(BLOOM_SCENE); mBackLed.layers.enable(BLOOM_SCENE);
+            
+            const wallGlow = createWallGlow(fGeo, ledColor);
+            wallGlow.position.set(x, y, -0.11); 
+            lineGroup.add(mFrontLed, mShell, mBackLed, wallGlow);
+            
+            const lightElements = [mFrontLed, mBackLed, ...wallGlow.children];
+            newFrontMeshes.push(...lightElements); newBackMeshes.push(mShell);
+            if (isFlowRGB) newFlowMeshes.push(...lightElements);
+        }
+        else if (glowMode === 'sideHalfGlowTest') {
+            const m1 = new THREE.Mesh(fGeo, sharedLedMat);
+            const m2 = new THREE.Mesh(bGeo, sharedCapMat);
+            const colourMesh = new THREE.Mesh(innerGeo, sharedColourAttrMat);
+            m1.userData.isLed = true; m1.layers.enable(BLOOM_SCENE);
+            m1.position.set(x, y, 0);
+            m2.position.set(x, y, -bDepth - 0.01);
+            colourMesh.position.set(x, y, fDepth + 0.01);
+            lineGroup.add(m1, m2, colourMesh);
+            newFrontMeshes.push(m1); newBackMeshes.push(m2); newColourMeshes.push(colourMesh);
+            if (isFlowRGB) newFlowMeshes.push(m1);
+        }
+        else if (glowMode === 'testBackGlow') {
+            const mShell = new THREE.Mesh(fGeo, sharedCapMat);
+            const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
+            mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
+            mShell.position.set(x, y, 0); mLED.position.set(x, y, -0.11);
+            
+            const wallGlow = createWallGlow(fGeo, ledColor);
+            wallGlow.position.set(x, y, -fDepth - 0.15); 
+            lineGroup.add(mShell, mLED, wallGlow); 
+            
+            const lightElements = [mLED, ...wallGlow.children]; 
+            newFrontMeshes.push(mShell); newBackMeshes.push(...lightElements);
+            if (isFlowRGB) newFlowMeshes.push(...lightElements);
+        }
+        else if (glowMode === 'metalCut' || glowMode === 'acrylicCut') {
+            const isMetal = (glowMode === 'metalCut');
+            const meshMat = isMetal ? sharedCapMat : new THREE.MeshStandardMaterial({ color: ledColor, roughness: 0.3, metalness: 0.1, side: THREE.DoubleSide });
+            const mesh = new THREE.Mesh(fGeo, meshMat);
+            mesh.position.set(x, y, 0);
+            lineGroup.add(mesh);
+            if (isMetal) newBackMeshes.push(mesh); else newFrontMeshes.push(mesh);
+        }
+        else {
+            const isBack = (glowMode === 'backGlow');
+            const fMesh = new THREE.Mesh(fGeo, isBack ? sharedCapMat : sharedLedMat);
+            const bMesh = new THREE.Mesh(bGeo, isBack ? sharedLedMat : sharedCapMat);
+            const lightMesh = isBack ? bMesh : fMesh;
+            lightMesh.userData.isLed = true; lightMesh.layers.enable(BLOOM_SCENE);
+            
+            fMesh.position.set(x, y, 0);
+            bMesh.position.set(x, y, -bDepth - 0.01);
+            
+            const lightElements = [lightMesh];
+            if (isBack) {
+                const wallGlow = createWallGlow(fGeo, ledColor);
+                wallGlow.position.set(x, y, -bDepth - 0.01); 
+                lineGroup.add(wallGlow);
+                lightElements.push(...wallGlow.children); 
+            }
+            lineGroup.add(fMesh, bMesh);
+            newFrontMeshes.push(...lightElements); 
+            newBackMeshes.push(isBack ? fMesh : bMesh);
+            if (isFlowRGB) newFlowMeshes.push(...lightElements);
+        }
+        group.add(lineGroup);
     }
 
-    // --- 【5. 瞬间替换旧物体 - 丝滑的核心】 ---
-    // 先清理旧物体的几何体释放内存
+    // 5. 整体中心对齐
+    const overallBox = new THREE.Box3().setFromObject(backstageGroup);
+    const center = overallBox.getCenter(new THREE.Vector3());
+    backstageGroup.position.x = -center.x;
+    backstageGroup.position.y = -center.y;
+
+    // 6. 瞬间替换场景物体
     while (textGroup.children.length > 0) {
         const child = textGroup.children[0];
-        if (child.geometry) child.geometry.dispose(); 
         textGroup.remove(child);
     }
+    textGroup.add(backstageGroup);
 
-    // 将算好的物体从 backstageGroup 转移到正式的 textGroup
-    while (backstageGroup.children.length > 0) {
-        textGroup.add(backstageGroup.children[0]);
-    }
-
-    // 6. 同步全局变量
+    // 7. 同步状态
     frontMeshes = newFrontMeshes;
     backMeshes = newBackMeshes;
     colourMeshes = newColourMeshes;
     flowMeshes = newFlowMeshes;
 
-    // 7. 收尾逻辑 (保持原有逻辑)
     textGroup.traverse(child => {
         if (child.isMesh && !child.userData.isRef) child.userData.isCraftObject = true;
     });
 
     updateBrightness(document.getElementById('brightnessSlider').value);
-   if (adjustCamera && textString !== lastText) { // 只有字变了才动相机
-    centerAndFitCamera();
-    lastText = textString;
-}
     
-    // 标注更新延迟一丁点，确保坐标计算准确
+    if (adjustCamera && textString !== lastText) { 
+        centerAndFitCamera();
+        lastText = textString;
+    }
+    
     setTimeout(() => updateDimensions(), 10);
 }
         // 封装后的防抖生成函数

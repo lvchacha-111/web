@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const compression = require('compression'); // <-- 必须加上这一行！
 const app = express();
 const port = 5000;
 app.use(compression());
