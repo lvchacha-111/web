@@ -50,45 +50,64 @@ function getData() {
 }
 
 function parsePartsForId(id, detailContent) {
-    const detailRegex = new RegExp(`"${id}":\\s*\\[([\\s\\S]*?)\\]`, 'g');
-    const match = detailRegex.exec(detailContent);
-    if (!match) return [];
+    // 1. 更加宽松的搜索：找到 "ID": [ 的起始位置
+    const startMarker = `"${id}":`;
+    const startIdx = detailContent.indexOf(startMarker);
+    if (startIdx === -1) return [];
 
-    const parts = [];
-    const partRegex = /\{\s*file:\s*"([^"]+)",\s*type:\s*"([^"]+)",\s*([^}]+)\}/g;
+    // 2. 找到该 ID 之后第一个出现的 [ 和对应的 ]
+    const openingBracket = detailContent.indexOf('[', startIdx);
+    // 寻找数组结束。我们找换行后的 ] 或者后面跟着逗号/换行的 ]
+    const closingBracket = detailContent.indexOf(']', openingBracket);
+    if (openingBracket === -1 || closingBracket === -1) return [];
+
+    // 截取出整个数组字符串 [ ... ]
+    const arrayStr = detailContent.substring(openingBracket + 1, closingBracket);
+
+    // 3. 【核心修复】：提取每一个 { ... } 部件块
+    // 这里的正则逻辑是：寻找以 { 开头，以 } 结尾，且 } 后面必须跟着 逗号、换行 或 数组末尾
+    // 这样可以确保 move: { z: 10 } 内部的大括号不会被误认为结束
+    const objectBlocks = arrayStr.match(/\{[\s\S]*?\}(?=\s*,|\s*\n|\s*$)/g) || [];
     
-    let pm;
-    while ((pm = partRegex.exec(match[1])) !== null) {
-        const file = pm[1];
-        const type = pm[2];
-        const restString = pm[3]; 
+    const parts = [];
 
-        let axis = 'z';
-        let dist = 0;
-        const moveMatch = restString.match(/move:\s*\{\s*([xyz])\s*:\s*(-?\d+)/);
-        if (moveMatch) {
-            axis = moveMatch[1];
-            dist = parseInt(moveMatch[2]);
-        }
+    objectBlocks.forEach(block => {
+        // 在每个块内部进行小范围正则匹配，完全不看顺序
+        const fileMatch = block.match(/file:\s*"([^"]+)"/);
+        const typeMatch = block.match(/type:\s*"([^"]+)"/);
+        
+        if (fileMatch && typeMatch) {
+            const file = fileMatch[1];
+            const type = typeMatch[1];
 
-        let isEmissive = true; 
-        if (type === 'plate') {
-            if (restString.includes('emissive: false')) isEmissive = false;
-        } else {
-            isEmissive = false;
-        }
+            // --- 保持原本功能：坐标解析 ---
+            let axis = 'z', dist = 0;
+            // 匹配 move: { z: 10 }
+            const moveMatch = block.match(/move:\s*\{\s*([xyz])\s*:\s*(-?\d+)\s*\}/);
+            if (moveMatch) {
+                axis = moveMatch[1];
+                dist = parseInt(moveMatch[2]);
+            }
 
-        let isTexture = false;
-        if (type === 'back') {
-            isTexture = true; 
-            if (restString.includes('texture: false')) isTexture = false;
+            // --- 保持原本功能：布尔值判断 ---
+            // emissive: plate默认true, 其他默认false
+            let isEmissive = (type === 'plate'); 
+            if (block.includes('emissive: false')) isEmissive = false;
+            if (block.includes('emissive: true')) isEmissive = true;
+
+            // texture: back默认true, 其他默认false
+            let isTexture = (type === 'back');
+            if (block.includes('texture: false')) isTexture = false;
+            if (block.includes('texture: true')) isTexture = true;
+
+            // change 属性
+            let isChange = false;
+            if (block.includes('change: true')) isChange = true;
+
+            parts.push({ file, type, axis, dist, isEmissive, isTexture, isChange });
         }
-        let isChange = false;
-        if (type === 'front') {
-            if (restString.includes('change: true')) isChange = true;
-        }
-        parts.push({ file, type, axis, dist, isEmissive, isTexture, isChange });
-    }
+    });
+
     return parts;
 }
 
@@ -378,50 +397,61 @@ app.post('/update/:id', upload.any(), (req, res) => {
     const { newId, newName, oldImage } = req.body;
     let { indexContent, detailContent } = getData();
 
+    // 1. 处理文件夹更名逻辑
     if (oldId !== newId) {
         const oldPath = path.join(__dirname, UPLOAD_DIR, oldId);
         const newPath = path.join(__dirname, UPLOAD_DIR, newId);
         if (fs.existsSync(oldPath)) {
-            if (fs.existsSync(newPath)) return res.status(400).send('错误：新 ID 已经存在');
+            if (fs.existsSync(newPath)) return res.status(400).send('错误：新 ID 已经存在，无法更名');
             fs.renameSync(oldPath, newPath);
         }
     }
 
+    // 2. 更新封面图
     let finalImg = oldImage;
     const newImg = req.files.find(f => f.fieldname === 'newImageFile');
     if (newImg) finalImg = `images/${newImg.originalname}`;
     
-    const indexRegex = new RegExp(`\\{ id: "${oldId}", name: "[^"]+", image: "[^"]+" \\}`, 'g');
+    // 更新 index.html 中的基本信息 (更加鲁棒的正则)
+    const indexRegex = new RegExp(`\\{\\s*id:\\s*"${oldId}"[^{}]*\\}`, 'g');
     indexContent = indexContent.replace(indexRegex, `{ id: "${newId}", name: "${newName}", image: "${finalImg}" }`);
 
-    // 处理注意事项多图更新
+    // 3. 处理注意事项 (Notes) 图片
     const isDeleteNotes = req.body.deleteNotes === 'on';
     const newNotesFiles = req.files.filter(f => f.fieldname === 'newNotesImage');
     const oldNotesImage = req.body.oldNotesImage;
     
-    // 清理旧纪录
-    detailContent = detailContent.replace(new RegExp(`"${oldId}":\\s*"[^"]*",?\\s*//notes\\n?`, 'g'), '');
+    // 【核心修复】彻底删除 detail.html 中旧的 notes 记录 (支持 oldId 和 newId 清理)
+    detailContent = detailContent.replace(new RegExp(`\\s*"${oldId}":\\s*"[^"]*",?\\s*//notes\\n?`, 'g'), '');
+    detailContent = detailContent.replace(new RegExp(`\\s*"${newId}":\\s*"[^"]*",?\\s*//notes\\n?`, 'g'), '');
     
     if (!isDeleteNotes) {
-        let finalNotesStr = oldNotesImage;
+        let finalNotesStr = "";
         if (newNotesFiles && newNotesFiles.length > 0) {
-            // 限制最多处理2张图片
             finalNotesStr = newNotesFiles.slice(0, 2).map(f => `images/${f.originalname}`).join('|');
+        } else if (oldNotesImage) {
+            finalNotesStr = oldNotesImage;
         }
+
         if (finalNotesStr) {
+            // 重新插入到标记位
             detailContent = detailContent.replace('/* === 自动插入点：注意事项 === */', `"${newId}": "${finalNotesStr}", //notes\n        /* === 自动插入点：注意事项 === */`);
         }
     }
 
+    // 4. 处理部件配置 (Parts)
     let newParts = [];
     const types = ['front', 'back', 'plate', 'led', 'fixed', 'transparent'];
 
     types.forEach(type => {
+        // A. 遍历处理现有部件
         for (let i = 0; i < 50; i++) {
             const oldFileKey = `old_${type}_${i}`;
             if (!req.body[oldFileKey]) continue; 
+
             const oldFile = req.body[oldFileKey];
             const isDelete = req.body[`delete_${type}_${i}`] === 'on';
+
             if (isDelete) {
                 try {
                     const filePath = path.join(__dirname, UPLOAD_DIR, newId, oldFile);
@@ -429,21 +459,26 @@ app.post('/update/:id', upload.any(), (req, res) => {
                 } catch (e) {}
                 continue; 
             }
+
             const axis = req.body[`axis_${type}_${i}`];
             const dist = parseInt(req.body[`dist_${type}_${i}`]);
             const isEmissive = req.body[`emissive_${type}_${i}`] === 'on';
             const isTexture = req.body[`texture_${type}_${i}`] === 'on';
             const isChange = req.body[`change_${type}_${i}`] === 'on'; 
+            
             const replaceFile = req.files.find(f => f.fieldname === `replace_${type}_${i}`);
             const fileName = replaceFile ? replaceFile.originalname : oldFile;
+            
             const moveStr = (dist === 0 || isNaN(dist)) ? "null" : `{ ${axis}: ${dist} }`;
             let extraProps = "";
-            if (type === 'plate') extraProps += `, emissive: ${isEmissive ? 'true' : 'false'}`;
-            if (type === 'back') extraProps += `, texture: ${isTexture ? 'true' : 'false'}`;
+            if (type === 'plate') extraProps += `, emissive: ${isEmissive}`;
+            if (type === 'back') extraProps += `, texture: ${isTexture}`;
             if (type === 'front' && isChange) extraProps += `, change: true`; 
+            
             newParts.push(`            { file: "${fileName}",  type: "${type}", move: ${moveStr}${extraProps} }`);
         }
 
+        // B. 处理追加的新文件
         const appendFiles = req.files.filter(f => f.fieldname === `append_${type}`);
         if (appendFiles && appendFiles.length > 0) {
             appendFiles.forEach((f, index) => {
@@ -453,26 +488,35 @@ app.post('/update/:id', upload.any(), (req, res) => {
                 const isEmissive = req.body[`new_emissive_${type}_${index}`] === 'on';
                 const isTexture = req.body[`new_texture_${type}_${index}`] === 'on';
                 const isChange = req.body[`new_change_${type}_${index}`] === 'on';
+                
                 const moveStr = (dist === 0 || isNaN(dist)) ? "null" : `{ ${axis}: ${dist} }`;
                 let extraProps = "";
-                if (type === 'plate') extraProps += `, emissive: ${isEmissive ? 'true' : 'false'}`;
-                if (type === 'back') extraProps += `, texture: ${isTexture ? 'true' : 'false'}`;
+                if (type === 'plate') extraProps += `, emissive: ${isEmissive}`;
+                if (type === 'back') extraProps += `, texture: ${isTexture}`;
                 if (type === 'front' && isChange) extraProps += `, change: true`;
                 newParts.push(`            { file: "${f.originalname}",  type: "${type}", move: ${moveStr}${extraProps} }`);
             });
         }
     });
 
-    const detailRegex = new RegExp(`"${oldId}":\\s*\\[[\\s\\S]*?\\]`, 'g');
-    const newDetailBlock = `"${newId}": [\n${newParts.join(',\n')}\n        ]`;
-    detailContent = detailContent.replace(detailRegex, newDetailBlock);
+    // 【核心修复】彻底删除 detail.html 中旧的部件配置数组 (支持 ID 变更后的清理)
+    detailContent = detailContent.replace(new RegExp(`\\s*"${oldId}":\\s*\\[[\\s\\S]*?\\],?\\n?`, 'g'), '');
+    detailContent = detailContent.replace(new RegExp(`\\s*"${newId}":\\s*\\[[\\s\\S]*?\\],?\\n?`, 'g'), '');
 
-    fs.writeFileSync(path.join(__dirname, 'index.html'), indexContent);
-    fs.writeFileSync(path.join(__dirname, 'detail.html'), detailContent);
+    // 5. 重新生成部件数据块并插入
+    const newDetailBlock = `"${newId}": [\n${newParts.join(',\n')}\n        ],`;
+    detailContent = detailContent.replace('/* === 自动插入点：新模型数据 === */', `${newDetailBlock}\n        /* === 自动插入点：新模型数据 === */`);
 
-    res.send(`<script>alert("配置更新成功！"); location.href="/";</script>`);
+    // 6. 写入文件并返回
+    try {
+        fs.writeFileSync(path.join(__dirname, 'index.html'), indexContent);
+        fs.writeFileSync(path.join(__dirname, 'detail.html'), detailContent);
+        res.send(`<script>alert("配置更新成功！"); location.href="/";</script>`);
+    } catch (err) {
+        console.error("写入文件失败:", err);
+        res.status(500).send("服务器保存失败");
+    }
 });
-
 app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back'},{name:'plate'},{name:'led'},{name:'fixed'},{name:'transparent'},{name:'notesImage'}]), (req, res) => {
     const { productId, productName } = req.body;
     const files = req.files || {};
@@ -516,13 +560,30 @@ app.post('/upload', upload.fields([{name:'imageFile'},{name:'front'},{name:'back
 app.delete('/delete/:id', (req, res) => {
     const id = req.params.id;
     let { indexContent, detailContent } = getData();
-    indexContent = indexContent.replace(new RegExp(`\\{ id: "${id}",[^}]*\\},?\\n?`, 'g'), '');
-    detailContent = detailContent.replace(new RegExp(`"${id}":\\s*\\[[\\s\\S]*?\\],?\\n?`, 'g'), '');
-    detailContent = detailContent.replace(new RegExp(`"${id}":\\s*"[^"]*",?\\s*//notes\\n?`, 'g'), '');
+
+    // 1. 删除 index.html 中的产品入口 (支持有无逗号，支持多行)
+    const indexRegex = new RegExp(`\\s*\\{\\s*id:\\s*"${id}"[^{}]*\\},?\\n?`, 'g');
+    indexContent = indexContent.replace(indexRegex, '');
+
+    // 2. 删除 detail.html 中的 parts 数组块 (处理 ID: [ ... ])
+    // 使用更强大的正则捕获整个 ID 键值对
+    const detailPartsRegex = new RegExp(`\\s*"${id}":\\s*\\[[\\s\\S]*?\\],?\\n?`, 'g');
+    detailContent = detailContent.replace(detailPartsRegex, '');
+
+    // 3. 删除 detail.html 中的 NOTES_DB 条目 (//notes 标记)
+    const notesRegex = new RegExp(`\\s*"${id}":\\s*"[^"]*",?\\s*//notes\\n?`, 'g');
+    detailContent = detailContent.replace(notesRegex, '');
+
+    // 写入文件
     fs.writeFileSync(path.join(__dirname, 'index.html'), indexContent);
     fs.writeFileSync(path.join(__dirname, 'detail.html'), detailContent);
+
+    // 4. 删除物理文件夹
     const dir = path.join(__dirname, UPLOAD_DIR, id);
-    if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+    if (fs.existsSync(dir)) {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+    
     res.send('Delete Success');
 });
 
