@@ -578,8 +578,8 @@
                 <option value="testBackGlow">背面发光-M005B</option>
                 <option value="neonWord">霓虹灯字N019</option>
                 <option value="neonWord012">霓虹灯字-N018</option>
-                <option value="neonWord013">霓虹灯字(内嵌槽)</option>
-                <option value="neonBorder">霓虹字围边</option>
+               
+                
                 <option value="acrylicCut">亚克力切割字(Acrylic Cut)</option>
                 <option value="metalCut">金属字(Metal Cut)</option>
 
@@ -1051,7 +1051,8 @@ let lastText = "";
         let panelOffsetX = 0;
         let panelOffsetY = 0;
         let textAlign = 'left'; // 默认左对齐
-
+let realTextWidth = 0;  // 存储不含倒角的净宽度
+let realTextHeight = 0; // 存储不含倒角的净高度
 // 绑定对齐按钮点击事件
 document.querySelectorAll('.align-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1814,28 +1815,32 @@ const bloomComposer = new EffectComposer(renderer, renderTarget);
             }
 
             // --- A. 文字标注 (Object Labels) ---
+           // --- A. 文字标注 (Object Labels) ---
             if (isObjectLabelsVisible) {
                 const textBox = new THREE.Box3().setFromObject(textGroup);
                 if (!textBox.isEmpty() && isFinite(textBox.min.x)) {
                     const tMin = textBox.min;
                     const tMax = textBox.max;
 
+                    // 1. 宽度标注：使用 realTextWidth (乘以 10 换算为 mm)
                     drawIndustrialDim(
                         new THREE.Vector3(tMin.x, tMax.y, labelZ),
                         new THREE.Vector3(tMax.x, tMax.y, labelZ),
                         new THREE.Vector3(0, cadOffset, 0),
-                        (textSize * svgOriginalAspectRatio * 10).toFixed(0) + " mm",
+                        (realTextWidth * 10).toFixed(0) + " mm", // 核心修改：显示净宽度
                         '#f39c12', 'x'
                     );
 
+                    // 2. 高度标注：使用 realTextHeight
                     drawIndustrialDim(
                         new THREE.Vector3(tMin.x, tMin.y, labelZ),
                         new THREE.Vector3(tMin.x, tMax.y, labelZ),
                         new THREE.Vector3(-cadOffset, 0, 0),
-                        (textSize * 10).toFixed(0) + " mm",
+                        (realTextHeight * 10).toFixed(0) + " mm", // 核心修改：显示净高度
                         '#f39c12', 'y'
                     );
 
+                    // 3. 厚度标注：保持测量模型 (厚度通常需要包含倒角)
                     let baseThickness = (glowMode === 'frontBackGlow' || glowMode === 'acrylicCut' || glowMode === 'metalCut') ? frontThickness :
                         (glowMode === 'testFrontGlow' ? backThickness :
                             (['sideHalfGlowTest', 'backGlow', 'frontGlow'].includes(glowMode) ? (frontThickness + backThickness) : frontThickness));
@@ -1849,7 +1854,6 @@ const bloomComposer = new EffectComposer(renderer, renderTarget);
                     );
                 }
             }
-
             // --- B. 背板标注 (Plate Labels) ---
             if (isPlateLabelsVisible && lPlateGroup) {
                 const plateBox = new THREE.Box3().setFromObject(lPlateGroup);
@@ -2012,10 +2016,10 @@ async function parseSvgToShapes(file) {
 }
 
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
-    function generate3DText(textString, adjustCamera = true) {
+   function generate3DText(textString, adjustCamera = true) {
     console.log("=== 开始生成 3D 模型 ===");
 
     // 1. 基础检查
@@ -2048,7 +2052,6 @@ async function parseSvgToShapes(file) {
 
     if (!sharedLedMat) {
         sharedLedMat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
-        // 此处保留原有的 Shader 注入逻辑 (用于流水灯)
         if (isFlowRGB && glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
             sharedLedMat.userData.uTime = { value: 0 };
             sharedLedMat.onBeforeCompile = (shader) => {
@@ -2067,87 +2070,49 @@ async function parseSvgToShapes(file) {
     const commonExtrude = { bevelEnabled: false, steps: 1, caps: true, curveSegments: 5 };
     const fDepth = frontThickness / 10;
     const bDepth = backThickness / 10;
-    const lineSpacing = 1.3; // 行高间距系数
+    const lineSpacing = 1.3; 
 
-    // 4. 判断模式生成
-    if (isSvgMode && svgPaths) {
-        // SVG 模式通常为单块图形，保持原逻辑
-        const shapes = [];
-        svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
-        const tempShapeGeo = new THREE.ShapeGeometry(shapes);
-        tempShapeGeo.computeBoundingBox();
-        const pixelH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
-        const scale = textSize / pixelH;
-        const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
-
-        const fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth / scale });
-        const bGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: bDepth / scale });
-        const innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: 0.1 / scale });
-
-        [fGeo, bGeo, innerGeo].forEach(geo => {
-            geo.applyMatrix4(matrix);
-            geo.computeBoundingBox();
-            const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
-            const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
-            geo.translate(cx, cy, 0);
-        });
-        
-        // 此处组装逻辑直接调用下方组装块即可 (为了简洁，SVG暂不支持拆行对齐)
-        assembleMeshes(fGeo, bGeo, innerGeo, 0, 0, backstageGroup);
-    } else {
-        // --- 多行文本处理逻辑 ---
-        const lines = textString.split('\n');
-        const refSize = 10;
-        
-        // 计算缩放基准 (以第一行非空字符为准)
-        const sampleText = lines.find(l => l.trim() !== "") || "A";
-        const tempGeo = new TextGeometry(sampleText, { font: currentFont, size: refSize, height: 0 });
-        tempGeo.computeBoundingBox();
-        const rawH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
-        const finalScale = textSize / rawH;
-        const scaledFontSize = refSize * finalScale;
-
-        lines.forEach((lineText, index) => {
-            if (lineText.trim() === "") return; // 跳过空行
-
-            // 为每一行创建独立的几何体
-            const lineFGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth });
-            const lineBGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: bDepth });
-            const lineInnerGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: 0.1 });
-
-            [lineFGeo, lineBGeo, lineInnerGeo].forEach(geo => {
-                geo.scale(1, yScale, 1);
-                geo.computeBoundingBox();
-            });
-
-            // 计算对齐偏移
-            const lineWidth = lineFGeo.boundingBox.max.x - lineFGeo.boundingBox.min.x;
-            let xOffset = 0;
-            if (textAlign === 'center') xOffset = -lineWidth / 2;
-            else if (textAlign === 'right') xOffset = -lineWidth;
-            else xOffset = 0; // 左对齐
-
-            // 计算行高偏移 (向下位移)
-            const yOffset = -index * (textSize * lineSpacing);
-
-            // 调用组装函数
-            assembleMeshes(lineFGeo, lineBGeo, lineInnerGeo, xOffset, yOffset, backstageGroup);
-        });
-    }
-
-    // 辅助函数：根据工艺组装 Mesh
-    function assembleMeshes(fGeo, bGeo, innerGeo, x, y, group) {
+    // 4. 辅助函数：根据工艺组装 Mesh (定义在内部以共享作用域)
+    function assembleMeshes(fGeo, bGeo, innerGeo, x, y, group, lineText, scaledFontSize) {
         const lineGroup = new THREE.Group();
 
-        if (glowMode === 'testFrontGlow') {
+        if (glowMode === 'neonWord') {
+            const nGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, bevelEnabled: true, bevelThickness: 0.8, bevelSize: 0.8, bevelSegments: 5, height: 0.5 });
+            const nMesh = new THREE.Mesh(nGeo, sharedLedMat);
+            nMesh.position.set(x, y, 0);
+            nMesh.userData.isLed = true; nMesh.layers.enable(BLOOM_SCENE);
+            lineGroup.add(nMesh);
+            newFrontMeshes.push(nMesh); if (isFlowRGB) newFlowMeshes.push(nMesh);
+        }
+        else if (glowMode === 'neonWord012') {
+            const mShell = new THREE.Mesh(fGeo, sharedCapMat);
+            const nGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 5, height: 0.2 });
+            const mLED = new THREE.Mesh(nGeo, sharedLedMat);
+            mShell.position.set(x, y, -fDepth);
+            mLED.position.set(x, y, 0.08);
+            mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
+            lineGroup.add(mShell, mLED);
+            newFrontMeshes.push(mShell); newBackMeshes.push(mLED); if (isFlowRGB) newFlowMeshes.push(mLED);
+        }
+      
+        else if (glowMode === 'neonBorder') {
+            const mBase = new THREE.Mesh(innerGeo, sharedCapMat);
+            const nGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.4, bevelSegments: 3, height: 0.1 });
+            const mTube = new THREE.Mesh(nGeo, sharedLedMat);
+            mBase.position.set(x, y, 0);
+            mTube.position.set(x, y, 0.5);
+            mTube.userData.isLed = true; mTube.layers.enable(BLOOM_SCENE);
+            lineGroup.add(mBase, mTube);
+            newFrontMeshes.push(mBase); newBackMeshes.push(mTube);
+        }
+        else if (glowMode === 'testFrontGlow') {
             const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
             const mShell = new THREE.Mesh(bGeo, sharedCapMat);
             mLED.position.set(x, y, 0.11);
             mShell.position.set(x, y, -bDepth);
             mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
             lineGroup.add(mLED, mShell);
-            newFrontMeshes.push(mLED); newBackMeshes.push(mShell);
-            if (isFlowRGB) newFlowMeshes.push(mLED);
+            newFrontMeshes.push(mLED); newBackMeshes.push(mShell); if (isFlowRGB) newFlowMeshes.push(mLED);
         } 
         else if (glowMode === 'sideGlowTest') {
             const glowMesh = new THREE.Mesh(fGeo, sharedLedMat);
@@ -2170,11 +2135,9 @@ async function parseSvgToShapes(file) {
             mBackLed.position.set(x, y, -fDepth - 0.1 - 0.05);
             mFrontLed.userData.isLed = true; mBackLed.userData.isLed = true;
             mFrontLed.layers.enable(BLOOM_SCENE); mBackLed.layers.enable(BLOOM_SCENE);
-            
             const wallGlow = createWallGlow(fGeo, ledColor);
             wallGlow.position.set(x, y, -0.11); 
             lineGroup.add(mFrontLed, mShell, mBackLed, wallGlow);
-            
             const lightElements = [mFrontLed, mBackLed, ...wallGlow.children];
             newFrontMeshes.push(...lightElements); newBackMeshes.push(mShell);
             if (isFlowRGB) newFlowMeshes.push(...lightElements);
@@ -2196,11 +2159,9 @@ async function parseSvgToShapes(file) {
             const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
             mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
             mShell.position.set(x, y, 0); mLED.position.set(x, y, -0.11);
-            
             const wallGlow = createWallGlow(fGeo, ledColor);
             wallGlow.position.set(x, y, -fDepth - 0.15); 
             lineGroup.add(mShell, mLED, wallGlow); 
-            
             const lightElements = [mLED, ...wallGlow.children]; 
             newFrontMeshes.push(mShell); newBackMeshes.push(...lightElements);
             if (isFlowRGB) newFlowMeshes.push(...lightElements);
@@ -2219,10 +2180,8 @@ async function parseSvgToShapes(file) {
             const bMesh = new THREE.Mesh(bGeo, isBack ? sharedLedMat : sharedCapMat);
             const lightMesh = isBack ? bMesh : fMesh;
             lightMesh.userData.isLed = true; lightMesh.layers.enable(BLOOM_SCENE);
-            
             fMesh.position.set(x, y, 0);
             bMesh.position.set(x, y, -bDepth - 0.01);
-            
             const lightElements = [lightMesh];
             if (isBack) {
                 const wallGlow = createWallGlow(fGeo, ledColor);
@@ -2238,20 +2197,102 @@ async function parseSvgToShapes(file) {
         group.add(lineGroup);
     }
 
-    // 5. 整体中心对齐
+    // 5. 判断模式生成
+  // 5. 判断模式生成
+    if (isSvgMode && svgPaths) {
+        const shapes = [];
+        svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
+        const tempShapeGeo = new THREE.ShapeGeometry(shapes);
+        tempShapeGeo.computeBoundingBox();
+        
+        const pixelW = tempShapeGeo.boundingBox.max.x - tempShapeGeo.boundingBox.min.x;
+        const pixelH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
+        
+        const scale = textSize / pixelH;
+        
+        // --- 核心修复：更新全局测量变量，供标注使用 ---
+        realTextWidth = pixelW * scale;
+        realTextHeight = textSize;
+        // --------------------------------------------
+
+        const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
+
+        const fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth / scale });
+        const bGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: bDepth / scale });
+        const innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: 0.1 / scale });
+
+        [fGeo, bGeo, innerGeo].forEach(geo => {
+            geo.applyMatrix4(matrix);
+            geo.computeBoundingBox();
+            const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
+            const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
+            geo.translate(cx, cy, 0);
+        });
+        
+        assembleMeshes(fGeo, bGeo, innerGeo, 0, 0, backstageGroup, "", 0);
+    }else {
+        const lines = textString.split('\n');
+        const refSize = 10;
+        const sampleText = lines.find(l => l.trim() !== "") || "A";
+        const tempGeo = new TextGeometry(sampleText, { font: currentFont, size: refSize, height: 0 });
+        tempGeo.computeBoundingBox();
+        const rawH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
+        const finalScale = textSize / rawH;
+        const scaledFontSize = refSize * finalScale;
+   let maxLineW = 0;
+        lines.forEach(lineText => {
+            if (lineText.trim() === "") return;
+            // 创建无倒角的测量几何体
+            const measureGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, height: 0, bevelEnabled: false });
+            
+            measureGeo.computeBoundingBox(); // 1. 先执行计算
+            if (measureGeo.boundingBox) {    // 2. 检查是否存在结果
+                const w = measureGeo.boundingBox.max.x - measureGeo.boundingBox.min.x; // 3. 再读取值
+                if (w > maxLineW) maxLineW = w;
+            }
+            measureGeo.dispose(); // 释放内存
+        });
+        
+        realTextWidth = maxLineW; 
+        // 净高度：基于字数和行间距计算理论高度
+        realTextHeight = (lines.length > 1) ? ((lines.length - 1) * (textSize * lineSpacing) + textSize) : textSize;
+        // ------------------------------------
+        // ------------------------------------
+        lines.forEach((lineText, index) => {
+            if (lineText.trim() === "") return;
+
+            const lineFGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth });
+            const lineBGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: bDepth });
+            const lineInnerGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: 0.1 });
+
+            [lineFGeo, lineBGeo, lineInnerGeo].forEach(geo => {
+                geo.scale(1, yScale, 1);
+                geo.computeBoundingBox();
+            });
+
+            const lineWidth = lineFGeo.boundingBox.max.x - lineFGeo.boundingBox.min.x;
+            let xOffset = 0;
+            if (textAlign === 'center') xOffset = -lineWidth / 2;
+            else if (textAlign === 'right') xOffset = -lineWidth;
+
+            const yOffset = -index * (textSize * lineSpacing);
+            assembleMeshes(lineFGeo, lineBGeo, lineInnerGeo, xOffset, yOffset, backstageGroup, lineText, scaledFontSize);
+        });
+    }
+
+    // 6. 整体中心对齐
     const overallBox = new THREE.Box3().setFromObject(backstageGroup);
     const center = overallBox.getCenter(new THREE.Vector3());
     backstageGroup.position.x = -center.x;
     backstageGroup.position.y = -center.y;
 
-    // 6. 瞬间替换场景物体
+    // 7. 替换场景物体
     while (textGroup.children.length > 0) {
-        const child = textGroup.children[0];
-        textGroup.remove(child);
+        textGroup.remove(textGroup.children[0]);
     }
     textGroup.add(backstageGroup);
 
-    // 7. 同步状态
+    // 8. 同步全局状态
     frontMeshes = newFrontMeshes;
     backMeshes = newBackMeshes;
     colourMeshes = newColourMeshes;
@@ -2267,7 +2308,6 @@ async function parseSvgToShapes(file) {
         centerAndFitCamera();
         lastText = textString;
     }
-    
     setTimeout(() => updateDimensions(), 10);
 }
         // 封装后的防抖生成函数
@@ -2286,7 +2326,7 @@ async function parseSvgToShapes(file) {
         const clearSvgBtn = document.getElementById('clearSvgBtn');
         const textInputEl = document.getElementById('textInput');
 
-        svgInput.addEventListener('change', (e) => {
+       svgInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -2297,27 +2337,32 @@ async function parseSvgToShapes(file) {
                     svgPaths = parsed.paths;
                     isSvgMode = true;
                     toggleNeonOptions(true);
+                    
                     const shapes = [];
                     svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
                     const tempGeo = new THREE.ShapeGeometry(shapes);
                     tempGeo.computeBoundingBox();
 
-                    // 1. 获取像素宽高
+                    // 1. 获取原始像素宽高
                     const pixelW = tempGeo.boundingBox.max.x - tempGeo.boundingBox.min.x;
                     const pixelH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
 
-                    // 2. 记录原始比例 (宽/高)
-                    svgOriginalAspectRatio = pixelW / pixelH;
-
-                    // 3. 核心物理换算 (基于 96 DPI): 1像素 = 0.0264583 mm
-                    // 换算成 cm 则再除以 10 -> 0.00264583
-                    // 例如 CDR 里 199.21mm 换算后这里就是 19.921 cm
+                    // 2. 核心物理换算 (基于 96 DPI): 1像素 = 0.0264583 mm
+                    // 换算成 cm -> 0.00264583
                     const importedHeightCm = pixelH * 0.00264583;
 
-                    // 4. 同步滑块数字
+                    // 3. 同步全局字高变量
                     textSize = importedHeightCm;
                     document.getElementById('textSizeInput').value = importedHeightCm.toFixed(1);
                     document.getElementById('textSizeSlider').value = importedHeightCm;
+
+                    // 4. 【修复点】计算当前缩放下的物理宽度和高度，用于标注
+                    const currentScale = textSize / pixelH; // 计算比例
+                    realTextWidth = pixelW * currentScale; 
+                    realTextHeight = textSize;
+
+                    // 5. 记录原始比例
+                    svgOriginalAspectRatio = pixelW / pixelH;
 
                     // UI 状态控制
                     clearSvgBtn.classList.remove('hidden');
@@ -2329,6 +2374,7 @@ async function parseSvgToShapes(file) {
                     generate3DText(textInputEl.value, true);
 
                 } catch (err) {
+                    console.error(err); // 在控制台输出具体错误原因
                     alert("SVG 轮廓解析失败！");
                 }
             };
@@ -2628,63 +2674,57 @@ async function parseSvgToShapes(file) {
                 brightDiv.style.opacity = '1';
                 document.getElementById('brightnessSlider').disabled = false;
             }
-            else if (glowMode === 'neonWord' || glowMode === 'neonWord012') {
-                // 共同点：隐藏背面滑块
+           else if (glowMode === 'neonWord' || glowMode === 'neonWord012') {
+                // 1. 通用逻辑：隐藏背面厚度滑块，重命名灯光标签
                 if (bCont) bCont.classList.add('hidden');
                 ledLabel.innerText = '🎨 霓虹发光颜色';
+                
+                // 确保亮度调节是开启的
+                brightDiv.style.opacity = '1';
+                document.getElementById('brightnessSlider').disabled = false;
 
                 if (glowMode === 'neonWord') {
-                    // 【普通霓虹字】：全隐藏，只留高度和灯光颜色
-                    if (fCont) fCont.classList.add('hidden');
+                    // 【019 普通霓虹字】：纯灯管模式
+                    // 1. 隐藏材质和金属调色面板（因为没有底壳）
                     matSection.classList.add('hidden');
                     tintSection.classList.add('hidden');
                     colourSection.classList.add('hidden');
+
+                    // 2. 显示正面滑块，并将其作为“灯管粗细”控制器
+                    if (fCont) {
+                        fCont.classList.remove('hidden');
+                        frontLabel.innerText = '📏 灯管直径/粗细 (mm)';
+                    }
+                    // 隐藏可能存在的 012 专用滑块
+                    if (ntCont) ntCont.classList.add('hidden');
                 }
                 else {
-                    // 【测试 霓虹字 012】：
-                    // 1. 显示材质面板（用来改外壳支撑的金属/烤漆）
+                    // 【018 霓虹字 012】：底壳 + 灯管模式
+                    // 1. 显示材质面板和金属调色（用于控制底座壳）
                     matSection.classList.remove('hidden');
                     tintSection.classList.remove('hidden');
+                    colourSection.classList.add('hidden');
 
-                    // 2. 显示新滑块（用来改管子粗细）
-                    if (ntCont) ntCont.classList.remove('hidden');
-
-                    // 3. 显示正面滑块（用来改你圈起的外壳支撑的厚度）
+                    // 2. 正面滑块用来控制“支撑壳的厚度”
                     if (fCont) {
                         fCont.classList.remove('hidden');
                         frontLabel.innerText = '📏 支撑壳厚度 (mm)';
                     }
 
-                    // 4. 隐藏面板颜色（因为我们现在只有两层，外壳归材质管了）
-                    colourSection.classList.add('hidden');
+                    // 3. 处理灯管粗细控制
+                    // 如果你 HTML 里有专门的 ntCont 滑块则显示它
+                    if (ntCont) {
+                        ntCont.classList.remove('hidden');
+                    } else {
+                        // 如果没有 ntCont，我们可以临时借用“背面滑块”并显示它，用来调管子粗细
+                        if (bCont) {
+                            bCont.classList.remove('hidden');
+                            backLabel.innerText = '📏 灯管直径/粗细 (mm)';
+                        }
+                    }
                 }
             }
-            else if (glowMode === 'neonWord013') {
-                // --- 1. 隐藏 012 模式专用的特殊滑块 ---
-                if (ntCont) ntCont.classList.add('hidden'); // 隐藏灯管直径滑块
-                if (npCont) npCont.classList.add('hidden'); // 隐藏底板厚度滑块
-
-                // --- 2. 启用正面滑块控制【底座托盘】的厚度 ---
-                if (fCont) {
-                    fCont.classList.remove('hidden');
-                    frontLabel.innerText = '📏 底座托盘厚度 (mm)';
-                }
-
-                // --- 3. 隐藏背面滑块 (因为 013 灯条厚度已写死为 0.5 半径) ---
-                if (bCont) bCont.classList.add('hidden');
-
-                // --- 4. 开启材质选择面板 (用来控制底座托盘的金属/烤漆材质) ---
-                matSection.classList.remove('hidden');
-                tintSection.classList.remove('hidden');
-
-                // --- 5. 隐藏面板颜色 (因为 013 只有两层，底座归材质管) ---
-                colourSection.classList.add('hidden');
-
-                // --- 6. 标签与亮度控制 ---
-                ledLabel.innerText = '🎨 内嵌灯带颜色';
-                brightDiv.style.opacity = '1';
-                document.getElementById('brightnessSlider').disabled = false;
-            } else if (glowMode === 'acrylicCut') {
+           else if (glowMode === 'acrylicCut') {
                 if (ledMainLabel) ledMainLabel.innerText = '🎨 亚克力喷漆颜色';
                 if (ledLabel) ledLabel.innerText = '🎨 颜色调色盘';
                 // --- 1. 滑块控制 ---
@@ -3123,23 +3163,9 @@ async function parseSvgToShapes(file) {
             const tRadius013 = 0.5;
             const explodeGap = 30;
 
-            // --- A. 霓虹字 013 模式 ---
-            if (glowMode === 'neonWord013') {
-                if (frontMeshes.length > 0 && backMeshes.length > 0) {
-                    const mHouse = frontMeshes[0]; // 底座
-                    const mStrip = backMeshes[0];  // 灯带
-                    const lift = 0.08;
-                    if (isDecomposed) {
-                        gsap.to(mStrip.position, { z: tRadius013 + lift + explodeGap, duration: 1 });
-                        gsap.to(mHouse.position, { z: -fDepth - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
-                    } else {
-                        gsap.to(mStrip.position, { z: tRadius013 + lift, duration: 1 });
-                        gsap.to(mHouse.position, { z: -fDepth, duration: 1, onUpdate: () => updateDimensions() });
-                    }
-                }
-            }
+       
             // --- B. 霓虹围边 ---
-            else if (glowMode === 'neonBorder') {
+             if (glowMode === 'neonBorder') {
                 const tubes = backMeshes;
                 const bases = frontMeshes;
                 const tRadius = neonTubeSize / 40;
@@ -3153,18 +3179,31 @@ async function parseSvgToShapes(file) {
                 }
             }
             // --- C. 霓虹 012 ---
+          // --- A. 018 (neonWord012) 霓虹灯字一键解体/合并逻辑 ---
+      // --- A. 018 (neonWord012) 霓虹灯字一键解体/合并逻辑 ---
             else if (glowMode === 'neonWord012') {
-                if (frontMeshes.length > 0 && backMeshes.length > 0) {
-                    const mLED = backMeshes[0];
-                    const mShell = frontMeshes[0];
-                    if (isDecomposed) {
-                        gsap.to(mLED.position, { z: tRadius012 + 0.08 + explodeGap, duration: 1 });
-                        gsap.to(mShell.position, { z: -fDepth - explodeGap, duration: 1, onUpdate: () => updateDimensions() });
-                    } else {
-                        gsap.to(mLED.position, { z: tRadius012 + 0.08, duration: 1 });
-                        gsap.to(mShell.position, { z: -fDepth, duration: 1, onUpdate: () => updateDimensions() });
-                    }
-                }
+                // 使用全局变量 frontMeshes (它存储了所有的底座壳)
+                frontMeshes.forEach(mShell => {
+                    // 合位时回到 -fDepth，解体时向后移动 explodeGap
+                    const targetZ = isDecomposed ? (-fDepth - explodeGap) : -fDepth;
+                    gsap.to(mShell.position, { 
+                        z: targetZ, 
+                        duration: 1, 
+                        ease: "power2.inOut" 
+                    });
+                });
+
+                // 使用全局变量 backMeshes (它存储了所有的圆润灯管)
+                backMeshes.forEach(mLED => {
+                    // 合位时回到 0.1，解体时向前移动 explodeGap
+                    const targetZ = isDecomposed ? (0.1 + explodeGap) : 0.1;
+                    gsap.to(mLED.position, { 
+                        z: targetZ, 
+                        duration: 1, 
+                        ease: "power2.inOut", 
+                        onUpdate: () => updateDimensions() // 动画过程中实时更新标注线位置
+                    });
+                });
             }
             // --- D. 三层结构通用逻辑 (修复 sideHalfGlow 关键点) ---
             // --- D. 三层结构通用逻辑 (侧发光、半侧发光、正背发光) ---
