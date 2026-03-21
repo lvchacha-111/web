@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Yi Jiao · 自由书写 (支持中文)</title>
+    <title>Yi Jiao · Design PRO</title>
     <!-- Google Analytics 基础代码 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-G8FLHCSSCW"></script>
     <!-- 使用国内 字节跳动 或 76dev 的镜像源 -->
@@ -525,7 +525,7 @@
 <body>
     <div id="sidebar">
         <div class="header-box">
-            <h1 id="pageTitle">Freewriting-svg导入</h1>
+            <h1 id="pageTitle">Freewriting</h1>
             <a href="index.html" class="back-btn">← 返回</a>
         </div>
 
@@ -1378,7 +1378,7 @@ document.querySelectorAll('.align-btn').forEach(btn => {
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-
+controls.dampingFactor = 0.2;
         // ==========================================
         // 后处理 (辉光)
         // ==========================================
