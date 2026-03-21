@@ -1906,7 +1906,16 @@ const bloomComposer = new EffectComposer(renderer, renderTarget);
 
             const cadOffset = 14 * scaleFactor;
             const tickLength = 3 * scaleFactor;
-            const labelZ = 15;
+               // 【修改点 1】：不要固定为 15，要根据文字的前表面动态计算
+    // 先强制更新文字的世界矩阵，确保获取的是最新位置
+    textGroup.updateMatrixWorld(true);
+    const textBox = new THREE.Box3().setFromObject(textGroup);
+    
+    // 如果文字组是空的，直接返回
+    if (textBox.isEmpty() || !isFinite(textBox.max.z)) return;
+
+    // 标注线应该在文字最前面再往外一点点
+    const labelZ = textBox.max.z + 1.0; 
 
        const drawIndustrialDim = (p1, p2, offsetVec, text, color = 0xf39c12, axisName = '') => {
     const group = new THREE.Group();
@@ -2446,21 +2455,26 @@ async function parseSvgToShapes(file) {
     textGroup.add(backstageGroup);
 
     // 8. 同步全局状态
+   // --- 找到 generate3DText 的最后几行 ---
+    // 8. 同步全局状态
     frontMeshes = newFrontMeshes;
     backMeshes = newBackMeshes;
     colourMeshes = newColourMeshes;
     flowMeshes = newFlowMeshes;
 
-    textGroup.traverse(child => {
-        if (child.isMesh && !child.userData.isRef) child.userData.isCraftObject = true;
+    // 【修改点 2】：确保先更新矩阵，再画标注
+    textGroup.updateMatrixWorld(true); 
+    
+    // 使用 requestAnimationFrame 确保在渲染循环开始前更新一次
+    requestAnimationFrame(() => {
+        updateDimensions();
     });
-
-    updateBrightness(document.getElementById('brightnessSlider').value);
     
     if (adjustCamera && textString !== lastText) { 
         centerAndFitCamera();
         lastText = textString;
     }
+
     setTimeout(() => updateDimensions(), 10);
 }
         // 封装后的防抖生成函数
