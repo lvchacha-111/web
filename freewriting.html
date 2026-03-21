@@ -185,136 +185,100 @@
         /* 修改原有的容器样式，增加过渡动画 */
         /* 修改右上角面板为右下角悬浮窗 */
         /* 修改容器：改为右下角，默认隐藏 */
-        #svg-upload-container {
-            position: absolute;
-            bottom: 30px;
-            /* 距离底部 */
-            right: 30px;
-            /* 距离右侧 */
-            top: auto;
-            /* 取消顶部定位 */
-            z-index: 1000;
-            background: rgba(30, 30, 30, 0.9);
-            padding: 0 12px 12px 12px;
-            /* 顶部不需要padding，留给手柄 */
-            border-radius: 8px;
-            border: 1px solid #f39c12;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            width: 220px;
-            transition: opacity 0.3s;
-            /* 仅保留淡入淡出 */
-        }
+   /* 修改原有的容器：改为 Flex 布局，宽度自适应 */
+/* --- 右侧主浮动面板 --- */
+#svg-upload-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 500px !important;
+    display: flex;
+    flex-direction: column;
+    background: rgba(40, 40, 40, 0.98);
+    border: 1px solid #555;
+    border-radius: 10px;
+    z-index: 1000;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+/* 顶部拖拽手柄 */
+#panel-drag-handle {
+    width: 100%;
+    height: 34px;
+    background: #1a1a1a;
+    color: #f39c12;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: move;
+    border-bottom: 1px solid #444;
+    user-select: none;
+}
 
-        /* 拖拽手柄样式 */
-        #panel-drag-handle {
-            width: calc(100% + 24px);
-            margin: 0 -12px 10px -12px;
-            height: 30px;
-            background: #333;
-            border-radius: 8px 8px 0 0;
-            cursor: move;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: #666;
-            border-bottom: 1px solid #444;
-        }
+/* 左右并排容器的包装层 - 必须在 HTML 中确保这两个 ID 的父级有此样式 */
+.panel-main-content {
+    display: flex !important; /* 强制并排 */
+    flex-direction: row !important;
+    width: 100%;
+}
 
-        #panel-drag-handle:hover {
-            background: #3d3d3d;
-            color: #f39c12;
-        }
+/* 左侧基础栏 */
+#panel-inner-content {
+    width: 250px;
+    padding: 15px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
 
-        /* 移除旧的箭头样式（如果还存在的话） */
-        #panel-toggle-btn {
-            display: none !important;
-        }
+#panel-extension {
+    width: 250px;
+    padding: 15px;
+    border-left: 1px solid #444;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
 
-        .upload-label {
-            font-size: 11px;
-            font-weight: bold;
-            color: #f39c12;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+/* 统一标签样式 */
+.upload-label {
+    font-size: 11px;
+    font-weight: bold;
+    color: #f39c12;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
 
-        .upload-btns {
-            display: flex;
-            gap: 8px;
-        }
+/* 统一按钮宽度 */
+.small-btn, .action-btn {
+    pointer-events: auto !important; /* 确保可点击 */
+    cursor: pointer !important;
+}
 
-        .small-btn {
-            padding: 6px 10px !important;
-            font-size: 11px !important;
-            margin: 0 !important;
-            flex: 1;
-            /* 按钮等宽 */
-        }
+.danger-btn { background: #c0392b !important; }
+.green-btn { background: #27ae60 !important; }
+.orange-btn { background: #e67e22 !important; }
 
-        .danger-btn {
-            background: #c0392b !important;
-            border-color: #a93226 !important;
-        }
+/* 备注文字 */
+.svg-note {
+    font-size: 10px;
+    color: #888;
+    margin-top: -5px;
+    line-height: 1.4;
+}
 
-        .toggle-btn {
-            padding: 8px !important;
-            font-size: 12px !important;
-            background: #2980b9 !important;
-        }
-
-        .snapshot-btn {
-            padding: 8px !important;
-            font-size: 12px !important;
-            background: #27ae60 !important;
-        }
-
-        /* 修改容器宽度以适应新布局 */
-        #svg-upload-container {
-            width: 200px !important;
-            /* 调整宽度 */
-        }
-
-        /* 内部内容容器的淡入淡出逻辑 */
-        #panel-inner-content {
-            transition: opacity 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 15px;
-            /* 给箭头留出空间 */
-        }
-
-        #svg-upload-container.collapsed #panel-inner-content {
-            opacity: 0;
-            pointer-events: none;
-            /* 收缩时不可点击 */
-        }
-
-        /* 箭头旋转动画 */
-        #toggle-icon {
-            transition: transform 0.4s;
-            display: inline-block;
-        }
-
-        #svg-upload-container.collapsed #toggle-icon {
-            transform: rotate(180deg);
-            /* 展开时指向右，收缩时指向左 */
-        }
-
-        .svg-note {
-            font-size: 11px;
-            color: #aaa;
-            margin-top: 2px;
-        }
-
-        /* 选中状态强化 */
-        .color-swatch.active.marquee-active {
-            border-color: #f39c12;
-            box-shadow: 0 0 8px #f39c12, 0 0 12px rgba(243, 156, 18, 0.5);
-        }
-
+/* 收缩状态（如果以后需要快捷键收起整个面板） */
+#svg-upload-container.collapsed {
+    transform: translateY(calc(100% - 34px)); /* 只露出手柄 */
+    opacity: 0.9;
+}
       /* 修改文本域样式以适应多行 */
 #textInput {
     width: 100%;
@@ -841,36 +805,42 @@
         <button class="action-btn" id="decomposeBtn">一键解体 (Explode)</button>
     </div>
 
+   <!-- !!! 核心修复：添加这个 div !!! -->
+    <div id="canvas-container">
+        <!-- 3D 内容将被渲染到这里 -->
+    </div>
+<div id="loading" style="display: none;">
+    <div class="spinner"></div>
+    <span style="color:white; font-size:12px; margin-top:10px;">正在加载字体资源...</span>
+</div>
 
+   <!-- 右侧主容器 -->
+<div id="svg-upload-container" style="display: none;">
+    <!-- 1. 顶部拖拽手柄区域 -->
+    <div id="panel-drag-handle">
+        <span style="letter-spacing: 2px;">⋮⋮ 拖拽移动面板 ⋮⋮</span>
+    </div>
 
-
-    <!-- 右下角功能面板 -->
-    <div id="svg-upload-container" style="display: none;"> <!-- 初始隐藏 -->
-        <!-- 1. 新增：顶部拖拽手柄区域 -->
-        <div id="panel-drag-handle">
-            <span style="letter-spacing: 2px;">⋮⋮ 拖拽移动 ⋮⋮</span>
-        </div>
-
-        <!-- 2. 内容容器 -->
+    <!-- 2. 并排容器 (让左右两栏水平排列) -->
+      <div class="panel-main-content">
+        
+        <!-- [左栏]：基础功能 -->
         <div id="panel-inner-content">
-            <!-- 第一组：SVG 上传 -->
+            <!-- SVG 上传 -->
             <div class="upload-row">
                 <div class="upload-label">📤 上传矢量轮廓 (SVG)</div>
                 <div class="upload-btns">
-                    <button class="action-btn small-btn"
-                        onclick="document.getElementById('svgInput').click()">选择文件</button>
+                    <button class="action-btn small-btn" onclick="document.getElementById('svgInput').click()">选择文件</button>
                     <input type="file" id="svgInput" accept=".svg" style="display: none;">
                     <button class="action-btn small-btn hidden danger-btn" id="clearSvgBtn">移除</button>
                 </div>
             </div>
-<!-- 找到这一块，直接替换 -->
 
-            <!-- 第二组：背景图片上传 -->
+            <!-- 背景图片上传 -->
             <div class="upload-row">
                 <div class="upload-label">🖼️ 上传参考背景 (JPG/PNG)</div>
                 <div class="upload-btns">
-                    <button class="action-btn small-btn"
-                        onclick="document.getElementById('bgInput').click()">选择背景</button>
+                    <button class="action-btn small-btn" onclick="document.getElementById('bgInput').click()">选择背景</button>
                     <input type="file" id="bgInput" accept="image/png, image/jpeg" style="display: none;">
                     <button class="action-btn small-btn hidden danger-btn" id="clearBgBtn">移除</button>
                 </div>
@@ -878,69 +848,53 @@
 
             <hr style="border: 0; border-top: 1px solid #444; margin: 8px 0;">
 
-            <!-- 第三组：操作按钮 -->
-            <!-- 替换原来的 <button id="toggleDimensionBtn">... -->
+            <!-- 操作按钮 -->
             <div style="display: flex; gap: 8px;">
-                <button class="action-btn small-btn" id="toggleObjLabelsBtn" style="background: #2980b9 !important;">👁️
-                    文字标注</button>
-                <button class="action-btn small-btn" id="togglePlateLabelsBtn"
-                    style="background: #8e44ad !important;">👁️ 背板标注</button>
+                <button class="action-btn small-btn" id="toggleObjLabelsBtn" style="background: #2980b9 !important;">👁️ 文字标注</button>
+                <button class="action-btn small-btn" id="togglePlateLabelsBtn" style="background: #8e44ad !important;">👁️ 背板标注</button>
             </div>
             <button class="action-btn snapshot-btn" id="snapshotBtn">📸 导出实拍图 (Snapshot)</button>
 
-
-            <!-- 新增：背板尺寸与颜色控制 -->
-            <!-- 背板尺寸控制区域：一行三列对齐版 -->
-            <div class="thickness-control" style="margin-bottom: 10px; border-left: 3px solid #8e44ad;">
-                <div style="margin-bottom: 8px;">
-                    <!-- 单位改为 mm -->
-                    <label style="margin:0; color:#8e44ad;">📏 背板尺寸 (宽 x 高 x 厚 mm)</label>
+            <!-- 背板尺寸控制 -->
+            <div class="thickness-control" style="margin-bottom: 10px; border-left: 3px solid #8e44ad; background:#333;">
+                <label style="margin:0; color:#8e44ad; font-size:11px;">📏 背板尺寸 (mm)</label>
+                <div style="display: flex; gap: 5px; margin-top:5px;">
+                    <input type="number" id="plateWidthInput" class="num-input" value="1000" style="flex:1;" title="宽">
+                    <input type="number" id="plateHeightInput" class="num-input" value="400" style="flex:1;" title="高">
+                    <input type="number" id="plateThicknessInput" class="num-input" value="10" style="flex:1;" title="厚">
                 </div>
-
-                <div style="display: flex; gap: 5px;">
-                    <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                        <span style="font-size: 10px; color: #888; white-space: nowrap;">宽度(W)</span>
-                        <!-- 初始值改为 1000 -->
-                        <input type="number" id="plateWidthInput" class="num-input" value="1000"
-                            style="width: 100%; box-sizing: border-box;">
-                    </div>
-
-                    <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                        <span style="font-size: 10px; color: #888; white-space: nowrap;">高度(H)</span>
-                        <!-- 初始值改为 400 -->
-                        <input type="number" id="plateHeightInput" class="num-input" value="400"
-                            style="width: 100%; box-sizing: border-box;">
-                    </div>
-
-                    <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                        <span style="font-size: 10px; color: #888; white-space: nowrap;">厚度(T)</span>
-                        <!-- 初始值改为 10 -->
-                        <input type="number" id="plateThicknessInput" class="num-input" value="10" step="1"
-                            style="width: 100%; box-sizing: border-box;">
-                    </div>
-                </div>
-                <!-- 下方的调色盘 -->
-                <div style="margin-top: 10px;">
-                    <label style="margin-bottom:5px; color:#8e44ad; font-size: 11px;">🎨 背板背景颜色</label>
-                    <input type="color" id="plateColorPicker" value="#1a1a1a"
-                        style="width: 100%; height: 25px; cursor: pointer; border: 1px solid #444; background: none; border-radius: 4px;">
+                <div style="margin-top: 8px;">
+                    <input type="color" id="plateColorPicker" value="#1a1a1a" style="width: 100%; height: 20px; cursor: pointer; border: none; background: none;">
                 </div>
             </div>
-            <button class="action-btn" id="addPlateBtn"
-                style="background: #8e44ad !important; border-color: #7d3c98 !important; margin-top: 8px;">🏗️ 添加/重置背板
-
-
-
-                (Add Plate)</button>
-            <div class="svg-note">快捷键: [ 显示 | ] 隐藏</div>
+            <button class="action-btn" id="addPlateBtn" style="background: #8e44ad !important; font-size:11px;">🏗️ 添加/重置背板</button>
         </div>
-    </div>
-    <div id="canvas-container">
-        <div id="loading">
-            <div class="spinner"></div>
-            <span>加载中...</span>
+
+        <!-- [右栏]：新增的拓展面板 -->
+        <div id="panel-extension">
+            <!-- 功能一：叠加默认背板 -->
+            <div class="upload-row">
+                <div class="upload-label" style="color: #27ae60;">🏗️ 叠加背板 (Multiple)</div>
+                <div class="svg-note">位置依次向上移动5个单位</div>
+                <button class="action-btn small-btn" id="addStackedPlateBtn" style="background: #27ae60 !important; margin-top:5px;">新增一层</button>
+                <button class="action-btn small-btn danger-btn" id="clearStackedPlatesBtn" style="margin-top: 5px;">清空叠加</button>
+            </div>
+
+            <hr style="border: 0; border-top: 1px dashed #444; margin: 10px 0;">
+
+            <!-- 功能二：用户上传背板 -->
+            <div class="upload-row">
+                <!-- 找到这个部分进行修改 -->
+<div class="upload-label" style="color: #e67e22;">🖼️ 上传轮廓背板 (SVG)</div>
+<button class="action-btn small-btn" style="background: #e67e22 !important; margin-top:5px;" onclick="document.getElementById('userPlateInput').click()">选择 SVG 文件</button>
+<input type="file" id="userPlateInput" accept=".svg" style="display: none;">
+                <button class="action-btn small-btn danger-btn hidden" id="removeUserPlateBtn" style="margin-top: 5px;">移除</button>
+            </div>
+            
+            <div class="svg-note" style="margin-top: auto; text-align: center;">快捷键: [ ] ] 显示/隐藏</div>
         </div>
-    </div>
+    </div> <!-- 并排容器结束 -->
+</div>
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -960,8 +914,8 @@
         // ==========================================
 
         // --- 物体拖拽相关变量 ---
-// 在 let svgPaths 附近添加：
-
+        // 在 let svgPaths 附近添加：
+let activeBackplate = null; // 记录当前选中的背板对象
         let colourAttrColor = 0xffffff; // 存储 Colour 属性的颜色
         let isMoveModeActive = false; // 是否处于 M 键激活的移动模式中
         let selectedObject = null; // 当前选中的物体（文字组或背景图）
@@ -1033,6 +987,7 @@ let lastText = "";
         let selectedLabel = null;
         let selectedLabelAxis = null;
         let raycaster = new THREE.Raycaster();
+        raycaster.params.Line.threshold = 4;
         let mouse = new THREE.Vector2();
         // 记录 X, Y, Z 三个标注的手动偏移量
         let labelManualOffsets = {
@@ -1053,6 +1008,195 @@ let lastText = "";
         let textAlign = 'left'; // 默认左对齐
 let realTextWidth = 0;  // 存储不含倒角的净宽度
 let realTextHeight = 0; // 存储不含倒角的净高度
+
+
+
+// --- 核心函数：把面板上的数值实时应用到选中的背板上 ---
+function syncActivePlate() {
+    if (!activeBackplate) return;
+
+    // 1. 获取面板上的最新数值 (mm 转为 cm)
+    const w = parseFloat(document.getElementById('plateWidthInput').value) / 10 || 10;
+    const h = parseFloat(document.getElementById('plateHeightInput').value) / 10 || 4;
+    const t = parseFloat(document.getElementById('plateThicknessInput').value) / 10 || 1.5;
+    const color = document.getElementById('plateColorPicker').value;
+
+    // 2. 判断当前操作的是不是上传的 SVG 背板
+    if (activeBackplate.userData.isCustomPlate) {
+        // 自定义背板：通过 scale（缩放）来改变尺寸
+        const rawW = activeBackplate.userData.rawW;
+        const rawH = activeBackplate.userData.rawH;
+        
+        // 计算新的缩放倍率： 目标尺寸 / 原始像素尺寸
+        activeBackplate.scale.set(w / rawW, h / rawH, t);
+        
+        // 更新颜色
+        if (activeBackplate.material) activeBackplate.material.color.set(color);
+    } 
+    else {
+        // 标准方块背板：通过重新生成几何体来改变尺寸
+        if (activeBackplate.geometry) activeBackplate.geometry.dispose();
+        activeBackplate.geometry = new THREE.BoxGeometry(w, h, t);
+        if (activeBackplate.material) activeBackplate.material.color.set(color);
+
+        // 如果是主背板，保持后背对齐逻辑
+        if (activeBackplate === lPlateGroup) {
+            activeBackplate.position.z = -(t / 2);
+        }
+    }
+
+    // 3. 实时刷新 3D 标注线
+    updateDimensions();
+}
+// --- 全局变量声明 ---
+// --- 1. 全局变量声明 (确保这些在 script 标签较靠前的位置) ---
+let stackedPlatesGroup = new THREE.Group(); 
+let userPlateMesh = null; 
+let nextPlateYOffset = 5; 
+const plateColors = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e74c3c']; // 统一使用这个名字
+let colorPointer = 0; // 统一使用这个计数器
+// --- 2. 获取 DOM 容器 (防止 clientWidth 报错，必须在 camera 初始化前) ---
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+
+// 立即添加组到场景
+scene.add(stackedPlatesGroup);
+
+
+
+function addDefaultStackedPlate() {
+    // 获取当前输入的尺寸
+    const w = (parseFloat(document.getElementById('plateWidthInput').value) || 1000) / 10;
+    const h = (parseFloat(document.getElementById('plateHeightInput').value) || 400) / 10;
+    const t = (parseFloat(document.getElementById('plateThicknessInput').value) || 10) / 10;
+
+    const geo = new THREE.BoxGeometry(w, h, t);
+    // 修复：使用正确的变量名 plateColors
+    const col = plateColors[colorPointer % plateColors.length];
+    colorPointer++;
+
+    const mat = new THREE.MeshStandardMaterial({ 
+        color: col, 
+        roughness: 0.8,
+        metalness: 0.2 
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+
+    // 设置位置
+    const baseZ = lPlateGroup ? lPlateGroup.position.z : -2;
+    mesh.position.set(0, nextPlateYOffset, baseZ);
+    nextPlateYOffset += 5; // 向上堆叠
+
+    stackedPlatesGroup.add(mesh);
+    console.log("已新增背板层");
+}
+
+// 移除所有叠加背板
+function clearStackedPlates() {
+    while(stackedPlatesGroup.children.length > 0) {
+        const obj = stackedPlatesGroup.children[0];
+        obj.geometry.dispose();
+        obj.material.dispose();
+        stackedPlatesGroup.remove(obj);
+    }
+    nextPlateYOffset = 5; // 重置高度
+    colorPointer = 0;
+}
+
+// 用户上传背板逻辑
+// --- 修改后的：上传 SVG 轮廓并生成 3D 背板 ---
+// --- 修复版：上传 SVG 轮廓并自动校准尺寸 ---
+function handleUserPlateUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const svgData = event.target.result;
+        const loader = new SVGLoader();
+        const data = loader.parse(svgData);
+        const paths = data.paths;
+        const shapes = [];
+
+        paths.forEach(path => {
+            shapes.push(...SVGLoader.createShapes(path));
+        });
+
+        // 1. 创建几何体（深度设为 1，方便后面按比例缩放）
+        const extrudeSettings = { depth: 1, bevelEnabled: false };
+        const geometry = new THREE.ExtrudeGeometry(shapes, extrudeSettings);
+
+        // --- 【核心修复1】：解决倒置问题 ---
+        geometry.scale(1, -1, 1); 
+
+        // 2. 居中对齐
+        geometry.computeBoundingBox();
+        const box = geometry.boundingBox;
+        const rawW = box.max.x - box.min.x;
+        const rawH = box.max.y - box.min.y;
+        
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        geometry.translate(-center.x, -center.y, -center.z);
+
+        // 3. 应用材质
+        const color = document.getElementById('plateColorPicker').value;
+        const material = new THREE.MeshStandardMaterial({ 
+            color: color, 
+            roughness: 0.8, 
+            metalness: 0.2,
+            side: THREE.DoubleSide 
+        });
+
+        if (userPlateMesh) {
+            scene.remove(userPlateMesh);
+            userPlateMesh.geometry.dispose();
+            userPlateMesh.material.dispose();
+        }
+
+        userPlateMesh = new THREE.Mesh(geometry, material);
+        userPlateMesh.name = "Custom_SVG_Plate";
+        userPlateMesh.userData.isCustomPlate = true; // 标记这是自定义背板
+        
+        // 存下原始像素尺寸，用于后续计算缩放比
+        userPlateMesh.userData.rawW = rawW;
+        userPlateMesh.userData.rawH = rawH;
+
+        // 4. 【核心修复2】：初始化时根据 UI 上的数值设置初始大小
+        const uiW = parseFloat(document.getElementById('plateWidthInput').value) / 10 || 50;
+        const uiH = parseFloat(document.getElementById('plateHeightInput').value) / 10 || 40;
+        const uiT = parseFloat(document.getElementById('plateThicknessInput').value) / 10 || 1.5;
+
+        userPlateMesh.scale.set(uiW / rawW, uiH / rawH, uiT);
+        userPlateMesh.position.set(0, 0, -2);
+
+        scene.add(userPlateMesh);
+        
+        // 选中它
+        activeBackplate = userPlateMesh;
+        selectedObject = userPlateMesh;
+        outlinePass.selectedObjects = [userPlateMesh];
+        document.getElementById('removeUserPlateBtn').classList.remove('hidden');
+
+        updateDimensions();
+        console.log("SVG背板已翻转并同步尺寸生成");
+    };
+    reader.readAsText(file);
+}
+function removeUserPlate() {
+    if(userPlateMesh) {
+        scene.remove(userPlateMesh);
+        userPlateMesh.geometry.dispose();
+        userPlateMesh.material.dispose();
+        userPlateMesh = null;
+    }
+    document.getElementById('removeUserPlateBtn').classList.add('hidden');
+}
+
+document.getElementById('addStackedPlateBtn').addEventListener('click', addDefaultStackedPlate);
+document.getElementById('clearStackedPlatesBtn').addEventListener('click', clearStackedPlates);
+document.getElementById('userPlateInput').addEventListener('change', handleUserPlateUpload);
+document.getElementById('removeUserPlateBtn').addEventListener('click', removeUserPlate);
 // 绑定对齐按钮点击事件
 document.querySelectorAll('.align-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1168,10 +1312,12 @@ document.querySelectorAll('.align-btn').forEach(btn => {
         // --- 最终整合的键盘快捷键逻辑 ---
 
         // 2. 获取容器
-        const container = document.getElementById('canvas-container');
+       
 
         // 3. 【关键修改】先初始化 scene
-        const scene = new THREE.Scene();
+      
+        
+        scene.add(stackedPlatesGroup);
 
         // 4. 【关键修改】现在 scene 存在了，可以 add 了
         scene.add(dimensionGroup);
@@ -1762,42 +1908,49 @@ const bloomComposer = new EffectComposer(renderer, renderTarget);
             const tickLength = 3 * scaleFactor;
             const labelZ = 15;
 
-            const drawIndustrialDim = (p1, p2, offsetVec, text, color = 0xf39c12, axisName = '') => {
-                const group = new THREE.Group();
-                const lineMat = new THREE.LineBasicMaterial({
-                    color: color,
-                    transparent: true,
-                    opacity: 0.8,
-                    depthTest: false
-                });
+       const drawIndustrialDim = (p1, p2, offsetVec, text, color = 0xf39c12, axisName = '') => {
+    const group = new THREE.Group();
+    // 核心：获取该标注对应的手动偏移量
+    const manualOffset = labelManualOffsets[axisName] || new THREE.Vector3();
 
-                const dimStart = p1.clone().add(offsetVec);
-                const dimEnd = p2.clone().add(offsetVec);
+    const lineMat = new THREE.LineBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.8,
+        depthTest: false
+    });
 
-                const mainLineGeo = new THREE.BufferGeometry().setFromPoints([dimStart, dimEnd]);
-                const mainLine = new THREE.Line(mainLineGeo, lineMat);
-                mainLine.renderOrder = 999;
-                group.add(mainLine);
+    // 1. 计算线段的起点和终点：基础坐标 + 初始偏移 + 手动偏移
+    const dimStart = p1.clone().add(offsetVec).add(manualOffset);
+    const dimEnd = p2.clone().add(offsetVec).add(manualOffset);
 
-                const dir = new THREE.Vector3().subVectors(dimEnd, dimStart).normalize();
-                const sideDir = new THREE.Vector3(-dir.y, dir.x, 0).multiplyScalar(tickLength);
+    // 2. 创建主标注线
+    const mainLineGeo = new THREE.BufferGeometry().setFromPoints([dimStart, dimEnd]);
+    const mainLine = new THREE.Line(mainLineGeo, lineMat);
+    mainLine.userData.axis = axisName; // [关键] 给线段绑定轴向名称，使其可被点击拖拽
+    mainLine.renderOrder = 999;
+    group.add(mainLine);
 
-                const tick1Points = [dimStart.clone().add(sideDir), dimStart.clone().sub(sideDir)];
-                const tick2Points = [dimEnd.clone().add(sideDir), dimEnd.clone().sub(sideDir)];
+    // 3. 创建两侧的小刻度线 (Ticks)
+    const dir = new THREE.Vector3().subVectors(dimEnd, dimStart).normalize();
+    const sideDir = new THREE.Vector3(-dir.y, dir.x, 0).multiplyScalar(tickLength);
+    const tick1Points = [dimStart.clone().add(sideDir), dimStart.clone().sub(sideDir)];
+    const tick2Points = [dimEnd.clone().add(sideDir), dimEnd.clone().sub(sideDir)];
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick1Points), lineMat));
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick2Points), lineMat));
 
-                group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick1Points), lineMat));
-                group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick2Points), lineMat));
+    // 4. 创建数字标签 (Label)
+    // 标签位置在线段中心，再往外推一点点边距
+    const center = new THREE.Vector3().addVectors(dimStart, dimEnd).multiplyScalar(0.5);
+    const textMargin = offsetVec.clone().normalize().multiplyScalar(2 * scaleFactor);
+    const labelPos = center.clone().add(textMargin);
 
-                const center = new THREE.Vector3().addVectors(dimStart, dimEnd).multiplyScalar(0.5);
-                const textMargin = offsetVec.clone().normalize().multiplyScalar(2 * scaleFactor);
-                const labelPos = center.clone().add(textMargin).add(labelManualOffsets[axisName] || new THREE.Vector3());
+    const label = createTextLabel(text, labelPos, scaleFactor * 0.9, color);
+    label.userData.axis = axisName; // [关键] 数字也绑定轴向
+    group.add(label);
 
-                const label = createTextLabel(text, labelPos, scaleFactor * 0.9, color);
-                label.userData.axis = axisName;
-                group.add(label);
-
-                dimensionGroup.add(group);
-            };
+    dimensionGroup.add(group);
+};
 
             // --- 始终执行：背板物理位置修正 ---
             if (lPlateGroup) {
@@ -3400,106 +3553,175 @@ async function parseSvgToShapes(file) {
         // 鼠标按下：检测是否点中标签
         // --- 统一的鼠标按下事件 ---
         // --- 统一的鼠标按下事件：支持背景、文字、背板的选中 ---
-        container.addEventListener('pointerdown', (event) => {
-            // 1. 如果点击的是中键 (button 1) 且处于移动模式，立即禁用相机
-            if (event.button === 1 && isMoveModeActive) {
-                controls.enabled = false;
-                return;
+    container.addEventListener('pointerdown', (event) => {
+    // 1. 如果点击的是中键 (button 1) 且处于移动模式，立即禁用相机
+    if (event.button === 1 && isMoveModeActive) {
+        controls.enabled = false;
+        return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // 2. 移动模式下的确认退出逻辑
+    if (isMoveModeActive && selectedObject && event.button === 0) {
+        isMoveModeActive = false;
+        controls.enabled = true;
+        container.style.cursor = 'pointer';
+        outlinePass.edgeStrength = 3.0;
+        return;
+    }
+
+    raycaster.setFromCamera(mouse, camera);
+    raycaster.layers.enable(0); 
+    raycaster.layers.enable(2); 
+
+    // 3. 标注标签检测 (优先级最高)
+    const labelIntersects = raycaster.intersectObjects(dimensionGroup.children, true);
+    if (labelIntersects.length > 0) {
+        const hitObject = labelIntersects[0].object;
+        if (hitObject.userData.axis) {
+            selectedLabelAxis = hitObject.userData.axis;
+            isDraggingLabel = true;
+            controls.enabled = false;
+            return;
+        }
+    }
+
+    // 4. 物体选中逻辑
+    // 【核心修改】：将 userPlateMesh 加入可检测列表
+    const selectableObjects = [textGroup, bgPlaneMesh, lPlateGroup, stackedPlatesGroup, userPlateMesh].filter(Boolean);
+    const intersects = raycaster.intersectObjects(selectableObjects, true);
+
+    if (intersects.length > 0) {
+        let hitObject = intersects[0].object;
+        let logicalTarget = textGroup;
+
+        // --- 1. 判定点击了哪一类物体 ---
+        const isMainPlate = lPlateGroup && (hitObject === lPlateGroup || hitObject.parent === lPlateGroup);
+        const isStackedPlate = stackedPlatesGroup.children.includes(hitObject) || 
+                            (hitObject.parent && stackedPlatesGroup.children.includes(hitObject.parent));
+        const isBackground = bgPlaneMesh && (hitObject === bgPlaneMesh || hitObject.parent === bgPlaneMesh);
+        
+        // 【新增】：判定是否为自定义 SVG 轮廓背板
+        const isCustomSVGPlate = userPlateMesh && (hitObject === userPlateMesh || hitObject.parent === userPlateMesh);
+
+        if (isBackground) {
+            logicalTarget = bgPlaneMesh;
+            activeBackplate = null;
+            console.log("选中了背景参考图");
+        } 
+        else if (isMainPlate || isStackedPlate || isCustomSVGPlate) {
+            // --- 选中了任何一种背板 ---
+            logicalTarget = isCustomSVGPlate ? userPlateMesh : hitObject; 
+            activeBackplate = logicalTarget; 
+
+            // --- 2. 核心：从模型反向同步数据到 UI 面板 ---
+            if (isCustomSVGPlate) {
+                // 自定义 SVG 背板：通过测量包围盒获取缩放后的实际尺寸
+                const box = new THREE.Box3().setFromObject(logicalTarget);
+                const size = box.getSize(new THREE.Vector3());
+                document.getElementById('plateWidthInput').value = Math.round(size.x * 10);
+                document.getElementById('plateHeightInput').value = Math.round(size.y * 10);
+                document.getElementById('plateThicknessInput').value = (size.z * 10).toFixed(1);
+            } else if (hitObject.geometry && hitObject.geometry.parameters) {
+                // 标准方块背板：直接读取几何体参数
+                const params = hitObject.geometry.parameters;
+                document.getElementById('plateWidthInput').value = Math.round(params.width * 10);
+                document.getElementById('plateHeightInput').value = Math.round(params.height * 10);
+                document.getElementById('plateThicknessInput').value = (params.depth * 10).toFixed(1);
             }
 
-            const rect = container.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-            // 2. 移动模式下的“左键点击”确认退出逻辑
-            if (isMoveModeActive && selectedObject && event.button === 0) {
-                isMoveModeActive = false;
-                controls.enabled = true;
-                container.style.cursor = 'pointer';
-                outlinePass.edgeStrength = 3.0;
-                return;
+            // 读取颜色并同步选择器
+            if (logicalTarget.material && logicalTarget.material.color) {
+                const hexColor = "#" + logicalTarget.material.color.getHexString();
+                document.getElementById('plateColorPicker').value = hexColor;
             }
-
-            raycaster.setFromCamera(mouse, camera);
-
-            // 【核心修复】：让射线也能检测到第 2 层（背板所在的层）
-            raycaster.layers.enable(0); // 默认的文字层
-            raycaster.layers.enable(2); // 背板层 (PLATE_LAYER)
-
-            // 3. 标注标签检测 (优先级最高)
-            const labelIntersects = raycaster.intersectObjects(dimensionGroup.children);
-            if (labelIntersects.length > 0) {
-                const hitLabel = labelIntersects[0].object;
-                // 【核心修改】：记录轴向字符串（如 'x', 'pW'），而不是记录物体本身
-                selectedLabelAxis = hitLabel.userData.axis;
-                isDraggingLabel = true;
-                controls.enabled = false;
-                return;
-            }
-
-            // 4. 物体选中逻辑 (文字、背景、背板)
-            const selectableObjects = [textGroup, bgPlaneMesh, lPlateGroup].filter(Boolean);
-            const intersects = raycaster.intersectObjects(selectableObjects, true);
-
-            if (intersects.length > 0) {
-                let hitObject = intersects[0].object;
-                let logicalTarget = textGroup;
-
-                // 判定点击的是哪一个逻辑主体
-                if (bgPlaneMesh && (hitObject === bgPlaneMesh || hitObject.parent === bgPlaneMesh)) {
-                    logicalTarget = bgPlaneMesh;
-                } else if (lPlateGroup && (hitObject === lPlateGroup || hitObject.parent === lPlateGroup)) {
-                    logicalTarget = lPlateGroup;
-                } else {
-                    logicalTarget = textGroup;
-                }
-
-                selectedObject = logicalTarget;
-                outlinePass.selectedObjects = [logicalTarget]; // 加上发光描边
-                container.style.cursor = 'pointer';
-
-                // 选中时立即计算一次拖拽平面，防止进入 M 模式后跳变
-                setupDragPlane(intersects[0].point, logicalTarget.position);
-                console.log("选中了:", logicalTarget.name || "文字组");
-            } else {
-                selectedObject = null;
-                outlinePass.selectedObjects = [];
-                container.style.cursor = 'default';
-            }
-        });
-
-        // 辅助函数：设置拖拽平面
-        function setupDragPlane(intersectPoint, targetPosition) {
-            const normal = new THREE.Vector3();
-            camera.getWorldDirection(normal).negate();
-            dragPlane.setFromNormalAndCoplanarPoint(normal, intersectPoint);
-            dragOffset.copy(intersectPoint).sub(targetPosition);
+            
+            console.log("已选中背板，尺寸属性已同步");
+        } 
+        else {
+            logicalTarget = textGroup;
+            activeBackplate = null;
         }
 
-        // --- 统一的鼠标移动事件 ---
-        // --- 2. 键盘快捷键逻辑 ---
-        // --- 统一的鼠标移动事件 ---
-        // --- 完整替换你的 window.addEventListener('pointermove', ...) ---
+        // --- 3. 执行选中反馈 ---
+        selectedObject = logicalTarget;
+        outlinePass.selectedObjects = [logicalTarget];
+        container.style.cursor = 'pointer';
+        setupDragPlane(intersects[0].point, logicalTarget.position);
+        
+    } else {
+        // 点击空白
+        selectedObject = null;
+        activeBackplate = null;
+        outlinePass.selectedObjects = [];
+        container.style.cursor = 'default';
+    }
+});
+
+        // 辅助函数：设置拖拽平面
+     function setupDragPlane(intersectPoint, targetPosition) {
+    // 判断是否为背板类（主背板或叠加组里的背板）
+    const isBackplate = (selectedObject === lPlateGroup) || 
+                        (lPlateGroup && lPlateGroup.children.includes(selectedObject)) ||
+                        (stackedPlatesGroup.children.includes(selectedObject))||
+                         (selectedObject === userPlateMesh); // 增加这一行
+
+    if (isBackplate) {
+        // 如果是背板：强制平面法线朝向 Z 轴（锁定 XY 移动）
+        dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), intersectPoint);
+    } else {
+        // 如果是其他（文字/背景）：平面法线朝向相机（自由移动）
+        const normal = new THREE.Vector3();
+        camera.getWorldDirection(normal).negate();
+        dragPlane.setFromNormalAndCoplanarPoint(normal, intersectPoint);
+    }
+    
+    // 统一记录当前的初始 Z 轴，供后续锁定使用
+    selectedObject.userData.lockedZ = targetPosition.z;
+    dragOffset.copy(intersectPoint).sub(targetPosition);
+}
+
+    
         window.addEventListener('pointermove', (event) => {
             // --- A. 标注平移逻辑 (修复后的版本) ---
-            if (isDraggingLabel && selectedLabelAxis) {
-                const movementScale = textSize * 0.002;
-                const dx = event.movementX * movementScale;
-                const dy = -event.movementY * movementScale;
+         // --- 修改后的标注移动逻辑 ---
+// --- 修改后的标注移动逻辑 ---
+// --- 修改后的标注移动逻辑 (线性约束版) ---
+if (isDraggingLabel && selectedLabelAxis) {
+    // 1. 计算鼠标位移量 (将屏幕像素换算为 3D 长度)
+    // 使用当前 textSize 作为参考比例，保证缩放后手感一致
+    const movementScale = textSize * 0.002; 
+    const dx = event.movementX * movementScale;
+    const dy = -event.movementY * movementScale; // 屏幕坐标 Y 是反的
 
-                // 根据记录的轴向名称更新对应的偏移量
-                const axis = selectedLabelAxis;
-                if (axis === 'x') { labelManualOffsets.x.x += dx; labelManualOffsets.x.y += dy; }
-                else if (axis === 'y') { labelManualOffsets.y.x += dx; labelManualOffsets.y.y += dy; }
-                else if (axis === 'z') { labelManualOffsets.z.x += dx; labelManualOffsets.z.z -= dy; }
-                else if (axis === 'pW') { labelManualOffsets.pW.x += dx; labelManualOffsets.pW.y += dy; }
-                else if (axis === 'pH') { labelManualOffsets.pH.x += dx; labelManualOffsets.pH.y += dy; }
-                else if (axis === 'pT') { labelManualOffsets.pT.x += dx; labelManualOffsets.pT.y += dy; }
+    const axis = selectedLabelAxis;
+    const offset = labelManualOffsets[axis];
 
-                updateDimensions(); // 重新绘制
-                return;
-            }
+    // 2. --- 线性约束核心：只允许单向移动 ---
+    if (axis === 'x' || axis === 'pW') {
+        // 【宽度标注 / 横线】：只能上下推拉间距
+        // 强行锁定 X 和 Z，只允许修改 Y
+        offset.y += dy; 
+    } 
+    else if (axis === 'y' || axis === 'pH') {
+        // 【高度标注 / 竖线】：只能左右推拉间距
+        // 强行锁定 Y 和 Z，只允许修改 X
+        offset.x += dx;
+    } 
+    else if (axis === 'z' || axis === 'pT') {
+        // 【厚度标注 / 斜线】：允许在视角平面内推拉
+        // 修改 Y 来调整高度位置，修改 X 调整水平位置
+        offset.y += dy;
+        offset.x += dx;
+    }
 
+    // 3. 实时重绘标注
+    updateDimensions();
+    return;
+}
             // --- B. 物体移动逻辑 (Blender 风格) ---
             if (isMoveModeActive && selectedObject) {
                 if (event.buttons === 4) { // 中键平移
@@ -3517,10 +3739,28 @@ async function parseSvgToShapes(file) {
                 mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
 
-                if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
-                    selectedObject.position.copy(dragIntersection);
-                    updateDimensions();
-                }
+               // 找到这部分代码进行替换
+if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
+    // 再次判断是否为背板
+    const isBackplate = (selectedObject === lPlateGroup) || 
+                        (lPlateGroup && lPlateGroup.children.includes(selectedObject)) ||
+                        (stackedPlatesGroup.children.includes(selectedObject));
+
+    if (isBackplate) {
+        // --- 背板专属：仅更新 X 和 Y，强制保持 Z 不变 ---
+        selectedObject.position.x = dragIntersection.x;
+        selectedObject.position.y = dragIntersection.y;
+        
+        if (selectedObject.userData.lockedZ !== undefined) {
+            selectedObject.position.z = selectedObject.userData.lockedZ;
+        }
+    } else {
+        // --- 其他物体：保持自由跟随鼠标位置 ---
+        selectedObject.position.copy(dragIntersection);
+    }
+    
+    updateDimensions(); // 实时更新标注
+}
                 container.style.cursor = 'move';
             }
         });
@@ -3681,105 +3921,168 @@ async function parseSvgToShapes(file) {
                     alert("请先点击选中一个物体（文字、背景或背板），再按 M 键。");
                 }
             }
+            // --- 在 keydown 监听器内部添加 P 键逻辑 ---
+// --- 精准对齐版：按下 P 键实现“背面贴合背板正面” ---
+// --- 彻底修复版：P 键吸附 (背面贴合背板正面) ---
+if (e.key.toLowerCase() === 'p') {
+    // 1. 检查是否选中了文字或矢量轮廓
+    if (!selectedObject || selectedObject !== textGroup) {
+        console.warn("请先选中文字物体。");
+        return;
+    }
+
+    // 2. 确定目标背板
+    let targetPlate = (activeBackplate && activeBackplate !== textGroup) ? activeBackplate : lPlateGroup;
+    if (!targetPlate) {
+        alert("场景中没有背板。");
+        return;
+    }
+
+    // --- 核心修复：强制更新世界矩阵以获取最新包围盒 ---
+    textGroup.updateMatrixWorld(true);
+    targetPlate.updateMatrixWorld(true);
+
+    const plateBox = new THREE.Box3().setFromObject(targetPlate);
+    const textBox = new THREE.Box3().setFromObject(textGroup);
+
+    // 3. 计算对齐坐标
+    // 背板的最前面 (World Z)
+    const plateFrontZ = plateBox.max.z;
+    // 文字当前的最背面 (World Z)
+    const textBackZ = textBox.min.z;
+    
+    // 算出为了让背面贴合，需要移动的增量
+    // 增加 0.05 的安全空隙（既不闪烁，肉眼看也是贴合的）
+    const offsetZ = (plateFrontZ - textBackZ) + 0.05;
+    
+    // 最终 textGroup 应该到达的 Z 坐标
+    const finalZ = textGroup.position.z + offsetZ;
+
+    // 4. 计算 X 和 Y 的中心点
+    const plateCenter = new THREE.Vector3();
+    plateBox.getCenter(plateCenter);
+
+    // --- 核心修复：更新拖拽锁定的 Z 轴，防止下次移动时被打回原形 ---
+    textGroup.userData.lockedZ = finalZ;
+
+    // 5. 执行 GSAP 动画
+    gsap.to(textGroup.position, {
+        x: plateCenter.x,
+        y: plateCenter.y,
+        z: finalZ,
+        duration: 0.6,
+        ease: "power2.inOut",
+        onUpdate: () => {
+            updateDimensions(); // 实时更新标注线
+        },
+        onComplete: () => {
+            console.log("吸附完成：背面已贴合。当前锁定高度:", finalZ);
+        }
+    });
+}
 
             // --- 3. Delete / Backspace 键删除逻辑 ---
             // --- 3. Delete / Backspace 键删除逻辑 ---
-            if (e.key === 'Delete' || e.key === 'Backspace') {
-                if (selectedObject) {
-                    // 判定并移除物体
-                    if (selectedObject === lPlateGroup) {
-                        scene.remove(lPlateGroup);
-                        if (platePointLight) {
-                            scene.remove(platePointLight);
-                            platePointLight = null;
-                        }
-                        lPlateGroup = null;
-                        console.log("背板及光效已移除");
-                        labelManualOffsets.pW.set(0, 0, 0);
-                        labelManualOffsets.pH.set(0, 0, 0);
-                        labelManualOffsets.pT.set(0, 0, 0);
-                        updateDimensions(); // 立即重新计算，此时 if(lPlateGroup) 为假，背板标注会消失
-                    } else if (selectedObject === bgPlaneMesh) {
-                        scene.remove(bgPlaneMesh);
-                        bgPlaneMesh = null;
-                        document.getElementById('clearBgBtn').classList.add('hidden');
-                    } else if (selectedObject === textGroup) {
-                        console.warn("文字组不可直接删除");
-                        return;
-                    }
+         // --- 3. Delete / Backspace 键删除逻辑 (增强版) ---
+if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (selectedObject) {
+        // A. 判定是否为主背板（点击的是组本身或者是组内的子物体）
+        const isMainPlate = (selectedObject === lPlateGroup) || (lPlateGroup && lPlateGroup.children.includes(selectedObject));
+        
+        // B. 判定是否为堆叠背板
+        const isStackedPlate = stackedPlatesGroup.children.includes(selectedObject);
 
-                    // 执行完删除后，再统一清理选中状态
-                    selectedObject = null;
-                    outlinePass.selectedObjects = [];
-                    isMoveModeActive = false;
-                    controls.enabled = true;
-                    container.style.cursor = 'default';
-                }
-            }
+        // C. 判定是否为背景参考图
+        const isBackground = (selectedObject === bgPlaneMesh);
+
+        // D. 判定是否为用户上传的图片背板
+        const isUserPlate = (selectedObject === userPlateMesh);
+
+        if (isMainPlate) {
+            scene.remove(lPlateGroup);
+            lPlateGroup = null;
+            activeBackplate = null;
+            console.log("主背板已移除");
+        } 
+        else if (isStackedPlate) {
+            // 从堆叠组中移除选中的那一层
+            stackedPlatesGroup.remove(selectedObject);
+            // 释放内存
+            if (selectedObject.geometry) selectedObject.geometry.dispose();
+            if (selectedObject.material) selectedObject.material.dispose();
+            console.log("选中的堆叠层已移除");
+        }
+        else if (isUserPlate) {
+            removeUserPlate(); // 调用已有的移除函数
+            console.log("用户图片背板已移除");
+        }
+        else if (isBackground) {
+            scene.remove(bgPlaneMesh);
+            bgPlaneMesh = null;
+            document.getElementById('clearBgBtn').classList.add('hidden');
+            console.log("背景参考图已移除");
+        } 
+        else if (selectedObject === textGroup) {
+            console.warn("文字组不可直接删除");
+            return;
+        }
+
+        // --- 统一清理选中状态和标注 ---
+        selectedObject = null;
+        outlinePass.selectedObjects = [];
+        isMoveModeActive = false;
+        controls.enabled = true;
+        container.style.cursor = 'default';
+        
+        // 重置标注偏移量（如果是删除了背板相关的）
+        if (isMainPlate) {
+            labelManualOffsets.pW.set(0, 0, 0);
+            labelManualOffsets.pH.set(0, 0, 0);
+            labelManualOffsets.pT.set(0, 0, 0);
+        }
+        
+        // 立即刷新标注显示
+        updateDimensions();
+    }
+}
 
         });
         // 绑定“添加/重置背板”按钮
+     // --- 修正后的背板控制逻辑 ---
+        
+        // 1. “添加/重置”按钮保持原样，用于快速生成主背板
         document.getElementById('addPlateBtn').addEventListener('click', () => {
-            // 调用你已有的创建背板函数
             createLPlate();
-
-            // 如果你希望添加背板后文字能自动对齐，可以顺便调用一次居中
+            activeBackplate = lPlateGroup; // 默认选中主背板
             centerAndFitCamera();
-
-            console.log("背板已重新生成并添加至场景");
-        });
-        // 监听宽度输入
-        document.getElementById('plateWidthInput').addEventListener('change', (e) => {
-            plateWidth = Math.max(10, parseFloat(e.target.value) || 10);
-            if (lPlateGroup) createLPlate(); // 如果背板存在，立即更新
+            console.log("主背板已重置");
         });
 
-        // 监听高度输入
-        document.getElementById('plateHeightInput').addEventListener('change', (e) => {
-            plateHeight = Math.max(10, parseFloat(e.target.value) || 10);
-            if (lPlateGroup) createLPlate();
+        // 2. 统一绑定宽度、高度、厚度输入框
+        ['plateWidthInput', 'plateHeightInput', 'plateThicknessInput'].forEach(id => {
+            // 改为 'input' 事件，实现改数字即刻变模型，手感更好
+            document.getElementById(id).addEventListener('input', syncActivePlate);
         });
 
-        // 监听颜色选择器
-        document.getElementById('plateColorPicker').addEventListener('input', (e) => {
-            plateColor = e.target.value;
-            // 如果背板已经存在，直接修改材质颜色，不需要重新创建几何体（更流畅）
-            if (lPlateGroup) {
-                lPlateGroup.traverse(child => {
-                    if (child.isMesh && child.material) {
-                        child.material.color.set(plateColor);
-                    }
-                });
-            }
-        });
-        // --- 欢迎弹窗控制逻辑 ---
+        // 3. 统一绑定颜色选择器
+        document.getElementById('plateColorPicker').addEventListener('input', syncActivePlate);
 
-        // 关闭弹窗
+        // --- 欢迎弹窗控制逻辑 --- (这一块可以保持原样)
         window.closeSplash = function () {
             const splash = document.getElementById('splash-screen');
             const dontShow = document.getElementById('dont-show-today').checked;
-
             if (dontShow) {
-                // 记录当前日期，存入 localStorage
-                const today = new Date().toDateString();
-                localStorage.setItem('hideSplashDate', today);
+                localStorage.setItem('hideSplashDate', new Date().toDateString());
             }
-
             gsap.to(splash, {
-                opacity: 0, duration: 0.3, onComplete: () => {
-                    splash.style.display = 'none';
-                }
+                opacity: 0, duration: 0.3, onComplete: () => { splash.style.display = 'none'; }
             });
         };
 
-        // 初始化检查
         function initSplash() {
             const splash = document.getElementById('splash-screen');
             const hideDate = localStorage.getItem('hideSplashDate');
-            const today = new Date().toDateString();
-
-            // 如果存的日期不是今天，则显示弹窗
-            if (hideDate !== today) {
+            if (hideDate !== new Date().toDateString()) {
                 splash.style.display = 'flex';
                 gsap.from(splash.querySelector('div'), { scale: 0.9, opacity: 0, y: 30, duration: 0.5, ease: "back.out(1.7)" });
             } else {
@@ -3787,13 +4090,10 @@ async function parseSvgToShapes(file) {
             }
         }
 
-        // 在页面加载后延迟 500ms 弹出，增加仪式感
-        window.addEventListener('load', () => {
-            setTimeout(initSplash, 500);
-        });
+        window.addEventListener('load', () => { setTimeout(initSplash, 500); });
+
         // 4. 启动程序
         animate();
-
         // ==========================================
         // 5. 交互式欢迎弹窗增强逻辑 (眼神追踪)
         // ==========================================
@@ -3987,6 +4287,8 @@ async function parseSvgToShapes(file) {
             </div>
         </div>
     </div>
+
+    
 </body>
 
 </html>

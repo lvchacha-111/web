@@ -413,18 +413,6 @@
             { file: "led.glb",  type: "led", move: null },
             { file: "fixed.glb",  type: "fixed", move: null },
             { file: "fixedled.glb",  type: "fixed", move: null }
-        ],        "YJ-N012": [
-            { file: "FRONT-BACK.glb",  type: "front", move: { z: -20 } },
-            { file: "PLATE.glb",  type: "plate", move: { z: 20 }, emissive: true },
-            { file: "LED.glb",  type: "led", move: null },
-            { file: "FIXED-LED.glb",  type: "fixed", move: null }
-        ],        "YJ-N001": [
-            { file: "FRONT.glb",  type: "front", move: { z: 10 } },
-            { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
-            { file: "PLATE01.glb",  type: "plate", move: { z: -10 }, emissive: true },
-            { file: "LED.glb",  type: "led", move: null },
-            { file: "FIXED.glb",  type: "fixed", move: null },
-            { file: "FIXED01.glb",  type: "fixed", move: null }
         ],        "YJ-N014": [
             { file: "FRONT-BACK.glb",  type: "front", move: { z: -20 } },
             { file: "PLATE.glb",  type: "plate", move: { z: 20 }, emissive: true },
@@ -458,6 +446,20 @@
             { file: "PLATE.glb",  type: "plate", move: { z: -10 }, emissive: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED.glb",  type: "fixed", move: null }
+        ],
+        "YJ-N001": [
+            { file: "FRONT.glb",  type: "front", move: { z: 10 } },
+            { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
+            { file: "PLATE01.glb",  type: "plate", move: { z: -10 }, emissive: true },
+            { file: "LED.glb",  type: "led", move: null },
+            { file: "FIXED.glb",  type: "fixed", move: null },
+            { file: "FIXED01.glb",  type: "fixed", move: null }
+        ],
+        "YJ-N012": [
+            { file: "FRONT-BACK.glb",  type: "front", move: { z: -20 } },
+            { file: "PLATE.glb",  type: "plate", move: { z: 20 }, emissive: true },
+            { file: "LED.glb",  type: "led", move: null },
+            { file: "FIXED-LED.glb",  type: "fixed", move: null }
         ],
         /* === 自动插入点：新模型数据 === */
     };
@@ -576,7 +578,7 @@ scene.fog = new THREE.Fog(blenderBgColor, 100, 1000);
     const materials = {}; 
 
     const renderScene = new RenderPass(scene, camera);
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.2, 1, 0); 
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.3, 1, 0); 
     const bloomComposer = new EffectComposer(renderer);
     bloomComposer.renderToScreen = false;
     bloomComposer.addPass(renderScene);
@@ -1013,7 +1015,7 @@ if (part.type === 'back') {
     document.getElementById('brightnessValue').textContent = `${val}%`;
 
     // 计算强度
-    const ledIntensity = (val / 100) * 3.0;   
+    const ledIntensity = (val / 100) * 8.0;   
     const plateIntensity = ledIntensity * (2 / 3); 
     
     // 获取当前拾色器选中的颜色
