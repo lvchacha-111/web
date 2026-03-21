@@ -16,7 +16,7 @@
         gtag('config', 'G-G8FLHCSSCW');
     </script>
     <style>
-        html,
+    html,
         body {
             margin: 0;
             padding: 0;
@@ -168,9 +168,7 @@
         .color-swatch[data-color="FLOWRGB"] {
             background: linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, white);
             background-size: 200% 100%;
-            /* 扩展背景尺寸用于滚动 */
             animation: marquee-swatch 3s linear infinite;
-            /* 3秒一轮，匀速循环 */
         }
 
         /* RGB呼吸灯色块的呼吸效果 */
@@ -178,31 +176,31 @@
             background: linear-gradient(135deg, red, orange, yellow, green, blue, purple);
             background-size: 200% 200%;
             animation: marquee-swatch 4s linear infinite alternate;
-            /* 4秒一轮，往返滚动 */
         }
 
-        /* 新增：右上角 SVG 上传控件样式 */
-        /* 修改原有的容器样式，增加过渡动画 */
-        /* 修改右上角面板为右下角悬浮窗 */
-        /* 修改容器：改为右下角，默认隐藏 */
-   /* 修改原有的容器：改为 Flex 布局，宽度自适应 */
-/* --- 右侧主浮动面板 --- */
+/* ========================================================= */
+/* --- 核心修改：右侧主浮动面板（改为左右并排，高度减半） --- */
+/* ========================================================= */
 #svg-upload-container {
     position: absolute;
-    bottom: 20px;
+    top: 200px;
     right: 20px;
-    width: 500px !important;
+    bottom: auto;
+    /* 1. 宽度改为自动或 500px，高度就会自然缩减 */
+    width: 500px !important; 
     display: flex;
-    flex-direction: column;
-    background: rgba(40, 40, 40, 0.98);
+    flex-direction: column; /* 整体外壳还是上下，因为顶部有个拖拽手柄 */
+    background: rgba(40, 40, 40, 0.95);
     border: 1px solid #555;
     border-radius: 10px;
     z-index: 1000;
-    box-shadow: 0 15px 50px rgba(0,0,0,0.8);
+    box-shadow: -5px 15px 30px rgba(0,0,0,0.6);
     backdrop-filter: blur(10px);
     overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s;
 }
-/* 顶部拖拽手柄 */
+
+/* 顶部拖拽手柄保持不变 */
 #panel-drag-handle {
     width: 100%;
     height: 34px;
@@ -215,19 +213,18 @@
     justify-content: center;
     cursor: move;
     border-bottom: 1px solid #444;
-    user-select: none;
 }
 
-/* 左右并排容器的包装层 - 必须在 HTML 中确保这两个 ID 的父级有此样式 */
+/* 2. 【核心改动】：让内部两个功能块左右并排 */
 .panel-main-content {
-    display: flex !important; /* 强制并排 */
-    flex-direction: row !important;
+    display: flex !important; 
+    flex-direction: row !important; /* 改为 row，横着排 */
     width: 100%;
 }
 
-/* 左侧基础栏 */
+/* 左侧栏（基础功能） */
 #panel-inner-content {
-    width: 250px;
+    flex: 1; /* 平分空间 */
     padding: 15px;
     box-sizing: border-box;
     display: flex;
@@ -235,10 +232,13 @@
     gap: 12px;
 }
 
+/* 右侧栏（拓展功能） */
 #panel-extension {
-    width: 250px;
+    flex: 1; /* 平分空间 */
     padding: 15px;
-    border-left: 1px solid #444;
+    /* 3. 分隔线改回竖线 */
+    border-left: 1px dashed #555; 
+    border-top: none; 
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -246,71 +246,79 @@
     background: rgba(255, 255, 255, 0.02);
 }
 
-/* 统一标签样式 */
-.upload-label {
-    font-size: 11px;
-    font-weight: bold;
-    color: #f39c12;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-}
-
-/* 统一按钮宽度 */
-.small-btn, .action-btn {
-    pointer-events: auto !important; /* 确保可点击 */
-    cursor: pointer !important;
-}
-
-.danger-btn { background: #c0392b !important; }
-.green-btn { background: #27ae60 !important; }
-.orange-btn { background: #e67e22 !important; }
-
-/* 备注文字 */
-.svg-note {
-    font-size: 10px;
-    color: #888;
-    margin-top: -5px;
-    line-height: 1.4;
-}
-
-/* 收缩状态（如果以后需要快捷键收起整个面板） */
+/* 修正收缩动画，因为变宽了，确保它完全藏到屏幕右边 */
 #svg-upload-container.collapsed {
-    transform: translateY(calc(100% - 34px)); /* 只露出手柄 */
-    opacity: 0.9;
+    transform: translateX(110%);
+    opacity: 0;
 }
-      /* 修改文本域样式以适应多行 */
-#textInput {
-    width: 100%;
-    padding: 10px;
-    background: #eee;
-    border: none;
-    color: #000;
-    font-size: 16px; /* 多行时稍微减小字号 */
-    border-radius: 4px;
-    outline: none;
-    font-weight: bold;
-    text-align: inherit; /* 继承对齐方式 */
-    letter-spacing: 1px;
-    box-sizing: border-box;
-    font-family: 'Microsoft YaHei', sans-serif;
-    resize: vertical; /* 允许垂直拉伸 */
-    min-height: 60px;
-}
+/* ========================================================= */
 
-/* 对齐按钮激活样式 */
-.align-btn {
-    background: #444 !important;
-    border: 1px solid #666 !important;
-    color: #888;
-    cursor: pointer;
-}
+        /* 统一标签样式 */
+        .upload-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #f39c12;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
 
-.align-btn.active {
-    background: #f39c12 !important;
-    border-color: #f39c12 !important;
-    color: white !important;
-}
+        /* 统一按钮宽度 */
+        .small-btn, .action-btn {
+            pointer-events: auto !important; /* 确保可点击 */
+            cursor: pointer !important;
+        }
+
+        .danger-btn { background: #c0392b !important; }
+        .green-btn { background: #27ae60 !important; }
+        .orange-btn { background: #e67e22 !important; }
+
+        /* 备注文字 */
+        .svg-note {
+            font-size: 10px;
+            color: #888;
+            margin-top: -5px;
+            line-height: 1.4;
+        }
+
+        /* 收缩状态 */
+        #svg-upload-container.collapsed {
+            transform: translateX(120%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        /* 修改文本域样式以适应多行 */
+        #textInput {
+            width: 100%;
+            padding: 10px;
+            background: #eee;
+            border: none;
+            color: #000;
+            font-size: 16px; 
+            border-radius: 4px;
+            outline: none;
+            font-weight: bold;
+            text-align: inherit; 
+            letter-spacing: 1px;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+            resize: vertical; 
+            min-height: 60px;
+        }
+
+        /* 对齐按钮激活样式 */
+        .align-btn {
+            background: #444 !important;
+            border: 1px solid #666 !important;
+            color: #888;
+            cursor: pointer;
+        }
+
+        .align-btn.active {
+            background: #f39c12 !important;
+            border-color: #f39c12 !important;
+            color: white !important;
+        }
 
         #textInput:focus {
             box-shadow: 0 0 0 3px #f39c12;
@@ -448,7 +456,6 @@
             background: #4a4a4a;
             border: 1px solid #555;
             color: #f39c12;
-            /* 橙色文字 */
             padding: 2px 5px;
             border-radius: 3px;
             font-size: 13px;
@@ -456,18 +463,15 @@
             outline: none;
         }
 
-        /* 鼠标点击输入框时的效果 */
         .num-input:focus {
             border-color: #f39c12;
             background: #555;
         }
 
-        /* 隐藏数字调节的小箭头（可选，为了美观） */
         .num-input::-webkit-inner-spin-button {
             display: none;
         }
 
-        /* 禁用状态的遮罩层 */
         .disabled-overlay {
             position: relative;
             opacity: 0.4;
@@ -480,10 +484,52 @@
             filter: grayscale(100%);
         }
 
-        /* 隐藏元素的类 */
         .hidden {
             display: none !important;
         }
+
+/* ========================================================= */
+/* --- 拓展面板切换按钮样式 (小三角) --- */
+/* ========================================================= */
+#panel-toggle-btn {
+    position: absolute;
+    top: 160px; /* 刚好位于导航球 (120px) 的下方 */
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    background-color: rgba(40, 40, 40, 0.8);
+    border: 2px solid #555;
+    border-radius: 50%; /* 圆形按钮 */
+    color: #f39c12; /* 品牌橙色 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    transition: transform 0.3s, background-color 0.2s, border-color 0.2s;
+    user-select: none;
+    backdrop-filter: blur(5px);
+}
+
+/* 鼠标悬浮效果 */
+#panel-toggle-btn:hover {
+    background-color: #3d3d3d;
+    border-color: #f39c12;
+    transform: scale(1.1);
+}
+
+/* 当面板打开时，让三角旋转指向右边 ▶ */
+#panel-toggle-btn.open {
+    transform: rotate(180deg);
+}
+
+/* 旋转状态下的悬浮效果修复 */
+#panel-toggle-btn.open:hover {
+    transform: rotate(180deg) scale(1.1);
+}
+
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -814,8 +860,11 @@
     <span style="color:white; font-size:12px; margin-top:10px;">正在加载字体资源...</span>
 </div>
 
+
+<div id="panel-toggle-btn" title="显示/隐藏配置面板">◀</div>
+
    <!-- 右侧主容器 -->
-<div id="svg-upload-container" style="display: none;">
+<div id="svg-upload-container" class="collapsed">
     <!-- 1. 顶部拖拽手柄区域 -->
     <div id="panel-drag-handle">
         <span style="letter-spacing: 2px;">⋮⋮ 拖拽移动面板 ⋮⋮</span>
@@ -869,31 +918,42 @@
             </div>
             <button class="action-btn" id="addPlateBtn" style="background: #8e44ad !important; font-size:11px;">🏗️ 添加/重置背板</button>
         </div>
+<!-- [右栏]：新增的拓展面板 -->
+<div id="panel-extension">
+    <!-- 1. 新增：点击这个标题可以收起/展开整个右半部分 -->
+    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding-bottom: 8px; border-bottom: 1px solid #444; margin-bottom: 10px;" 
+         onclick="toggleFoldExtension()">
+        <span class="upload-label" style="color: #f39c12; margin:0;">🛠️ 高级功能</span>
+        <span id="fold-arrow" style="color: #666; font-size: 10px;">收起 ❯</span>
+    </div>
 
-        <!-- [右栏]：新增的拓展面板 -->
-        <div id="panel-extension">
-            <!-- 功能一：叠加默认背板 -->
-            <div class="upload-row">
-                <div class="upload-label" style="color: #27ae60;">🏗️ 叠加背板 (Multiple)</div>
-                <div class="svg-note">位置依次向上移动5个单位</div>
-                <button class="action-btn small-btn" id="addStackedPlateBtn" style="background: #27ae60 !important; margin-top:5px;">新增一层</button>
-                <button class="action-btn small-btn danger-btn" id="clearStackedPlatesBtn" style="margin-top: 5px;">清空叠加</button>
+    <!-- 2. 将原本的内容包在 extension-content 里面 -->
+    <div id="extension-content">
+        <!-- 功能一：叠加默认背板 -->
+        <div class="upload-row">
+            <div class="upload-label" style="color: #27ae60;">🏗️ 叠加背板 (Multiple)</div>
+            <div class="svg-note">位置依次向上移动5个单位</div>
+            <!-- 按钮并排显示，节省高度 -->
+            <div style="display: flex; gap: 5px; margin-top:5px;">
+                <button class="action-btn small-btn" id="addStackedPlateBtn" style="background: #27ae60 !important; flex:1;">新增</button>
+                <button class="action-btn small-btn danger-btn" id="clearStackedPlatesBtn" style="flex:1;">清空</button>
             </div>
-
-            <hr style="border: 0; border-top: 1px dashed #444; margin: 10px 0;">
-
-            <!-- 功能二：用户上传背板 -->
-            <div class="upload-row">
-                <!-- 找到这个部分进行修改 -->
-<div class="upload-label" style="color: #e67e22;">🖼️ 上传轮廓背板 (SVG)</div>
-<button class="action-btn small-btn" style="background: #e67e22 !important; margin-top:5px;" onclick="document.getElementById('userPlateInput').click()">选择 SVG 文件</button>
-<input type="file" id="userPlateInput" accept=".svg" style="display: none;">
-                <button class="action-btn small-btn danger-btn hidden" id="removeUserPlateBtn" style="margin-top: 5px;">移除</button>
-            </div>
-            
-            <div class="svg-note" style="margin-top: auto; text-align: center;">快捷键: [ ] ] 显示/隐藏</div>
         </div>
-    </div> <!-- 并排容器结束 -->
+
+        <hr style="border: 0; border-top: 1px dashed #444; margin: 10px 0;">
+
+        <!-- 功能二：用户上传背板 -->
+        <div class="upload-row">
+            <div class="upload-label" style="color: #e67e22;">🖼️ 上传轮廓背板 (SVG)</div>
+            <div style="display: flex; gap: 5px; margin-top:5px;">
+                <button class="action-btn small-btn" style="background: #e67e22 !important; flex:2;" onclick="document.getElementById('userPlateInput').click()">选择 SVG</button>
+                <button class="action-btn small-btn danger-btn hidden" id="removeUserPlateBtn" style="flex:1;">移除</button>
+            </div>
+            <input type="file" id="userPlateInput" accept=".svg" style="display: none;">
+        </div>
+        
+        <div class="svg-note" style="margin-top: 15px; text-align: center; opacity: 0.5;">可拖拽面板边缘移动位置</div>
+    </div>
 </div>
     <script type="module">
         import * as THREE from 'three';
@@ -915,6 +975,42 @@
 
         // --- 物体拖拽相关变量 ---
         // 在 let svgPaths 附近添加：
+
+         const ASSET_BASE_URL = './'; 
+    // 上线后改为：const ASSET_BASE_URL = 'https://你的bucket.oss-cn-hangzhou.aliyuncs.com/';
+
+    // ==========================================
+    // 2. 加载监控系统 (进度条)
+    // ==========================================
+    const manager = new THREE.LoadingManager();
+    manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+        const percent = Math.round((itemsLoaded / itemsTotal) * 100);
+        const loadingText = document.querySelector('#loading span');
+        if (loadingText) loadingText.innerText = `正在加载 3D 资源... ${percent}%`;
+    };
+    manager.onLoad = function () {
+        gsap.to('#loading', { opacity: 0, duration: 0.5, onComplete: () => {
+            document.getElementById('loading').style.display = 'none';
+        }});
+    };
+
+    // ==========================================
+    // 3. 初始化全局加载器 (绑定监工)
+    // ==========================================
+    const textureLoader = new THREE.TextureLoader(manager);
+    const fontLoader = new FontLoader(manager);
+    const rgbeLoader = new RGBELoader(manager);
+    const svgLoader = new SVGLoader(manager);
+
+    // ==========================================
+    // 4. 自动修复 UI 按钮背景图路径
+    // ==========================================
+    document.querySelectorAll('.material-btn').forEach(btn => {
+        const bgImg = btn.style.backgroundImage;
+        if (bgImg && bgImg.includes('textures/')) {
+            btn.style.backgroundImage = bgImg.replace(/url\(["']?textures\//, `url("${ASSET_BASE_URL}textures/`);
+        }
+    });
 let activeBackplate = null; // 记录当前选中的背板对象
         let colourAttrColor = 0xffffff; // 存储 Colour 属性的颜色
         let isMoveModeActive = false; // 是否处于 M 键激活的移动模式中
@@ -955,7 +1051,7 @@ let activeBackplate = null; // 记录当前选中的背板对象
         let plateColor = '#1a1a1a'; // 默认深灰色
         // 字体相关
         let currentFont = null;
-        let fontLoader = new FontLoader();
+       
         let isObjectLabelsVisible = true; // 控制文字/物体标注
         let isPlateLabelsVisible = true;  // 控制背板标注
         let svgOriginalAspectRatio = 1.0; // 记录导入 SVG 的原始宽高比
@@ -1064,14 +1160,16 @@ scene.add(stackedPlatesGroup);
 
 
 
+// 全局变量改个名字，更通用
+let nextPlateOffset = 5; 
+
 function addDefaultStackedPlate() {
-    // 获取当前输入的尺寸
+    // 1. 获取当前 UI 输入的尺寸
     const w = (parseFloat(document.getElementById('plateWidthInput').value) || 1000) / 10;
     const h = (parseFloat(document.getElementById('plateHeightInput').value) || 400) / 10;
     const t = (parseFloat(document.getElementById('plateThicknessInput').value) || 10) / 10;
 
     const geo = new THREE.BoxGeometry(w, h, t);
-    // 修复：使用正确的变量名 plateColors
     const col = plateColors[colorPointer % plateColors.length];
     colorPointer++;
 
@@ -1082,16 +1180,35 @@ function addDefaultStackedPlate() {
     });
     const mesh = new THREE.Mesh(geo, mat);
 
-    // 设置位置
-    const baseZ = lPlateGroup ? lPlateGroup.position.z : -2;
-    mesh.position.set(0, nextPlateYOffset, baseZ);
-    nextPlateYOffset += 5; // 向上堆叠
+    // 2. 【核心修复】：精准获取“最原始黑色背板”的实际世界坐标
+    let baseX = 0;
+    let baseY = 0;
+    let baseZ = -2;
+    
+    if (lPlateGroup && lPlateGroup.children.length > 0) {
+        // 因为主背板为了平齐，它的子 Mesh 往后退了 t/2，我们需要把它算进去
+        const mainMesh = lPlateGroup.children[0];
+        baseX = lPlateGroup.position.x + mainMesh.position.x;
+        baseY = lPlateGroup.position.y + mainMesh.position.y;
+        baseZ = lPlateGroup.position.z + mainMesh.position.z;
+    }
+
+    // 3. 设置新背板的位置：X和Z完全贴合主背板，Y轴每次加 5
+    mesh.position.set(baseX, baseY + nextPlateOffset, baseZ);
+
+    // ⚠️ 【关键业务逻辑提示】：
+    // 如果你说的“叠加”其实是想一层一层往“背后”垫厚（像汉堡包一样加厚度），
+    // 而不是往天上飞，请把你上面的代码注释掉，换成下面这行：
+    // mesh.position.set(baseX, baseY, baseZ - nextPlateOffset);
+
+    // 4. 每次点击后，下一次的偏移量再加 5
+    nextPlateOffset += 5; 
 
     stackedPlatesGroup.add(mesh);
-    console.log("已新增背板层");
+    console.log("已新增背板层，当前层高位置:", nextPlateOffset);
 }
 
-// 移除所有叠加背板
+// 同步修复清空按钮逻辑
 function clearStackedPlates() {
     while(stackedPlatesGroup.children.length > 0) {
         const obj = stackedPlatesGroup.children[0];
@@ -1099,7 +1216,7 @@ function clearStackedPlates() {
         obj.material.dispose();
         stackedPlatesGroup.remove(obj);
     }
-    nextPlateYOffset = 5; // 重置高度
+    nextPlateOffset = 5; // 恢复初始 5 的偏移量
     colorPointer = 0;
 }
 
@@ -1473,12 +1590,50 @@ const bloomComposer = new EffectComposer(renderer, renderTarget);
         }
         // 材质创建系统 (升级为高级竖向拉丝版)
         // ==========================================
-        const textureLoader = new THREE.TextureLoader();
+   // 1. 创建加载管理器
+
+
+// 开始加载时的逻辑
+manager.onStart = function ( url, itemsLoaded, itemsTotal ) {
+    console.log( '开始加载文件: ' + url + '.\n已加载: ' + itemsLoaded + '/' + itemsTotal + ' 个文件.' );
+    document.getElementById('loading').style.display = 'flex'; // 显示加载遮罩
+};
+
+// 重点：计算百分比并更新 UI
+manager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
+    const percent = Math.round((itemsLoaded / itemsTotal) * 100);
+    console.log('加载进度: ' + percent + '%');
+    
+    // 假设你在 HTML 的 #loading 里加了一个 <span id="loading-text"></span>
+    const loadingText = document.getElementById('loading-text');
+    if (loadingText) {
+        loadingText.innerText = `正在配置 3D 环境... ${percent}%`;
+    }
+};
+
+// 加载完成时的逻辑
+manager.onLoad = function ( ) {
+    console.log( '所有资源加载完成！');
+    // 使用 GSAP 做个淡出动画（你代码里已经引入了 GSAP）
+    gsap.to('#loading', { 
+        opacity: 0, 
+        duration: 0.5, 
+        onComplete: () => {
+            document.getElementById('loading').style.display = 'none';
+        }
+    });
+};
+
+// 2. 将 manager 传给你的加载器（这一步非常关键！）
+
+// 如果你还有 FontLoader 或 RGBELoader，也要传进去：
+// const fontLoader = new FontLoader(manager);
+// const rgbeLoader = new RGBELoader(manager);
 
         function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
-            const map = textureLoader.load(`textures/${texName}_2K-JPG_Color.jpg`);
-            const normalMap = textureLoader.load(`textures/${texName}_2K-JPG_NormalGl.jpg`);
-            const roughnessMap = textureLoader.load(`textures/${texName}_2K-JPG_Roughness.jpg`);
+             const map = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Color.jpg`);
+    const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGl.jpg`);
+    const roughnessMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Roughness.jpg`);
 
             [map, normalMap, roughnessMap].forEach(t => {
                 t.wrapS = THREE.RepeatWrapping;
@@ -1575,22 +1730,42 @@ const bloomComposer = new EffectComposer(renderer, renderTarget);
         // ==========================================
         const loadingEl = document.getElementById('loading');
 
-        function getFontUrlByType(type) {
-            switch (type) {
-                case 'helvetiker': return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
-                case 'Forte': return 'fonts/Forte_Regular.json';
-                case 'STXingkai_Regular': return 'fonts/STXingkai_Regular.json';
-                case 'SimHei': return 'fonts/SimHei_Regular.json';
+      function getFontUrlByType(type) {
+    switch (type) {
+        // 这一项是外部链接，保持不动
+        case 'helvetiker': 
+            return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
+        
+        // 以下所有本地字体路径，全部加上 ${ASSET_BASE_URL} 前缀
+        case 'Forte': 
+            return `${ASSET_BASE_URL}fonts/Forte_Regular.json`;
+        
+        case 'STXingkai_Regular': 
+            return `${ASSET_BASE_URL}fonts/STXingkai_Regular.json`;
+        
+        case 'SimHei': 
+            return `${ASSET_BASE_URL}fonts/SimHei_Regular.json`;
 
+        case 'neonFont': 
+            return `${ASSET_BASE_URL}fonts/The Absolute_Regular.json`;
+        
+        case 'neonFont02': 
+            return `${ASSET_BASE_URL}fonts/NEONCITY Script_Regular.json`;
+        
+        case 'neonFont03': 
+            return `${ASSET_BASE_URL}fonts/London Handlettering_Regular.json`;
+        
+        case 'neonFont04': 
+            return `${ASSET_BASE_URL}fonts/Damion_Regular.json`;
+        
+        case 'neonFont05': 
+            return `${ASSET_BASE_URL}fonts/Balmonde_Regular.json`;
 
-                case 'neonFont': return 'fonts/The Absolute_Regular.json'; // 假设你的文件名是这个
-                case 'neonFont02': return 'fonts/NEONCITY Script_Regular.json';
-                case 'neonFont03': return 'fonts/London Handlettering_Regular.json';
-                case 'neonFont04': return 'fonts/Damion_Regular.json';
-                case 'neonFont05': return 'fonts/Balmonde_Regular.json';
-                default: return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
-            }
-        }
+        // 默认返回也建议加上前缀（或者保持外部链接）
+        default: 
+            return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
+    }
+}
         // ==========================================
         // 导航球 (ViewCube) 逻辑实现
         // ==========================================
@@ -1715,10 +1890,12 @@ const bloomComposer = new EffectComposer(renderer, renderTarget);
         const toggleBtn = document.getElementById('panel-toggle-btn');
         const svgContainer = document.getElementById('svg-upload-container');
 
-        if (toggleBtn && svgContainer) {
+      if (toggleBtn && svgContainer) {
             toggleBtn.addEventListener('click', () => {
-                // 切换 .collapsed 类名，触发 CSS 里的动画
+                // 切换面板显示/隐藏状态
                 svgContainer.classList.toggle('collapsed');
+                // 切换小三角按钮的旋转状态 (▶ 和 ◀ 切换)
+                toggleBtn.classList.toggle('open');
             });
         }
         // 创建永远面向相机的数字标签
@@ -2488,7 +2665,7 @@ async function parseSvgToShapes(file) {
         // ==========================================
         // 新增：监听 SVG 上传并解析
         // ==========================================
-        const svgLoader = new SVGLoader();
+       
         const svgInput = document.getElementById('svgInput');
         const clearSvgBtn = document.getElementById('clearSvgBtn');
         const textInputEl = document.getElementById('textInput');
@@ -3891,6 +4068,7 @@ if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
             // --- 9. 执行核心渲染流程 ---
             renderSceneAll();
         }
+        
         // 3. 窗口自适应监听
         // --- 终极整合键盘监听器 (放在 animate() 之后) ---
         window.addEventListener('keydown', (e) => {
@@ -3900,20 +4078,7 @@ if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
             const panel = document.getElementById('svg-upload-container');
 
             // --- 1. 使用 ] 键实现浮窗显示/隐藏 (带 GSAP 动画) ---
-            if (e.key === ']' || e.key === '}') {
-                const isHidden = !panel.style.display || panel.style.display === 'none' || window.getComputedStyle(panel).display === 'none';
-                if (isHidden) {
-                    panel.style.display = 'block';
-                    gsap.fromTo(panel, { opacity: 0, y: 20, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.3 });
-                } else {
-                    gsap.to(panel, {
-                        opacity: 0, y: 20, scale: 0.9, duration: 0.2, onComplete: () => {
-                            panel.style.display = 'none';
-                        }
-                    });
-                }
-            }
-
+           
             // --- 2. M 键切换移动模式 ---
             if (e.key.toLowerCase() === 'm') {
                 if (selectedObject) {

@@ -259,7 +259,46 @@
     import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+// --- 1. 全局路径配置 ---
+const ASSET_BASE_URL = './'; 
+// 上线阿里云后改为: const ASSET_BASE_URL = 'https://你的bucket.oss-cn-hangzhou.aliyuncs.com/';
 
+// --- 2. 加载监工 (Manager) ---
+const manager = new THREE.LoadingManager();
+manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+    const percent = Math.round((itemsLoaded / itemsTotal) * 100);
+    const loadingText = document.querySelector('#loading span');
+    if (loadingText) loadingText.innerText = `正在配置 3D 环境... ${percent}%`;
+};
+manager.onLoad = function () {
+    gsap.to('#loading', { opacity: 0, duration: 0.5, onComplete: () => {
+        document.getElementById('loading').style.display = 'none';
+    }});
+};
+
+// --- 3. 初始化所有加载器 (这一步修复你的报错) ---
+// 必须在这一步就创建好 rgbeLoader，后面的代码才能找到它
+
+const gltfLoader = new GLTFLoader(manager);
+const stlLoader = new STLLoader(manager);
+const rgbeLoader = new RGBELoader(manager); // <--- 就是这一行修复报错！
+
+// --- 4. 自动修复 UI 按钮的背景图路径 ---
+document.querySelectorAll('.material-btn').forEach(btn => {
+    const bgImg = btn.style.backgroundImage;
+    if (bgImg && bgImg.includes('textures/')) {
+        btn.style.backgroundImage = bgImg.replace(/url\(["']?textures\//, `url("${ASSET_BASE_URL}textures/`);
+    }
+});
+
+// --- 5. 加载环境光 (HDR) ---
+rgbeLoader
+    .setPath(`${ASSET_BASE_URL}textures/`) 
+    .load('monochrome_studio_02_2k (1).hdr', (t) => {
+        t.mapping = THREE.EquirectangularReflectionMapping; 
+        scene.environment = t; 
+        scene.environmentIntensity = 0; 
+    });
    const NOTES_DB = {
                 "YJ-N007": "images/9ffca629-1.png", //notes
         "YJ-N008": "images/0dbaebfb-1.png", //notes
@@ -607,8 +646,9 @@ scene.fog = new THREE.Fog(blenderBgColor, 100, 1000);
     finalComposer.addPass(renderScene);
     finalComposer.addPass(mixPass);
     finalComposer.addPass(new OutputPass()); 
-
-    new RGBELoader().setPath('textures/').load('monochrome_studio_02_2k (1).hdr', (t) => {
+rgbeLoader
+     .setPath(`${ASSET_BASE_URL}textures/`)
+     .load('monochrome_studio_02_2k (1).hdr', (t) => {
         t.mapping = THREE.EquirectangularReflectionMapping; 
         scene.environment = t; 
         scene.environmentIntensity = 0; 
@@ -637,13 +677,13 @@ scene.fog = new THREE.Fog(blenderBgColor, 100, 1000);
     // z=100代表正前方，x=-20稍微偏左一点点符合图示
     frontLight.position.set(-20, 20, 100); 
     scene.add(frontLight);
-    const textureLoader = new THREE.TextureLoader();
+   
 
     // 材质创建函数（同 freewriting 中，支持染色）
    function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
-    const map = textureLoader.load(`textures/${texName}_2K-JPG_Color.jpg`);
-    const normalMap = textureLoader.load(`textures/${texName}_2K-JPG_NormalGl.jpg`);
-    const roughnessMap = textureLoader.load(`textures/${texName}_2K-JPG_Roughness.jpg`);
+      const map = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Color.jpg`);
+    const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGl.jpg`);
+    const roughnessMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Roughness.jpg`);
 
     // 设置重复模式以支持三平面映射
     [map, normalMap, roughnessMap].forEach(t => {
@@ -895,16 +935,16 @@ if (productId === 'YJ-N007') {
     }
  function loadSmartModel() {
         if (!currentParts) return;
-        const stlLoader = new STLLoader();
+       
        const dracoLoader = new DRACOLoader();
     // 使用 Google 托管的解码器库（最稳妥，不需要本地部署）
     dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
     
-    const gltfLoader = new GLTFLoader();
+   
     // --- 核心修改 3：将解码器关联到 GLTFLoader ---
     gltfLoader.setDRACOLoader(dracoLoader);
 
-    const folderPath = `stl/${productId}/`;
+    const folderPath = `${ASSET_BASE_URL}stl/${productId}/`;
         let loadedCount = 0;
 
         currentParts.forEach(part => {
