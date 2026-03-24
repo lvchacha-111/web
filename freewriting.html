@@ -2337,24 +2337,29 @@
 
             // 2. 【一键抄袭】：将算好的位置 plateZ 分配给世界中所有的背板
 
-            // A. 应用给默认背板 (如果还没被删除)
-            if (lPlateGroup) {
-                lPlateGroup.position.z = plateZ;
-            }
+        if (lPlateGroup) {
+    // 只有在没有手动修改过 Z 轴的情况下，才应用自动计算的 plateZ
+    if (!lPlateGroup.userData.manualZ) {
+        lPlateGroup.position.z = plateZ;
+    }
+}
 
-            // B. 应用给上传的 SVG 轮廓背板 (红色那个)
-            if (typeof userPlateMesh !== 'undefined' && userPlateMesh) {
-                userPlateMesh.position.z = plateZ;
-            }
+// B. 应用给上传的 SVG 轮廓背板
+if (typeof userPlateMesh !== 'undefined' && userPlateMesh) {
+    if (!userPlateMesh.userData.manualZ) {
+        userPlateMesh.position.z = plateZ;
+    }
+}
 
-            // C. 应用给通过“新增”按钮创建的所有彩色叠加背板
-            if (typeof stackedPlatesGroup !== 'undefined' && stackedPlatesGroup) {
-                stackedPlatesGroup.children.forEach((plate, index) => {
-                    // 让它们全部去到 plateZ 位置
-                    // 减去 index * 0.001 是为了防止多块背板重合时发生闪烁（Z-Fighting）
-                    plate.position.z = plateZ - (index * 0.001);
-                });
-            }
+// C. 应用给通过“新增”按钮创建的所有彩色叠加背板
+if (typeof stackedPlatesGroup !== 'undefined' && stackedPlatesGroup) {
+    stackedPlatesGroup.children.forEach((plate, index) => {
+        if (!plate.userData.manualZ) {
+            // 基础偏移 + 层叠微小偏移
+            plate.position.z = plateZ - (index * 0.001);
+        }
+    });
+}
             // --- A. 文字标注 (Object Labels) ---
             // --- A. 文字标注 (Object Labels) ---
             if (isObjectLabelsVisible) {
@@ -2927,28 +2932,29 @@
         /**
          * 监听 UI 输入框修改：将数值同步回 3D 物体
          */
-        [posXInput, posYInput, posZInput].forEach(input => {
-            input.addEventListener('input', () => {
-                if (!selectedObject) return;
+        // --- 修改后的坐标面板监听器 ---
+[posXInput, posYInput, posZInput].forEach(input => {
+    input.addEventListener('input', () => {
+        if (!selectedObject) return;
 
-                const x = parseFloat(posXInput.value) || 0;
-                const y = parseFloat(posYInput.value) || 0;
-                const z = parseFloat(posZInput.value) || 0;
+        const x = parseFloat(posXInput.value) || 0;
+        const y = parseFloat(posYInput.value) || 0;
+        const z = parseFloat(posZInput.value) || 0;
 
-                // 直接修改物体的坐标
-                selectedObject.position.set(x, y, z);
+        // 直接修改物体的坐标
+        selectedObject.position.set(x, y, z);
 
-                // 特殊处理：如果是背板且有锁定逻辑，更新锁定 Z 轴
-                if (selectedObject.userData && selectedObject.userData.isCustomPlate) {
-                    selectedObject.userData.lockedZ = z;
-                }
+        // 【关键修复】：如果是 Z 轴被修改了，标记该物体进入“手动模式”
+        if (input === posZInput) {
+            selectedObject.userData.manualZ = true; 
+        }
 
-                // 实时更新 3D 标注线位置
-                if (typeof updateDimensions === 'function') {
-                    updateDimensions();
-                }
-            });
-        });
+        // 实时更新 3D 标注线位置
+        if (typeof updateDimensions === 'function') {
+            updateDimensions();
+        }
+    });
+});
 
         // ==========================================
         // 🔗 与现有的交互逻辑进行挂钩 (Hooks)
