@@ -282,7 +282,7 @@ manager.onLoad = function () {
 const gltfLoader = new GLTFLoader(manager);
 const stlLoader = new STLLoader(manager);
 const rgbeLoader = new RGBELoader(manager); // <--- 就是这一行修复报错！
-
+const textureLoader = new THREE.TextureLoader(manager);
 // --- 4. 自动修复 UI 按钮的背景图路径 ---
 document.querySelectorAll('.material-btn').forEach(btn => {
     const bgImg = btn.style.backgroundImage;
@@ -427,25 +427,6 @@ rgbeLoader
             { file: "BACK.glb",  type: "front", move: { z: 20 }, change: true },
             { file: "LED.glb",  type: "led", move: null },
             { file: "FIXED-LED.glb",  type: "fixed", move: null }
-        ],        "YJ-N002": [
-            { file: "back.glb",  type: "front", move: { z: 10 } },
-            { file: "plate.glb",  type: "plate", move: { z: 10 }, emissive: true },
-            { file: "led.glb",  type: "led", move: null },
-            { file: "fixedback.glb",  type: "fixed", move: null },
-            { file: "fixedled.glb",  type: "fixed", move: null }
-        ],        "YJ-N003": [
-            { file: "front.glb",  type: "front", move: { z: 20 } },
-            { file: "plate.glb",  type: "plate", move: { z: 20 }, emissive: true },
-            { file: "led.glb",  type: "led", move: null },
-            { file: "fixed.glb",  type: "fixed", move: null },
-            { file: "fixed001.glb",  type: "fixed", move: null },
-            { file: "fixed003.glb",  type: "fixed", move: null }
-        ],        "YJ-N004": [
-            { file: "front.glb",  type: "front", move: { z: 20 } },
-            { file: "plate.glb",  type: "plate", move: { z: 20 }, emissive: true },
-            { file: "led.glb",  type: "led", move: null },
-            { file: "fixed.glb",  type: "fixed", move: null },
-            { file: "fixedled.glb",  type: "fixed", move: null }
         ],        "YJ-N014": [
             { file: "FRONT-BACK.glb",  type: "front", move: { z: -20 } },
             { file: "PLATE.glb",  type: "plate", move: { z: 20 }, emissive: true },
@@ -498,6 +479,28 @@ rgbeLoader
             { file: "plate.glb",  type: "plate", move: { z: 10 }, emissive: true },
             { file: "led.glb",  type: "led", move: null },
             { file: "fixedhigh.glb",  type: "fixed", move: { z: -10 } },
+            { file: "fixedled.glb",  type: "fixed", move: null }
+        ],
+        "YJ-N004": [
+            { file: "front.glb",  type: "front", move: { z: 20 } },
+            { file: "plate.glb",  type: "plate", move: { z: 20 }, emissive: true },
+            { file: "led.glb",  type: "led", move: null },
+            { file: "fixed.glb",  type: "fixed", move: { z: -10 } },
+            { file: "fixedled.glb",  type: "fixed", move: null }
+        ],
+        "YJ-N003": [
+            { file: "front.glb",  type: "front", move: { z: 20 } },
+            { file: "plate.glb",  type: "plate", move: { z: 20 }, emissive: true },
+            { file: "led.glb",  type: "led", move: null },
+            { file: "fixed.glb",  type: "fixed", move: { z: -10 } },
+            { file: "fixed001.glb",  type: "fixed", move: null },
+            { file: "fixed003.glb",  type: "fixed", move: null }
+        ],
+        "YJ-N002": [
+            { file: "back.glb",  type: "front", move: { z: 10 } },
+            { file: "plate.glb",  type: "plate", move: { z: 10 }, emissive: true },
+            { file: "led.glb",  type: "led", move: null },
+            { file: "fixedback.glb",  type: "fixed", move: { z: -10 } },
             { file: "fixedled.glb",  type: "fixed", move: null }
         ],
         /* === 自动插入点：新模型数据 === */

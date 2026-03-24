@@ -8,7 +8,7 @@
     <!-- Google Analytics 基础代码 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-G8FLHCSSCW"></script>
     <!-- 使用国内 字节跳动 或 76dev 的镜像源 -->
-<script src="confetti.js"></script>
+    <script src="confetti.js"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
@@ -16,7 +16,9 @@
         gtag('config', 'G-G8FLHCSSCW');
     </script>
     <style>
-    html,
+
+        
+        html,
         body {
             margin: 0;
             padding: 0;
@@ -178,80 +180,85 @@
             animation: marquee-swatch 4s linear infinite alternate;
         }
 
-/* ========================================================= */
-/* --- 核心修改：右侧主浮动面板（改为左右并排，高度减半） --- */
-/* ========================================================= */
-#svg-upload-container {
-    position: absolute;
-    top: 200px;
-    right: 20px;
-    bottom: auto;
-    /* 1. 宽度改为自动或 500px，高度就会自然缩减 */
-    width: 500px !important; 
-    display: flex;
-    flex-direction: column; /* 整体外壳还是上下，因为顶部有个拖拽手柄 */
-    background: rgba(40, 40, 40, 0.95);
-    border: 1px solid #555;
-    border-radius: 10px;
-    z-index: 1000;
-    box-shadow: -5px 15px 30px rgba(0,0,0,0.6);
-    backdrop-filter: blur(10px);
-    overflow: hidden;
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s;
-}
+        /* ========================================================= */
+        /* --- 核心修改：右侧主浮动面板（改为左右并排，高度减半） --- */
+        /* ========================================================= */
+        #svg-upload-container {
+            position: absolute;
+            top: 200px;
+            right: 20px;
+            bottom: auto;
+            /* 1. 宽度改为自动或 500px，高度就会自然缩减 */
+            width: 500px !important;
+            display: flex;
+            flex-direction: column;
+            /* 整体外壳还是上下，因为顶部有个拖拽手柄 */
+            background: rgba(40, 40, 40, 0.95);
+            border: 1px solid #555;
+            border-radius: 10px;
+            z-index: 1000;
+            box-shadow: -5px 15px 30px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s;
+        }
 
-/* 顶部拖拽手柄保持不变 */
-#panel-drag-handle {
-    width: 100%;
-    height: 34px;
-    background: #1a1a1a;
-    color: #f39c12;
-    font-size: 11px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: move;
-    border-bottom: 1px solid #444;
-}
+        /* 顶部拖拽手柄保持不变 */
+        #panel-drag-handle {
+            width: 100%;
+            height: 34px;
+            background: #1a1a1a;
+            color: #f39c12;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: move;
+            border-bottom: 1px solid #444;
+        }
 
-/* 2. 【核心改动】：让内部两个功能块左右并排 */
-.panel-main-content {
-    display: flex !important; 
-    flex-direction: row !important; /* 改为 row，横着排 */
-    width: 100%;
-}
+        /* 2. 【核心改动】：让内部两个功能块左右并排 */
+        .panel-main-content {
+            display: flex !important;
+            flex-direction: row !important;
+            /* 改为 row，横着排 */
+            width: 100%;
+        }
 
-/* 左侧栏（基础功能） */
-#panel-inner-content {
-    flex: 1; /* 平分空间 */
-    padding: 15px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
+        /* 左侧栏（基础功能） */
+        #panel-inner-content {
+            flex: 1;
+            /* 平分空间 */
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
 
-/* 右侧栏（拓展功能） */
-#panel-extension {
-    flex: 1; /* 平分空间 */
-    padding: 15px;
-    /* 3. 分隔线改回竖线 */
-    border-left: 1px dashed #555; 
-    border-top: none; 
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.02);
-}
+        /* 右侧栏（拓展功能） */
+        #panel-extension {
+            flex: 1;
+            /* 平分空间 */
+            padding: 15px;
+            /* 3. 分隔线改回竖线 */
+            border-left: 1px dashed #555;
+            border-top: none;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.02);
+        }
 
-/* 修正收缩动画，因为变宽了，确保它完全藏到屏幕右边 */
-#svg-upload-container.collapsed {
-    transform: translateX(110%);
-    opacity: 0;
-}
-/* ========================================================= */
+        /* 修正收缩动画，因为变宽了，确保它完全藏到屏幕右边 */
+        #svg-upload-container.collapsed {
+            transform: translateX(110%);
+            opacity: 0;
+        }
+
+        /* ========================================================= */
 
         /* 统一标签样式 */
         .upload-label {
@@ -264,14 +271,24 @@
         }
 
         /* 统一按钮宽度 */
-        .small-btn, .action-btn {
-            pointer-events: auto !important; /* 确保可点击 */
+        .small-btn,
+        .action-btn {
+            pointer-events: auto !important;
+            /* 确保可点击 */
             cursor: pointer !important;
         }
 
-        .danger-btn { background: #c0392b !important; }
-        .green-btn { background: #27ae60 !important; }
-        .orange-btn { background: #e67e22 !important; }
+        .danger-btn {
+            background: #c0392b !important;
+        }
+
+        .green-btn {
+            background: #27ae60 !important;
+        }
+
+        .orange-btn {
+            background: #e67e22 !important;
+        }
 
         /* 备注文字 */
         .svg-note {
@@ -287,6 +304,7 @@
             opacity: 0;
             pointer-events: none;
         }
+
         /* 修改文本域样式以适应多行 */
         #textInput {
             width: 100%;
@@ -294,15 +312,15 @@
             background: #eee;
             border: none;
             color: #000;
-            font-size: 16px; 
+            font-size: 16px;
             border-radius: 4px;
             outline: none;
             font-weight: bold;
-            text-align: inherit; 
+            text-align: inherit;
             letter-spacing: 1px;
             box-sizing: border-box;
             font-family: 'Microsoft YaHei', sans-serif;
-            resize: vertical; 
+            resize: vertical;
             min-height: 60px;
         }
 
@@ -488,48 +506,74 @@
             display: none !important;
         }
 
-/* ========================================================= */
-/* --- 拓展面板切换按钮样式 (小三角) --- */
-/* ========================================================= */
-#panel-toggle-btn {
-    position: absolute;
-    top: 160px; /* 刚好位于导航球 (120px) 的下方 */
-    right: 20px;
-    width: 36px;
-    height: 36px;
-    background-color: rgba(40, 40, 40, 0.8);
-    border: 2px solid #555;
-    border-radius: 50%; /* 圆形按钮 */
-    color: #f39c12; /* 品牌橙色 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    cursor: pointer;
-    z-index: 1000;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    transition: transform 0.3s, background-color 0.2s, border-color 0.2s;
-    user-select: none;
-    backdrop-filter: blur(5px);
-}
 
-/* 鼠标悬浮效果 */
-#panel-toggle-btn:hover {
-    background-color: #3d3d3d;
-    border-color: #f39c12;
-    transform: scale(1.1);
-}
 
-/* 当面板打开时，让三角旋转指向右边 ▶ */
-#panel-toggle-btn.open {
-    transform: rotate(180deg);
-}
 
-/* 旋转状态下的悬浮效果修复 */
-#panel-toggle-btn.open:hover {
-    transform: rotate(180deg) scale(1.1);
-}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+        /* ========================================================= */
+        /* --- 拓展面板切换按钮样式 (小三角) --- */
+        /* ========================================================= */
+        #panel-toggle-btn {
+            position: absolute;
+            top: 160px;
+            /* 刚好位于导航球 (120px) 的下方 */
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            background-color: rgba(40, 40, 40, 0.8);
+            border: 2px solid #555;
+            border-radius: 50%;
+            /* 圆形按钮 */
+            color: #f39c12;
+            /* 品牌橙色 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s, background-color 0.2s, border-color 0.2s;
+            user-select: none;
+            backdrop-filter: blur(5px);
+        }
+
+        /* 鼠标悬浮效果 */
+        #panel-toggle-btn:hover {
+            background-color: #3d3d3d;
+            border-color: #f39c12;
+            transform: scale(1.1);
+        }
+
+        /* 当面板打开时，让三角旋转指向右边 ▶ */
+        #panel-toggle-btn.open {
+            transform: rotate(180deg);
+        }
+
+        /* 旋转状态下的悬浮效果修复 */
+        #panel-toggle-btn.open:hover {
+            transform: rotate(180deg) scale(1.1);
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -577,7 +621,7 @@
 
         <!-- 工艺选择下拉菜单 -->
         <div>
-            <label>⚙️ 工艺选择</label>
+            <label>发光形式选择</label>
             <select id="craftSelect">
                 <option value="backGlow" selected>侧面与背面发光字 M005C/N011</option>
                 <option value="frontGlow">侧面一半和正面发光字M006/N013</option>
@@ -588,35 +632,37 @@
                 <option value="testBackGlow">背面发光-M005B</option>
                 <option value="neonWord">霓虹灯字N019</option>
                 <option value="neonWord012">霓虹灯字-N018</option>
-               
-                
                 <option value="acrylicCut">亚克力切割字(Acrylic Cut)</option>
                 <option value="metalCut">金属字(Metal Cut)</option>
 
             </select>
         </div>
 
-      <div>
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; margin-top: 10px;">
-        <label style="color:#f39c12; margin: 0;">✎ 输入文字 (支持换行)</label>
-        <!-- 对齐按钮组 -->
-        <div class="align-group" style="display: flex; gap: 2px;">
-            <button class="small-btn align-btn active" data-align="left" title="左对齐" style="padding: 2px 6px !important; border-radius: 3px 0 0 3px;">左</button>
-            <button class="small-btn align-btn" data-align="center" title="居中对齐" style="padding: 2px 6px !important; border-radius: 0;">中</button>
-            <button class="small-btn align-btn" data-align="right" title="右对齐" style="padding: 2px 6px !important; border-radius: 0 3px 3px 0;">右</button>
+        <div>
+            <div
+                style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; margin-top: 10px;">
+                <label style="color:#f39c12; margin: 0;">✎ 输入文字 (支持换行)</label>
+                <!-- 对齐按钮组 -->
+                <div class="align-group" style="display: flex; gap: 2px;">
+                    <button class="small-btn align-btn active" data-align="left" title="左对齐"
+                        style="padding: 2px 6px !important; border-radius: 3px 0 0 3px;">左</button>
+                    <button class="small-btn align-btn" data-align="center" title="居中对齐"
+                        style="padding: 2px 6px !important; border-radius: 0;">中</button>
+                    <button class="small-btn align-btn" data-align="right" title="右对齐"
+                        style="padding: 2px 6px !important; border-radius: 0 3px 3px 0;">右</button>
+                </div>
+            </div>
+            <!-- 将 input 换成 textarea -->
+            <textarea id="textInput" rows="3" placeholder="输入文字...&#10;支持回车换行">YiJiao</textarea>
         </div>
-    </div>
-    <!-- 将 input 换成 textarea -->
-    <textarea id="textInput" rows="3" placeholder="输入文字...&#10;支持回车换行">YiJiao</textarea>
-</div>
 
         <div>
             <label>🔤 字体选择</label>
             <select id="fontSelector">
-                <option value="helvetiker" selected>英文字体 Helvetiker</option>
-                <option value="Forte">forte常规字</option>
-                <option value="STXingkai_Regular">中文字体 行书 </option>
-                <option value="SimHei">中文字体 黑体</option>
+                <option value="helvetiker" selected>Helvetiker 英文字体</option>
+                <option value="Forte">forte 中文字体</option>
+                <option value="STXingkai_Regular">行书STXingkai 中文字体</option>
+                <option value="SimHei">黑体SimHei 中文字体</option>
 
                 <option value="neonFont05">Balmonde_Regular</option>
                 <option value="neonFont">The Absolute_Regular</option>
@@ -851,110 +897,126 @@
         <button class="action-btn" id="decomposeBtn">一键解体 (Explode)</button>
     </div>
 
-   <!-- !!! 核心修复：添加这个 div !!! -->
+    <!-- !!! 核心修复：添加这个 div !!! -->
     <div id="canvas-container">
         <!-- 3D 内容将被渲染到这里 -->
     </div>
-<div id="loading" style="display: none;">
-    <div class="spinner"></div>
-    <span style="color:white; font-size:12px; margin-top:10px;">正在加载字体资源...</span>
-</div>
-
-
-<div id="panel-toggle-btn" title="显示/隐藏配置面板">◀</div>
-
-   <!-- 右侧主容器 -->
-<div id="svg-upload-container" class="collapsed">
-    <!-- 1. 顶部拖拽手柄区域 -->
-    <div id="panel-drag-handle">
-        <span style="letter-spacing: 2px;">⋮⋮ 拖拽移动面板 ⋮⋮</span>
+    <div id="loading" style="display: none;">
+        <div class="spinner"></div>
+        <span style="color:white; font-size:12px; margin-top:10px;">正在加载字体资源...</span>
     </div>
 
-    <!-- 2. 并排容器 (让左右两栏水平排列) -->
-      <div class="panel-main-content">
-        
-        <!-- [左栏]：基础功能 -->
-        <div id="panel-inner-content">
-            <!-- SVG 上传 -->
-            <div class="upload-row">
-                <div class="upload-label">📤 上传矢量轮廓 (SVG)</div>
-                <div class="upload-btns">
-                    <button class="action-btn small-btn" onclick="document.getElementById('svgInput').click()">选择文件</button>
-                    <input type="file" id="svgInput" accept=".svg" style="display: none;">
-                    <button class="action-btn small-btn hidden danger-btn" id="clearSvgBtn">移除</button>
-                </div>
-            </div>
 
-            <!-- 背景图片上传 -->
-            <div class="upload-row">
-                <div class="upload-label">🖼️ 上传参考背景 (JPG/PNG)</div>
-                <div class="upload-btns">
-                    <button class="action-btn small-btn" onclick="document.getElementById('bgInput').click()">选择背景</button>
-                    <input type="file" id="bgInput" accept="image/png, image/jpeg" style="display: none;">
-                    <button class="action-btn small-btn hidden danger-btn" id="clearBgBtn">移除</button>
-                </div>
-            </div>
+    <div id="panel-toggle-btn" title="显示/隐藏配置面板">◀</div>
 
-            <hr style="border: 0; border-top: 1px solid #444; margin: 8px 0;">
-
-            <!-- 操作按钮 -->
-            <div style="display: flex; gap: 8px;">
-                <button class="action-btn small-btn" id="toggleObjLabelsBtn" style="background: #2980b9 !important;">👁️ 文字标注</button>
-                <button class="action-btn small-btn" id="togglePlateLabelsBtn" style="background: #8e44ad !important;">👁️ 背板标注</button>
-            </div>
-            <button class="action-btn snapshot-btn" id="snapshotBtn">📸 导出实拍图 (Snapshot)</button>
-
-            <!-- 背板尺寸控制 -->
-            <div class="thickness-control" style="margin-bottom: 10px; border-left: 3px solid #8e44ad; background:#333;">
-                <label style="margin:0; color:#8e44ad; font-size:11px;">📏 背板尺寸 (mm)</label>
-                <div style="display: flex; gap: 5px; margin-top:5px;">
-                    <input type="number" id="plateWidthInput" class="num-input" value="1000" style="flex:1;" title="宽">
-                    <input type="number" id="plateHeightInput" class="num-input" value="400" style="flex:1;" title="高">
-                    <input type="number" id="plateThicknessInput" class="num-input" value="10" style="flex:1;" title="厚">
-                </div>
-                <div style="margin-top: 8px;">
-                    <input type="color" id="plateColorPicker" value="#1a1a1a" style="width: 100%; height: 20px; cursor: pointer; border: none; background: none;">
-                </div>
-            </div>
-            <button class="action-btn" id="addPlateBtn" style="background: #8e44ad !important; font-size:11px;">🏗️ 添加/重置背板</button>
-        </div>
-<!-- [右栏]：新增的拓展面板 -->
-<div id="panel-extension">
-    <!-- 1. 新增：点击这个标题可以收起/展开整个右半部分 -->
-    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding-bottom: 8px; border-bottom: 1px solid #444; margin-bottom: 10px;" 
-         onclick="toggleFoldExtension()">
-        <span class="upload-label" style="color: #f39c12; margin:0;">🛠️ 高级功能</span>
-        <span id="fold-arrow" style="color: #666; font-size: 10px;">收起 ❯</span>
-    </div>
-
-    <!-- 2. 将原本的内容包在 extension-content 里面 -->
-    <div id="extension-content">
-        <!-- 功能一：叠加默认背板 -->
-        <div class="upload-row">
-            <div class="upload-label" style="color: #27ae60;">🏗️ 叠加背板 (Multiple)</div>
-            <div class="svg-note">位置依次向上移动5个单位</div>
-            <!-- 按钮并排显示，节省高度 -->
-            <div style="display: flex; gap: 5px; margin-top:5px;">
-                <button class="action-btn small-btn" id="addStackedPlateBtn" style="background: #27ae60 !important; flex:1;">新增</button>
-                <button class="action-btn small-btn danger-btn" id="clearStackedPlatesBtn" style="flex:1;">清空</button>
-            </div>
+    <!-- 右侧主容器 -->
+    <div id="svg-upload-container" class="collapsed">
+        <!-- 1. 顶部拖拽手柄区域 -->
+        <div id="panel-drag-handle">
+            <span style="letter-spacing: 2px;">⋮⋮ 拖拽移动面板 ⋮⋮</span>
         </div>
 
-        <hr style="border: 0; border-top: 1px dashed #444; margin: 10px 0;">
+        <!-- 2. 并排容器 (让左右两栏水平排列) -->
+        <div class="panel-main-content">
 
-        <!-- 功能二：用户上传背板 -->
-        <div class="upload-row">
-            <div class="upload-label" style="color: #e67e22;">🖼️ 上传轮廓背板 (SVG)</div>
-            <div style="display: flex; gap: 5px; margin-top:5px;">
-                <button class="action-btn small-btn" style="background: #e67e22 !important; flex:2;" onclick="document.getElementById('userPlateInput').click()">选择 SVG</button>
-                <button class="action-btn small-btn danger-btn hidden" id="removeUserPlateBtn" style="flex:1;">移除</button>
+            <!-- [左栏]：基础功能 -->
+            <div id="panel-inner-content">
+                <!-- SVG 上传 -->
+                <div class="upload-row">
+                    <div class="upload-label">📤 上传矢量轮廓 (SVG)</div>
+                    <div class="upload-btns">
+                        <button class="action-btn small-btn"
+                            onclick="document.getElementById('svgInput').click()">选择文件</button>
+                        <input type="file" id="svgInput" accept=".svg" style="display: none;">
+                        <button class="action-btn small-btn hidden danger-btn" id="clearSvgBtn">移除</button>
+                    </div>
+                </div>
+
+                <!-- 背景图片上传 -->
+                <div class="upload-row">
+                    <div class="upload-label">🖼️ 上传参考背景 (JPG/PNG)</div>
+                    <div class="upload-btns">
+                        <button class="action-btn small-btn"
+                            onclick="document.getElementById('bgInput').click()">选择背景</button>
+                        <input type="file" id="bgInput" accept="image/png, image/jpeg" style="display: none;">
+                        <button class="action-btn small-btn hidden danger-btn" id="clearBgBtn">移除</button>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #444; margin: 8px 0;">
+
+                <!-- 操作按钮 -->
+                <div style="display: flex; gap: 8px;">
+                    <button class="action-btn small-btn" id="toggleObjLabelsBtn"
+                        style="background: #2980b9 !important;">👁️ 文字标注</button>
+                    <button class="action-btn small-btn" id="togglePlateLabelsBtn"
+                        style="background: #8e44ad !important;">👁️ 背板标注</button>
+                </div>
+                <button class="action-btn snapshot-btn" id="snapshotBtn">📸 导出实拍图 (Snapshot)</button>
+
+                <!-- 背板尺寸控制 -->
+                <div class="thickness-control"
+                    style="margin-bottom: 10px; border-left: 3px solid #8e44ad; background:#333;">
+                    <label style="margin:0; color:#8e44ad; font-size:11px;">📏 背板尺寸 (mm)</label>
+                    <div style="display: flex; gap: 5px; margin-top:5px;">
+                        <input type="number" id="plateWidthInput" class="num-input" value="1000" style="flex:1;"
+                            title="宽">
+                        <input type="number" id="plateHeightInput" class="num-input" value="400" style="flex:1;"
+                            title="高">
+                        <input type="number" id="plateThicknessInput" class="num-input" value="10" style="flex:1;"
+                            title="厚">
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <input type="color" id="plateColorPicker" value="#1a1a1a"
+                            style="width: 100%; height: 20px; cursor: pointer; border: none; background: none;">
+                    </div>
+                </div>
+                <button class="action-btn" id="addPlateBtn" style="background: #8e44ad !important; font-size:11px;">🏗️
+                    添加/重置背板</button>
             </div>
-            <input type="file" id="userPlateInput" accept=".svg" style="display: none;">
-        </div>
-        
-        <div class="svg-note" style="margin-top: 15px; text-align: center; opacity: 0.5;">可拖拽面板边缘移动位置</div>
-    </div>
-</div>
+            <!-- [右栏]：新增的拓展面板 -->
+            <div id="panel-extension">
+                <!-- 1. 新增：点击这个标题可以收起/展开整个右半部分 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding-bottom: 8px; border-bottom: 1px solid #444; margin-bottom: 10px;"
+                    onclick="toggleFoldExtension()">
+                    <span class="upload-label" style="color: #f39c12; margin:0;">🛠️ 高级功能</span>
+                    <span id="fold-arrow" style="color: #666; font-size: 10px;">收起 ❯</span>
+                </div>
+
+                <!-- 2. 将原本的内容包在 extension-content 里面 -->
+                <div id="extension-content">
+                    <!-- 功能一：叠加默认背板 -->
+                    <div class="upload-row">
+                        <div class="upload-label" style="color: #27ae60;">🏗️ 叠加背板 (Multiple)</div>
+                        <div class="svg-note">位置依次向上移动5个单位</div>
+                        <!-- 按钮并排显示，节省高度 -->
+                        <div style="display: flex; gap: 5px; margin-top:5px;">
+                            <button class="action-btn small-btn" id="addStackedPlateBtn"
+                                style="background: #27ae60 !important; flex:1;">新增</button>
+                            <button class="action-btn small-btn danger-btn" id="clearStackedPlatesBtn"
+                                style="flex:1;">清空</button>
+                        </div>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px dashed #444; margin: 10px 0;">
+
+                    <!-- 功能二：用户上传背板 -->
+                    <div class="upload-row">
+                        <div class="upload-label" style="color: #e67e22;">🖼️ 上传轮廓背板 (SVG)</div>
+                        <div style="display: flex; gap: 5px; margin-top:5px;">
+                            <button class="action-btn small-btn" style="background: #e67e22 !important; flex:2;"
+                                onclick="document.getElementById('userPlateInput').click()">选择 SVG</button>
+                            <button class="action-btn small-btn danger-btn hidden" id="removeUserPlateBtn"
+                                style="flex:1;">移除</button>
+                        </div>
+                        <input type="file" id="userPlateInput" accept=".svg" style="display: none;">
+                    </div>
+
+                    <div class="svg-note" style="margin-top: 15px; text-align: center; opacity: 0.5;">可拖拽面板边缘移动位置</div>
+                </div>
+            </div>
+        </div> <!-- panel-main-content 结束 -->
+    </div> <!-- svg-upload-container 结束 -->
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -976,42 +1038,44 @@
         // --- 物体拖拽相关变量 ---
         // 在 let svgPaths 附近添加：
 
-         const ASSET_BASE_URL = './'; 
-    // 上线后改为：const ASSET_BASE_URL = 'https://你的bucket.oss-cn-hangzhou.aliyuncs.com/';
+        const ASSET_BASE_URL = './';
+        // 上线后改为：const ASSET_BASE_URL = 'https://你的bucket.oss-cn-hangzhou.aliyuncs.com/';
 
-    // ==========================================
-    // 2. 加载监控系统 (进度条)
-    // ==========================================
-    const manager = new THREE.LoadingManager();
-    manager.onProgress = function (url, itemsLoaded, itemsTotal) {
-        const percent = Math.round((itemsLoaded / itemsTotal) * 100);
-        const loadingText = document.querySelector('#loading span');
-        if (loadingText) loadingText.innerText = `正在加载 3D 资源... ${percent}%`;
-    };
-    manager.onLoad = function () {
-        gsap.to('#loading', { opacity: 0, duration: 0.5, onComplete: () => {
-            document.getElementById('loading').style.display = 'none';
-        }});
-    };
+        // ==========================================
+        // 2. 加载监控系统 (进度条)
+        // ==========================================
+        const manager = new THREE.LoadingManager();
+        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+            const percent = Math.round((itemsLoaded / itemsTotal) * 100);
+            const loadingText = document.querySelector('#loading span');
+            if (loadingText) loadingText.innerText = `正在加载 3D 资源... ${percent}%`;
+        };
+        manager.onLoad = function () {
+            gsap.to('#loading', {
+                opacity: 0, duration: 0.5, onComplete: () => {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            });
+        };
 
-    // ==========================================
-    // 3. 初始化全局加载器 (绑定监工)
-    // ==========================================
-    const textureLoader = new THREE.TextureLoader(manager);
-    const fontLoader = new FontLoader(manager);
-    const rgbeLoader = new RGBELoader(manager);
-    const svgLoader = new SVGLoader(manager);
+        // ==========================================
+        // 3. 初始化全局加载器 (绑定监工)
+        // ==========================================
+        const textureLoader = new THREE.TextureLoader(manager);
+        const fontLoader = new FontLoader(manager);
+        const rgbeLoader = new RGBELoader(manager);
+        const svgLoader = new SVGLoader(manager);
 
-    // ==========================================
-    // 4. 自动修复 UI 按钮背景图路径
-    // ==========================================
-    document.querySelectorAll('.material-btn').forEach(btn => {
-        const bgImg = btn.style.backgroundImage;
-        if (bgImg && bgImg.includes('textures/')) {
-            btn.style.backgroundImage = bgImg.replace(/url\(["']?textures\//, `url("${ASSET_BASE_URL}textures/`);
-        }
-    });
-let activeBackplate = null; // 记录当前选中的背板对象
+        // ==========================================
+        // 4. 自动修复 UI 按钮背景图路径
+        // ==========================================
+        document.querySelectorAll('.material-btn').forEach(btn => {
+            const bgImg = btn.style.backgroundImage;
+            if (bgImg && bgImg.includes('textures/')) {
+                btn.style.backgroundImage = bgImg.replace(/url\(["']?textures\//, `url("${ASSET_BASE_URL}textures/`);
+            }
+        });
+        let activeBackplate = null; // 记录当前选中的背板对象
         let colourAttrColor = 0xffffff; // 存储 Colour 属性的颜色
         let isMoveModeActive = false; // 是否处于 M 键激活的移动模式中
         let selectedObject = null; // 当前选中的物体（文字组或背景图）
@@ -1051,7 +1115,7 @@ let activeBackplate = null; // 记录当前选中的背板对象
         let plateColor = '#1a1a1a'; // 默认深灰色
         // 字体相关
         let currentFont = null;
-       
+
         let isObjectLabelsVisible = true; // 控制文字/物体标注
         let isPlateLabelsVisible = true;  // 控制背板标注
         let svgOriginalAspectRatio = 1.0; // 记录导入 SVG 的原始宽高比
@@ -1064,9 +1128,9 @@ let activeBackplate = null; // 记录当前选中的背板对象
         let flowMeshes = [];
         // 1. 先声明这些变量
         let sharedLedMat = null;
-let sharedCapMat = null;
-let sharedColourAttrMat = null;
-let lastText = "";
+        let sharedCapMat = null;
+        let sharedColourAttrMat = null;
+        let lastText = "";
         let textGroup = new THREE.Group();
         let clock = new THREE.Clock();
         let delta = 0;
@@ -1102,232 +1166,232 @@ let lastText = "";
         let panelOffsetX = 0;
         let panelOffsetY = 0;
         let textAlign = 'left'; // 默认左对齐
-let realTextWidth = 0;  // 存储不含倒角的净宽度
-let realTextHeight = 0; // 存储不含倒角的净高度
+        let realTextWidth = 0;  // 存储不含倒角的净宽度
+        let realTextHeight = 0; // 存储不含倒角的净高度
 
 
 
-// --- 核心函数：把面板上的数值实时应用到选中的背板上 ---
-function syncActivePlate() {
-    if (!activeBackplate) return;
+        // --- 核心函数：把面板上的数值实时应用到选中的背板上 ---
+        function syncActivePlate() {
+            if (!activeBackplate) return;
 
-    // 1. 获取面板上的最新数值 (mm 转为 cm)
-    const w = parseFloat(document.getElementById('plateWidthInput').value) / 10 || 10;
-    const h = parseFloat(document.getElementById('plateHeightInput').value) / 10 || 4;
-    const t = parseFloat(document.getElementById('plateThicknessInput').value) / 10 || 1.5;
-    const color = document.getElementById('plateColorPicker').value;
+            // 1. 获取面板上的最新数值 (mm 转为 cm)
+            const w = parseFloat(document.getElementById('plateWidthInput').value) / 10 || 10;
+            const h = parseFloat(document.getElementById('plateHeightInput').value) / 10 || 4;
+            const t = parseFloat(document.getElementById('plateThicknessInput').value) / 10 || 1.5;
+            const color = document.getElementById('plateColorPicker').value;
 
-    // 2. 判断当前操作的是不是上传的 SVG 背板
-    if (activeBackplate.userData.isCustomPlate) {
-        // 自定义背板：通过 scale（缩放）来改变尺寸
-        const rawW = activeBackplate.userData.rawW;
-        const rawH = activeBackplate.userData.rawH;
-        
-        // 计算新的缩放倍率： 目标尺寸 / 原始像素尺寸
-        activeBackplate.scale.set(w / rawW, h / rawH, t);
-        
-        // 更新颜色
-        if (activeBackplate.material) activeBackplate.material.color.set(color);
-    } 
-    else {
-        // 标准方块背板：通过重新生成几何体来改变尺寸
-        if (activeBackplate.geometry) activeBackplate.geometry.dispose();
-        activeBackplate.geometry = new THREE.BoxGeometry(w, h, t);
-        if (activeBackplate.material) activeBackplate.material.color.set(color);
+            // 2. 判断当前操作的是不是上传的 SVG 背板
+            if (activeBackplate.userData.isCustomPlate) {
+                // 自定义背板：通过 scale（缩放）来改变尺寸
+                const rawW = activeBackplate.userData.rawW;
+                const rawH = activeBackplate.userData.rawH;
 
-        // 如果是主背板，保持后背对齐逻辑
-        if (activeBackplate === lPlateGroup) {
-            activeBackplate.position.z = -(t / 2);
+                // 计算新的缩放倍率： 目标尺寸 / 原始像素尺寸
+                activeBackplate.scale.set(w / rawW, h / rawH, t);
+
+                // 更新颜色
+                if (activeBackplate.material) activeBackplate.material.color.set(color);
+            }
+            else {
+                // 标准方块背板：通过重新生成几何体来改变尺寸
+                if (activeBackplate.geometry) activeBackplate.geometry.dispose();
+                activeBackplate.geometry = new THREE.BoxGeometry(w, h, t);
+                if (activeBackplate.material) activeBackplate.material.color.set(color);
+
+                // 如果是主背板，保持后背对齐逻辑
+                if (activeBackplate === lPlateGroup) {
+                    activeBackplate.position.z = -(t / 2);
+                }
+            }
+
+            // 3. 实时刷新 3D 标注线
+            updateDimensions();
         }
-    }
+        // --- 全局变量声明 ---
+        // --- 1. 全局变量声明 (确保这些在 script 标签较靠前的位置) ---
+        let stackedPlatesGroup = new THREE.Group();
+        let userPlateMesh = null;
+        let nextPlateYOffset = 5;
+        const plateColors = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e74c3c']; // 统一使用这个名字
+        let colorPointer = 0; // 统一使用这个计数器
+        // --- 2. 获取 DOM 容器 (防止 clientWidth 报错，必须在 camera 初始化前) ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
 
-    // 3. 实时刷新 3D 标注线
-    updateDimensions();
-}
-// --- 全局变量声明 ---
-// --- 1. 全局变量声明 (确保这些在 script 标签较靠前的位置) ---
-let stackedPlatesGroup = new THREE.Group(); 
-let userPlateMesh = null; 
-let nextPlateYOffset = 5; 
-const plateColors = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e74c3c']; // 统一使用这个名字
-let colorPointer = 0; // 统一使用这个计数器
-// --- 2. 获取 DOM 容器 (防止 clientWidth 报错，必须在 camera 初始化前) ---
-const container = document.getElementById('canvas-container');
-const scene = new THREE.Scene();
-
-// 立即添加组到场景
-scene.add(stackedPlatesGroup);
+        // 立即添加组到场景
+        scene.add(stackedPlatesGroup);
 
 
 
-// 全局变量改个名字，更通用
-let nextPlateOffset = 5; 
+        // 全局变量改个名字，更通用
+        let nextPlateOffset = 5;
 
-function addDefaultStackedPlate() {
-    // 1. 获取当前 UI 输入的尺寸
-    const w = (parseFloat(document.getElementById('plateWidthInput').value) || 1000) / 10;
-    const h = (parseFloat(document.getElementById('plateHeightInput').value) || 400) / 10;
-    const t = (parseFloat(document.getElementById('plateThicknessInput').value) || 10) / 10;
+        function addDefaultStackedPlate() {
+            // 1. 获取当前 UI 输入的尺寸
+            const w = (parseFloat(document.getElementById('plateWidthInput').value) || 1000) / 10;
+            const h = (parseFloat(document.getElementById('plateHeightInput').value) || 400) / 10;
+            const t = (parseFloat(document.getElementById('plateThicknessInput').value) || 10) / 10;
 
-    const geo = new THREE.BoxGeometry(w, h, t);
-    const col = plateColors[colorPointer % plateColors.length];
-    colorPointer++;
+            const geo = new THREE.BoxGeometry(w, h, t);
+            const col = plateColors[colorPointer % plateColors.length];
+            colorPointer++;
 
-    const mat = new THREE.MeshStandardMaterial({ 
-        color: col, 
-        roughness: 0.8,
-        metalness: 0.2 
-    });
-    const mesh = new THREE.Mesh(geo, mat);
+            const mat = new THREE.MeshStandardMaterial({
+                color: col,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const mesh = new THREE.Mesh(geo, mat);
 
-    // 2. 【核心修复】：精准获取“最原始黑色背板”的实际世界坐标
-    let baseX = 0;
-    let baseY = 0;
-    let baseZ = -2;
-    
-    if (lPlateGroup && lPlateGroup.children.length > 0) {
-        // 因为主背板为了平齐，它的子 Mesh 往后退了 t/2，我们需要把它算进去
-        const mainMesh = lPlateGroup.children[0];
-        baseX = lPlateGroup.position.x + mainMesh.position.x;
-        baseY = lPlateGroup.position.y + mainMesh.position.y;
-        baseZ = lPlateGroup.position.z + mainMesh.position.z;
-    }
+            // 2. 【核心修复】：精准获取“最原始黑色背板”的实际世界坐标
+            let baseX = 0;
+            let baseY = 0;
+            let baseZ = -2;
 
-    // 3. 设置新背板的位置：X和Z完全贴合主背板，Y轴每次加 5
-    mesh.position.set(baseX, baseY + nextPlateOffset, baseZ);
+            if (lPlateGroup && lPlateGroup.children.length > 0) {
+                // 因为主背板为了平齐，它的子 Mesh 往后退了 t/2，我们需要把它算进去
+                const mainMesh = lPlateGroup.children[0];
+                baseX = lPlateGroup.position.x + mainMesh.position.x;
+                baseY = lPlateGroup.position.y + mainMesh.position.y;
+                baseZ = lPlateGroup.position.z + mainMesh.position.z;
+            }
 
-    // ⚠️ 【关键业务逻辑提示】：
-    // 如果你说的“叠加”其实是想一层一层往“背后”垫厚（像汉堡包一样加厚度），
-    // 而不是往天上飞，请把你上面的代码注释掉，换成下面这行：
-    // mesh.position.set(baseX, baseY, baseZ - nextPlateOffset);
+            // 3. 设置新背板的位置：X和Z完全贴合主背板，Y轴每次加 5
+            mesh.position.set(baseX, baseY + nextPlateOffset, baseZ);
 
-    // 4. 每次点击后，下一次的偏移量再加 5
-    nextPlateOffset += 5; 
+            // ⚠️ 【关键业务逻辑提示】：
+            // 如果你说的“叠加”其实是想一层一层往“背后”垫厚（像汉堡包一样加厚度），
+            // 而不是往天上飞，请把你上面的代码注释掉，换成下面这行：
+            // mesh.position.set(baseX, baseY, baseZ - nextPlateOffset);
 
-    stackedPlatesGroup.add(mesh);
-    console.log("已新增背板层，当前层高位置:", nextPlateOffset);
-}
+            // 4. 每次点击后，下一次的偏移量再加 5
+            nextPlateOffset += 5;
 
-// 同步修复清空按钮逻辑
-function clearStackedPlates() {
-    while(stackedPlatesGroup.children.length > 0) {
-        const obj = stackedPlatesGroup.children[0];
-        obj.geometry.dispose();
-        obj.material.dispose();
-        stackedPlatesGroup.remove(obj);
-    }
-    nextPlateOffset = 5; // 恢复初始 5 的偏移量
-    colorPointer = 0;
-}
-
-// 用户上传背板逻辑
-// --- 修改后的：上传 SVG 轮廓并生成 3D 背板 ---
-// --- 修复版：上传 SVG 轮廓并自动校准尺寸 ---
-function handleUserPlateUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const svgData = event.target.result;
-        const loader = new SVGLoader();
-        const data = loader.parse(svgData);
-        const paths = data.paths;
-        const shapes = [];
-
-        paths.forEach(path => {
-            shapes.push(...SVGLoader.createShapes(path));
-        });
-
-        // 1. 创建几何体（深度设为 1，方便后面按比例缩放）
-        const extrudeSettings = { depth: 1, bevelEnabled: false };
-        const geometry = new THREE.ExtrudeGeometry(shapes, extrudeSettings);
-
-        // --- 【核心修复1】：解决倒置问题 ---
-        geometry.scale(1, -1, 1); 
-
-        // 2. 居中对齐
-        geometry.computeBoundingBox();
-        const box = geometry.boundingBox;
-        const rawW = box.max.x - box.min.x;
-        const rawH = box.max.y - box.min.y;
-        
-        const center = new THREE.Vector3();
-        box.getCenter(center);
-        geometry.translate(-center.x, -center.y, -center.z);
-
-        // 3. 应用材质
-        const color = document.getElementById('plateColorPicker').value;
-        const material = new THREE.MeshStandardMaterial({ 
-            color: color, 
-            roughness: 0.8, 
-            metalness: 0.2,
-            side: THREE.DoubleSide 
-        });
-
-        if (userPlateMesh) {
-            scene.remove(userPlateMesh);
-            userPlateMesh.geometry.dispose();
-            userPlateMesh.material.dispose();
+            stackedPlatesGroup.add(mesh);
+            console.log("已新增背板层，当前层高位置:", nextPlateOffset);
         }
 
-        userPlateMesh = new THREE.Mesh(geometry, material);
-        userPlateMesh.name = "Custom_SVG_Plate";
-        userPlateMesh.userData.isCustomPlate = true; // 标记这是自定义背板
-        
-        // 存下原始像素尺寸，用于后续计算缩放比
-        userPlateMesh.userData.rawW = rawW;
-        userPlateMesh.userData.rawH = rawH;
+        // 同步修复清空按钮逻辑
+        function clearStackedPlates() {
+            while (stackedPlatesGroup.children.length > 0) {
+                const obj = stackedPlatesGroup.children[0];
+                obj.geometry.dispose();
+                obj.material.dispose();
+                stackedPlatesGroup.remove(obj);
+            }
+            nextPlateOffset = 5; // 恢复初始 5 的偏移量
+            colorPointer = 0;
+        }
 
-        // 4. 【核心修复2】：初始化时根据 UI 上的数值设置初始大小
-        const uiW = parseFloat(document.getElementById('plateWidthInput').value) / 10 || 50;
-        const uiH = parseFloat(document.getElementById('plateHeightInput').value) / 10 || 40;
-        const uiT = parseFloat(document.getElementById('plateThicknessInput').value) / 10 || 1.5;
+        // 用户上传背板逻辑
+        // --- 修改后的：上传 SVG 轮廓并生成 3D 背板 ---
+        // --- 修复版：上传 SVG 轮廓并自动校准尺寸 ---
+        function handleUserPlateUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        userPlateMesh.scale.set(uiW / rawW, uiH / rawH, uiT);
-        userPlateMesh.position.set(0, 0, -2);
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const svgData = event.target.result;
+                const loader = new SVGLoader();
+                const data = loader.parse(svgData);
+                const paths = data.paths;
+                const shapes = [];
 
-        scene.add(userPlateMesh);
-        
-        // 选中它
-        activeBackplate = userPlateMesh;
-        selectedObject = userPlateMesh;
-        outlinePass.selectedObjects = [userPlateMesh];
-        document.getElementById('removeUserPlateBtn').classList.remove('hidden');
+                paths.forEach(path => {
+                    shapes.push(...SVGLoader.createShapes(path));
+                });
 
-        updateDimensions();
-        console.log("SVG背板已翻转并同步尺寸生成");
-    };
-    reader.readAsText(file);
-}
-function removeUserPlate() {
-    if(userPlateMesh) {
-        scene.remove(userPlateMesh);
-        userPlateMesh.geometry.dispose();
-        userPlateMesh.material.dispose();
-        userPlateMesh = null;
-    }
-    document.getElementById('removeUserPlateBtn').classList.add('hidden');
-}
+                // 1. 创建几何体（深度设为 1，方便后面按比例缩放）
+                const extrudeSettings = { depth: 1, bevelEnabled: false };
+                const geometry = new THREE.ExtrudeGeometry(shapes, extrudeSettings);
 
-document.getElementById('addStackedPlateBtn').addEventListener('click', addDefaultStackedPlate);
-document.getElementById('clearStackedPlatesBtn').addEventListener('click', clearStackedPlates);
-document.getElementById('userPlateInput').addEventListener('change', handleUserPlateUpload);
-document.getElementById('removeUserPlateBtn').addEventListener('click', removeUserPlate);
-// 绑定对齐按钮点击事件
-document.querySelectorAll('.align-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.align-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        textAlign = btn.dataset.align;
-        
-        // 同步输入框的文字预览对齐
-        document.getElementById('textInput').style.textAlign = textAlign;
-        
-        // 重新生成3D模型
-        generate3DText(document.getElementById('textInput').value, false);
-    });
-});
+                // --- 【核心修复1】：解决倒置问题 ---
+                geometry.scale(1, -1, 1);
+
+                // 2. 居中对齐
+                geometry.computeBoundingBox();
+                const box = geometry.boundingBox;
+                const rawW = box.max.x - box.min.x;
+                const rawH = box.max.y - box.min.y;
+
+                const center = new THREE.Vector3();
+                box.getCenter(center);
+                geometry.translate(-center.x, -center.y, -center.z);
+
+                // 3. 应用材质
+                const color = document.getElementById('plateColorPicker').value;
+                const material = new THREE.MeshStandardMaterial({
+                    color: color,
+                    roughness: 0.8,
+                    metalness: 0.2,
+                    side: THREE.DoubleSide
+                });
+
+                if (userPlateMesh) {
+                    scene.remove(userPlateMesh);
+                    userPlateMesh.geometry.dispose();
+                    userPlateMesh.material.dispose();
+                }
+
+                userPlateMesh = new THREE.Mesh(geometry, material);
+                userPlateMesh.name = "Custom_SVG_Plate";
+                userPlateMesh.userData.isCustomPlate = true; // 标记这是自定义背板
+
+                // 存下原始像素尺寸，用于后续计算缩放比
+                userPlateMesh.userData.rawW = rawW;
+                userPlateMesh.userData.rawH = rawH;
+
+                // 4. 【核心修复2】：初始化时根据 UI 上的数值设置初始大小
+                const uiW = parseFloat(document.getElementById('plateWidthInput').value) / 10 || 50;
+                const uiH = parseFloat(document.getElementById('plateHeightInput').value) / 10 || 40;
+                const uiT = parseFloat(document.getElementById('plateThicknessInput').value) / 10 || 1.5;
+
+                userPlateMesh.scale.set(uiW / rawW, uiH / rawH, uiT);
+                userPlateMesh.position.set(0, 0, -2);
+
+                scene.add(userPlateMesh);
+
+                // 选中它
+                activeBackplate = userPlateMesh;
+                selectedObject = userPlateMesh;
+                outlinePass.selectedObjects = [userPlateMesh];
+                document.getElementById('removeUserPlateBtn').classList.remove('hidden');
+
+                updateDimensions();
+                console.log("SVG背板已翻转并同步尺寸生成");
+            };
+            reader.readAsText(file);
+        }
+        function removeUserPlate() {
+            if (userPlateMesh) {
+                scene.remove(userPlateMesh);
+                userPlateMesh.geometry.dispose();
+                userPlateMesh.material.dispose();
+                userPlateMesh = null;
+            }
+            document.getElementById('removeUserPlateBtn').classList.add('hidden');
+        }
+
+        document.getElementById('addStackedPlateBtn').addEventListener('click', addDefaultStackedPlate);
+        document.getElementById('clearStackedPlatesBtn').addEventListener('click', clearStackedPlates);
+        document.getElementById('userPlateInput').addEventListener('change', handleUserPlateUpload);
+        document.getElementById('removeUserPlateBtn').addEventListener('click', removeUserPlate);
+        // 绑定对齐按钮点击事件
+        document.querySelectorAll('.align-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.align-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                textAlign = btn.dataset.align;
+
+                // 同步输入框的文字预览对齐
+                document.getElementById('textInput').style.textAlign = textAlign;
+
+                // 重新生成3D模型
+                generate3DText(document.getElementById('textInput').value, false);
+            });
+        });
         // --- 处理面板颜色 (Colour Attribute) 的色块点击 ---
         // 处理面板颜色 (Colour Attribute) 的色块点击
         // --- 专门处理【面板颜色】的点击 ---
@@ -1429,11 +1493,11 @@ document.querySelectorAll('.align-btn').forEach(btn => {
         // --- 最终整合的键盘快捷键逻辑 ---
 
         // 2. 获取容器
-       
+
 
         // 3. 【关键修改】先初始化 scene
-      
-        
+
+
         scene.add(stackedPlatesGroup);
 
         // 4. 【关键修改】现在 scene 存在了，可以 add 了
@@ -1495,7 +1559,7 @@ document.querySelectorAll('.align-btn').forEach(btn => {
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-controls.dampingFactor = 0.2;
+        controls.dampingFactor = 0.2;
         // ==========================================
         // 后处理 (辉光)
         // ==========================================
@@ -1510,19 +1574,19 @@ controls.dampingFactor = 0.2;
 
         const renderScene = new RenderPass(scene, camera);
         const renderTarget = new THREE.WebGLRenderTarget(
-    container.clientWidth, 
-    container.clientHeight, 
-    {
-        type: THREE.HalfFloatType, // 提升渲染速度的关键
-        samples: 4 // 开启原生 4 倍抗锯齿，边缘更丝滑
-    }
-);
-       const bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2), // 降采样
-    0.5, 0.4, 0.15 // 稍微调大半径，让光晕更柔和分散
-);
+            container.clientWidth,
+            container.clientHeight,
+            {
+                type: THREE.HalfFloatType, // 提升渲染速度的关键
+                samples: 4 // 开启原生 4 倍抗锯齿，边缘更丝滑
+            }
+        );
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2), // 降采样
+            0.5, 0.4, 0.15 // 稍微调大半径，让光晕更柔和分散
+        );
 
-const bloomComposer = new EffectComposer(renderer, renderTarget);
+        const bloomComposer = new EffectComposer(renderer, renderTarget);
         bloomComposer.renderToScreen = false;
         bloomComposer.addPass(renderScene);
         bloomComposer.addPass(bloomPass);
@@ -1590,50 +1654,50 @@ const bloomComposer = new EffectComposer(renderer, renderTarget);
         }
         // 材质创建系统 (升级为高级竖向拉丝版)
         // ==========================================
-   // 1. 创建加载管理器
+        // 1. 创建加载管理器
 
 
-// 开始加载时的逻辑
-manager.onStart = function ( url, itemsLoaded, itemsTotal ) {
-    console.log( '开始加载文件: ' + url + '.\n已加载: ' + itemsLoaded + '/' + itemsTotal + ' 个文件.' );
-    document.getElementById('loading').style.display = 'flex'; // 显示加载遮罩
-};
+        // 开始加载时的逻辑
+        manager.onStart = function (url, itemsLoaded, itemsTotal) {
+            console.log('开始加载文件: ' + url + '.\n已加载: ' + itemsLoaded + '/' + itemsTotal + ' 个文件.');
+            document.getElementById('loading').style.display = 'flex'; // 显示加载遮罩
+        };
 
-// 重点：计算百分比并更新 UI
-manager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
-    const percent = Math.round((itemsLoaded / itemsTotal) * 100);
-    console.log('加载进度: ' + percent + '%');
-    
-    // 假设你在 HTML 的 #loading 里加了一个 <span id="loading-text"></span>
-    const loadingText = document.getElementById('loading-text');
-    if (loadingText) {
-        loadingText.innerText = `正在配置 3D 环境... ${percent}%`;
-    }
-};
+        // 重点：计算百分比并更新 UI
+        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+            const percent = Math.round((itemsLoaded / itemsTotal) * 100);
+            console.log('加载进度: ' + percent + '%');
 
-// 加载完成时的逻辑
-manager.onLoad = function ( ) {
-    console.log( '所有资源加载完成！');
-    // 使用 GSAP 做个淡出动画（你代码里已经引入了 GSAP）
-    gsap.to('#loading', { 
-        opacity: 0, 
-        duration: 0.5, 
-        onComplete: () => {
-            document.getElementById('loading').style.display = 'none';
-        }
-    });
-};
+            // 假设你在 HTML 的 #loading 里加了一个 <span id="loading-text"></span>
+            const loadingText = document.getElementById('loading-text');
+            if (loadingText) {
+                loadingText.innerText = `正在配置 3D 环境... ${percent}%`;
+            }
+        };
 
-// 2. 将 manager 传给你的加载器（这一步非常关键！）
+        // 加载完成时的逻辑
+        manager.onLoad = function () {
+            console.log('所有资源加载完成！');
+            // 使用 GSAP 做个淡出动画（你代码里已经引入了 GSAP）
+            gsap.to('#loading', {
+                opacity: 0,
+                duration: 0.5,
+                onComplete: () => {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            });
+        };
 
-// 如果你还有 FontLoader 或 RGBELoader，也要传进去：
-// const fontLoader = new FontLoader(manager);
-// const rgbeLoader = new RGBELoader(manager);
+        // 2. 将 manager 传给你的加载器（这一步非常关键！）
+
+        // 如果你还有 FontLoader 或 RGBELoader，也要传进去：
+        // const fontLoader = new FontLoader(manager);
+        // const rgbeLoader = new RGBELoader(manager);
 
         function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
-             const map = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Color.jpg`);
-    const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGl.jpg`);
-    const roughnessMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Roughness.jpg`);
+            const map = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Color.jpg`);
+            const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGl.jpg`);
+            const roughnessMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Roughness.jpg`);
 
             [map, normalMap, roughnessMap].forEach(t => {
                 t.wrapS = THREE.RepeatWrapping;
@@ -1730,42 +1794,42 @@ manager.onLoad = function ( ) {
         // ==========================================
         const loadingEl = document.getElementById('loading');
 
-      function getFontUrlByType(type) {
-    switch (type) {
-        // 这一项是外部链接，保持不动
-        case 'helvetiker': 
-            return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
-        
-        // 以下所有本地字体路径，全部加上 ${ASSET_BASE_URL} 前缀
-        case 'Forte': 
-            return `${ASSET_BASE_URL}fonts/Forte_Regular.json`;
-        
-        case 'STXingkai_Regular': 
-            return `${ASSET_BASE_URL}fonts/STXingkai_Regular.json`;
-        
-        case 'SimHei': 
-            return `${ASSET_BASE_URL}fonts/SimHei_Regular.json`;
+        function getFontUrlByType(type) {
+            switch (type) {
+                // 这一项是外部链接，保持不动
+                case 'helvetiker':
+                    return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
 
-        case 'neonFont': 
-            return `${ASSET_BASE_URL}fonts/The Absolute_Regular.json`;
-        
-        case 'neonFont02': 
-            return `${ASSET_BASE_URL}fonts/NEONCITY Script_Regular.json`;
-        
-        case 'neonFont03': 
-            return `${ASSET_BASE_URL}fonts/London Handlettering_Regular.json`;
-        
-        case 'neonFont04': 
-            return `${ASSET_BASE_URL}fonts/Damion_Regular.json`;
-        
-        case 'neonFont05': 
-            return `${ASSET_BASE_URL}fonts/Balmonde_Regular.json`;
+                // 以下所有本地字体路径，全部加上 ${ASSET_BASE_URL} 前缀
+                case 'Forte':
+                    return `${ASSET_BASE_URL}fonts/Forte_Regular.json`;
 
-        // 默认返回也建议加上前缀（或者保持外部链接）
-        default: 
-            return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
-    }
-}
+                case 'STXingkai_Regular':
+                    return `${ASSET_BASE_URL}fonts/STXingkai_Regular.json`;
+
+                case 'SimHei':
+                    return `${ASSET_BASE_URL}fonts/SimHei_Regular.json`;
+
+                case 'neonFont':
+                    return `${ASSET_BASE_URL}fonts/The Absolute_Regular.json`;
+
+                case 'neonFont02':
+                    return `${ASSET_BASE_URL}fonts/NEONCITY Script_Regular.json`;
+
+                case 'neonFont03':
+                    return `${ASSET_BASE_URL}fonts/London Handlettering_Regular.json`;
+
+                case 'neonFont04':
+                    return `${ASSET_BASE_URL}fonts/Damion_Regular.json`;
+
+                case 'neonFont05':
+                    return `${ASSET_BASE_URL}fonts/Balmonde_Regular.json`;
+
+                // 默认返回也建议加上前缀（或者保持外部链接）
+                default:
+                    return 'https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json';
+            }
+        }
         // ==========================================
         // 导航球 (ViewCube) 逻辑实现
         // ==========================================
@@ -1890,7 +1954,7 @@ manager.onLoad = function ( ) {
         const toggleBtn = document.getElementById('panel-toggle-btn');
         const svgContainer = document.getElementById('svg-upload-container');
 
-      if (toggleBtn && svgContainer) {
+        if (toggleBtn && svgContainer) {
             toggleBtn.addEventListener('click', () => {
                 // 切换面板显示/隐藏状态
                 svgContainer.classList.toggle('collapsed');
@@ -1900,42 +1964,42 @@ manager.onLoad = function ( ) {
         }
         // 创建永远面向相机的数字标签
         // 增加 scaleFactor 参数，默认值为 1.0
-   function createTextLabel(text, position, scaleFactor = 1.0, textColor = '#f39c12') {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+        function createTextLabel(text, position, scaleFactor = 1.0, textColor = '#f39c12') {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
 
-    // 1. 设置更大的固定画布区域，防止溢出
-    canvas.width = 1024; // 足够宽，就不会被压缩
-    canvas.height = 256;
-    
-    // 2. 设置字体样式
-    ctx.font = 'Bold 80px Arial'; // 字号稍微调小一点，确保在 1024 宽度内不挤压
-    ctx.fillStyle = textColor;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+            // 1. 设置更大的固定画布区域，防止溢出
+            canvas.width = 1024; // 足够宽，就不会被压缩
+            canvas.height = 256;
 
-    // 3. 绘制文字到画布中心
-    ctx.fillText(text, 512, 128); // 在 1024/2 = 512 位置绘制
+            // 2. 设置字体样式
+            ctx.font = 'Bold 80px Arial'; // 字号稍微调小一点，确保在 1024 宽度内不挤压
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
-    const texture = new THREE.CanvasTexture(canvas);
-    // 保持原来的 SpriteMaterial 设置
-    const spriteMaterial = new THREE.SpriteMaterial({ 
-        map: texture, 
-        transparent: true,
-        depthTest: false 
-    });
-    
-    const sprite = new THREE.Sprite(spriteMaterial);
-    
-    // 4. 【关键修正】：手动控制比例
-    // scaleFactor 是文字大小比例，宽度系数根据实际需要调整
-    // 之前可能宽度乘了 aspect 导致过宽，这里我们手动给个固定比例
-    sprite.scale.set(40 * scaleFactor, 10 * scaleFactor, 1);
-    
-    sprite.position.copy(position);
-    sprite.layers.set(0); // 避开辉光层
-    return sprite;
-}
+            // 3. 绘制文字到画布中心
+            ctx.fillText(text, 512, 128); // 在 1024/2 = 512 位置绘制
+
+            const texture = new THREE.CanvasTexture(canvas);
+            // 保持原来的 SpriteMaterial 设置
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: texture,
+                transparent: true,
+                depthTest: false
+            });
+
+            const sprite = new THREE.Sprite(spriteMaterial);
+
+            // 4. 【关键修正】：手动控制比例
+            // scaleFactor 是文字大小比例，宽度系数根据实际需要调整
+            // 之前可能宽度乘了 aspect 导致过宽，这里我们手动给个固定比例
+            sprite.scale.set(40 * scaleFactor, 10 * scaleFactor, 1);
+
+            sprite.position.copy(position);
+            sprite.layers.set(0); // 避开辉光层
+            return sprite;
+        }
         // --- 截图功能实现 ---
         // --- 高级高清截图功能 ---
         // --- 修复版：高清截图功能（完美保留辉光与颜色） ---
@@ -2083,78 +2147,98 @@ manager.onLoad = function ( ) {
 
             const cadOffset = 14 * scaleFactor;
             const tickLength = 3 * scaleFactor;
-               // 【修改点 1】：不要固定为 15，要根据文字的前表面动态计算
-    // 先强制更新文字的世界矩阵，确保获取的是最新位置
-    textGroup.updateMatrixWorld(true);
-    const textBox = new THREE.Box3().setFromObject(textGroup);
-    
-    // 如果文字组是空的，直接返回
-    if (textBox.isEmpty() || !isFinite(textBox.max.z)) return;
+            // 【修改点 1】：不要固定为 15，要根据文字的前表面动态计算
+            // 先强制更新文字的世界矩阵，确保获取的是最新位置
+            textGroup.updateMatrixWorld(true);
+            const textBox = new THREE.Box3().setFromObject(textGroup);
 
-    // 标注线应该在文字最前面再往外一点点
-    const labelZ = textBox.max.z + 1.0; 
+            // 如果文字组是空的，直接返回
+            if (textBox.isEmpty() || !isFinite(textBox.max.z)) return;
 
-       const drawIndustrialDim = (p1, p2, offsetVec, text, color = 0xf39c12, axisName = '') => {
-    const group = new THREE.Group();
-    // 核心：获取该标注对应的手动偏移量
-    const manualOffset = labelManualOffsets[axisName] || new THREE.Vector3();
+            // 标注线应该在文字最前面再往外一点点
+            const labelZ = textBox.max.z + 1.0;
 
-    const lineMat = new THREE.LineBasicMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.8,
-        depthTest: false
-    });
+            const drawIndustrialDim = (p1, p2, offsetVec, text, color = 0xf39c12, axisName = '') => {
+                const group = new THREE.Group();
+                // 核心：获取该标注对应的手动偏移量
+                const manualOffset = labelManualOffsets[axisName] || new THREE.Vector3();
 
-    // 1. 计算线段的起点和终点：基础坐标 + 初始偏移 + 手动偏移
-    const dimStart = p1.clone().add(offsetVec).add(manualOffset);
-    const dimEnd = p2.clone().add(offsetVec).add(manualOffset);
+                const lineMat = new THREE.LineBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.8,
+                    depthTest: false
+                });
 
-    // 2. 创建主标注线
-    const mainLineGeo = new THREE.BufferGeometry().setFromPoints([dimStart, dimEnd]);
-    const mainLine = new THREE.Line(mainLineGeo, lineMat);
-    mainLine.userData.axis = axisName; // [关键] 给线段绑定轴向名称，使其可被点击拖拽
-    mainLine.renderOrder = 999;
-    group.add(mainLine);
+                // 1. 计算线段的起点和终点：基础坐标 + 初始偏移 + 手动偏移
+                const dimStart = p1.clone().add(offsetVec).add(manualOffset);
+                const dimEnd = p2.clone().add(offsetVec).add(manualOffset);
 
-    // 3. 创建两侧的小刻度线 (Ticks)
-    const dir = new THREE.Vector3().subVectors(dimEnd, dimStart).normalize();
-    const sideDir = new THREE.Vector3(-dir.y, dir.x, 0).multiplyScalar(tickLength);
-    const tick1Points = [dimStart.clone().add(sideDir), dimStart.clone().sub(sideDir)];
-    const tick2Points = [dimEnd.clone().add(sideDir), dimEnd.clone().sub(sideDir)];
-    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick1Points), lineMat));
-    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick2Points), lineMat));
+                // 2. 创建主标注线
+                const mainLineGeo = new THREE.BufferGeometry().setFromPoints([dimStart, dimEnd]);
+                const mainLine = new THREE.Line(mainLineGeo, lineMat);
+                mainLine.userData.axis = axisName; // [关键] 给线段绑定轴向名称，使其可被点击拖拽
+                mainLine.renderOrder = 999;
+                group.add(mainLine);
 
-    // 4. 创建数字标签 (Label)
-    // 标签位置在线段中心，再往外推一点点边距
-    const center = new THREE.Vector3().addVectors(dimStart, dimEnd).multiplyScalar(0.5);
-    const textMargin = offsetVec.clone().normalize().multiplyScalar(2 * scaleFactor);
-    const labelPos = center.clone().add(textMargin);
+                // 3. 创建两侧的小刻度线 (Ticks)
+                const dir = new THREE.Vector3().subVectors(dimEnd, dimStart).normalize();
+                const sideDir = new THREE.Vector3(-dir.y, dir.x, 0).multiplyScalar(tickLength);
+                const tick1Points = [dimStart.clone().add(sideDir), dimStart.clone().sub(sideDir)];
+                const tick2Points = [dimEnd.clone().add(sideDir), dimEnd.clone().sub(sideDir)];
+                group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick1Points), lineMat));
+                group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tick2Points), lineMat));
 
-    const label = createTextLabel(text, labelPos, scaleFactor * 0.9, color);
-    label.userData.axis = axisName; // [关键] 数字也绑定轴向
-    group.add(label);
+                // 4. 创建数字标签 (Label)
+                // 标签位置在线段中心，再往外推一点点边距
+                const center = new THREE.Vector3().addVectors(dimStart, dimEnd).multiplyScalar(0.5);
+                const textMargin = offsetVec.clone().normalize().multiplyScalar(2 * scaleFactor);
+                const labelPos = center.clone().add(textMargin);
 
-    dimensionGroup.add(group);
-};
+                const label = createTextLabel(text, labelPos, scaleFactor * 0.9, color);
+                label.userData.axis = axisName; // [关键] 数字也绑定轴向
+                group.add(label);
+
+                dimensionGroup.add(group);
+            };
 
             // --- 始终执行：背板物理位置修正 ---
             if (lPlateGroup) {
                 let plateZ = 0;
                 const antiFight = 0.001;
-                switch (glowMode) {
-                    case 'backGlow': case 'frontGlow': case 'sideHalfGlowTest':
-                        plateZ = -bDepth - 0.01 - antiFight; break;
-                    case 'testFrontGlow': plateZ = -bDepth - antiFight; break;
-                    case 'frontBackGlow': plateZ = -fDepth - 0.1 - 0.05 - antiFight; break;
-                    case 'sideGlowTest': case 'testBackGlow': plateZ = -0.11 - antiFight; break;
-                    default: plateZ = 0 - antiFight;
-                }
+               // 找到这一段 switch (glowMode)
+switch (glowMode) {
+    case 'backGlow': 
+    case 'frontGlow': 
+    case 'sideHalfGlowTest':
+        plateZ = -bDepth - 0.01 - antiFight; 
+        break;
+    case 'testFrontGlow': 
+        plateZ = -bDepth - antiFight; 
+        break;
+    case 'frontBackGlow': 
+        // 确保背板在背面灯光（-fDepth - 0.15）之后
+        // 原来是 -fDepth - 0.1 - 0.05，我们要确保它稍微更厚一点点防止闪烁
+        plateZ = -fDepth - 0.18 - antiFight; 
+        break;
+        
+    // --- 核心修改：背面发光模式下，背板的位置要和光晕一致 ---
+    case 'testBackGlow': 
+        // 确保这里的偏移量（-fDepth - 0.02）比上面光晕的位置（-fDepth - 0.01）稍微后一点点
+        plateZ = -fDepth - 0.02 - antiFight; 
+        break;
+        
+    case 'sideGlowTest': 
+        plateZ = -0.11 - antiFight; 
+        break;
+    default: 
+        plateZ = 0 - antiFight;
+}
                 lPlateGroup.position.z = plateZ;
             }
 
             // --- A. 文字标注 (Object Labels) ---
-           // --- A. 文字标注 (Object Labels) ---
+            // --- A. 文字标注 (Object Labels) ---
             if (isObjectLabelsVisible) {
                 const textBox = new THREE.Box3().setFromObject(textGroup);
                 if (!textBox.isEmpty() && isFinite(textBox.min.x)) {
@@ -2264,8 +2348,8 @@ manager.onLoad = function ( ) {
             sharedLedMat.customProgramCacheKey = function () {
                 return isFlowRGB ? 'flow_shader_' + Math.random() : 'normal_shader';
             };
-             sharedLedMat.onBeforeCompile = (shader) => {
-                shader.uniforms.uTime =  sharedLedMat.userData.uTime;
+            sharedLedMat.onBeforeCompile = (shader) => {
+                shader.uniforms.uTime = sharedLedMat.userData.uTime;
                 shader.vertexShader = `varying vec3 vWorldPos;\n` + shader.vertexShader.replace(
                     '#include <worldpos_vertex>',
                     `#include <worldpos_vertex>\nvWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`
@@ -2299,361 +2383,378 @@ manager.onLoad = function ( ) {
 
         // 获取新增的 Colour 属性颜色
         const cAttrColor = new THREE.Color(document.getElementById('colourAttrPicker').value);
-       
-// ==========================================
-// 专业洗墙灯光晕生成器 (柔和聚拢版)
-// ==========================================
-function createWallGlow(geo, color) {
-    const glowGroup = new THREE.Group();
-    // 增加层数让过渡更细腻，但总扩散范围缩小
-    const layers = 8; 
-    
-    for (let i = 0; i < layers; i++) {
-        // 核心 1：透明度非线性衰减
-        // 让最内层亮，外层迅速变暗，产生“糊”的感觉
-        const baseOpacity = 0.3; // 降低初始亮度
-        const opacity = baseOpacity * Math.pow(1 - (i / layers), 2); 
-        
-        if (opacity <= 0.01) continue; // 太暗的层就不渲染了，节省性能
 
-        const mat = new THREE.MeshBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: opacity,
-            blending: THREE.AdditiveBlending, // 叠加发光
-            depthWrite: false, 
-            side: THREE.DoubleSide
-        });
-        
-        const mesh = new THREE.Mesh(geo, mat);
-        
-        // 核心 2：缩小扩散范围
-        // 原来是 1 + (i * 0.04)，现在改成 0.015，光圈会紧紧贴着字边缘
-        const s = 1 + (i * 0.015); 
-        mesh.scale.set(s, s, 0.001);
+        // ==========================================
+        // 专业洗墙灯光晕生成器 (柔和聚拢版)
+        // ==========================================
+        function createWallGlow(geo, color) {
+            const glowGroup = new THREE.Group();
+            // 增加层数让过渡更细腻，但总扩散范围缩小
+            const layers = 8;
 
-        // 核心 3：微小的 Z 轴偏移，防止各层互相闪烁，且绝对不穿透背板
-        mesh.position.z = i * 0.0005; 
-        
-        mesh.userData.isLed = true;      
-        mesh.userData.isWallGlow = true; 
-        
-        glowGroup.add(mesh);
-    }
-    
-    // 核心 4：整体再往内部稍微收缩一点点，防止漏出硬边
-    glowGroup.scale.set(0.95, 0.95, 1);
-    
-    return glowGroup;
-}
-async function parseSvgToShapes(file) {
-    const text = await file.text();
-    const parsed = svgLoader.parse(text);
-    const shapes = [];
-    parsed.paths.forEach(path => shapes.push(...path.toShapes(true)));
-    return shapes;
-}
+            for (let i = 0; i < layers; i++) {
+                // 核心 1：透明度非线性衰减
+                // 让最内层亮，外层迅速变暗，产生“糊”的感觉
+                const baseOpacity = 0.3; // 降低初始亮度
+                const opacity = baseOpacity * Math.pow(1 - (i / layers), 2);
 
+                if (opacity <= 0.01) continue; // 太暗的层就不渲染了，节省性能
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                const mat = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: opacity,
+                    blending: THREE.AdditiveBlending, // 叠加发光
+                    depthWrite: false,
+                    side: THREE.DoubleSide
+                });
 
+                const mesh = new THREE.Mesh(geo, mat);
 
-   function generate3DText(textString, adjustCamera = true) {
-    console.log("=== 开始生成 3D 模型 ===");
+                // 核心 2：缩小扩散范围
+                // 原来是 1 + (i * 0.04)，现在改成 0.015，光圈会紧紧贴着字边缘
+                const s = 1 + (i * 0.015);
+                mesh.scale.set(s, s, 0.001);
 
-    // 1. 基础检查
-    if (!isSvgMode && !currentFont) {
-        loadFontAndGenerate('helvetiker', textString, adjustCamera);
-        return;
-    }
+                // 核心 3：微小的 Z 轴偏移，防止各层互相闪烁，且绝对不穿透背板
+                mesh.position.z = i * 0.0005;
 
-    const backstageGroup = new THREE.Group();
-    let newFlowMeshes = [], newFrontMeshes = [], newBackMeshes = [], newColourMeshes = [];
+                mesh.userData.isLed = true;
+                mesh.userData.isWallGlow = true;
 
-    // 2. 材质更新逻辑
-    const ledColorVal = document.getElementById('ledColorPicker').value;
-    const ledColor = new THREE.Color(ledColorVal);
-
-    if (!sharedColourAttrMat) {
-        sharedColourAttrMat = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide });
-    }
-    sharedColourAttrMat.color.set(document.getElementById('colourAttrPicker').value);
-
-    if (isPaintMode) {
-        if (!sharedCapMat || !sharedCapMat.userData.isPaint) {
-            sharedCapMat = new THREE.MeshStandardMaterial({ roughness: 0.2, metalness: 0.05, side: THREE.DoubleSide, depthWrite: true });
-            sharedCapMat.userData.isPaint = true;
-        }
-        sharedCapMat.color.set(currentPaintColor);
-    } else {
-        sharedCapMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
-    }
-
-    if (!sharedLedMat) {
-        sharedLedMat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
-        if (isFlowRGB && glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
-            sharedLedMat.userData.uTime = { value: 0 };
-            sharedLedMat.onBeforeCompile = (shader) => {
-                shader.uniforms.uTime = sharedLedMat.userData.uTime;
-                shader.vertexShader = `varying vec3 vWorldPos;\n` + shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
-                shader.fragmentShader = `uniform float uTime; varying vec3 vWorldPos;\n` + shader.fragmentShader.replace('#include <emissivemap_fragment>', `float xPos = vWorldPos.x * 0.05; float t = uTime * 4.0 - xPos; vec3 rainbow = vec3(0.5 + 0.5 * sin(t), 0.5 + 0.5 * sin(t + 2.094), 0.5 + 0.5 * sin(t + 4.188)); vec3 softColor = mix(rainbow, vec3(1.0), 0.3); totalEmissiveRadiance *= softColor;`);
-            };
-        }
-    }
-    sharedLedMat.color.set(isFlowRGB ? 0x000000 : ledColor);
-    sharedLedMat.emissive.set(isFlowRGB ? 0xffffff : ledColor);
-    sharedLedMat.emissiveIntensity = isFlowRGB ? 1.5 : (document.getElementById('brightnessSlider').value / 100) * 1.2;
-    sharedLedMat.needsUpdate = true;
-
-    // 3. 几何体生成参数
-    const commonExtrude = { bevelEnabled: false, steps: 1, caps: true, curveSegments: 5 };
-    const fDepth = frontThickness / 10;
-    const bDepth = backThickness / 10;
-    const lineSpacing = 1.3; 
-
-    // 4. 辅助函数：根据工艺组装 Mesh (定义在内部以共享作用域)
-    function assembleMeshes(fGeo, bGeo, innerGeo, x, y, group, lineText, scaledFontSize) {
-        const lineGroup = new THREE.Group();
-
-        if (glowMode === 'neonWord') {
-            const nGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, bevelEnabled: true, bevelThickness: 0.8, bevelSize: 0.8, bevelSegments: 5, height: 0.5 });
-            const nMesh = new THREE.Mesh(nGeo, sharedLedMat);
-            nMesh.position.set(x, y, 0);
-            nMesh.userData.isLed = true; nMesh.layers.enable(BLOOM_SCENE);
-            lineGroup.add(nMesh);
-            newFrontMeshes.push(nMesh); if (isFlowRGB) newFlowMeshes.push(nMesh);
-        }
-        else if (glowMode === 'neonWord012') {
-            const mShell = new THREE.Mesh(fGeo, sharedCapMat);
-            const nGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 5, height: 0.2 });
-            const mLED = new THREE.Mesh(nGeo, sharedLedMat);
-            mShell.position.set(x, y, -fDepth);
-            mLED.position.set(x, y, 0.08);
-            mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
-            lineGroup.add(mShell, mLED);
-            newFrontMeshes.push(mShell); newBackMeshes.push(mLED); if (isFlowRGB) newFlowMeshes.push(mLED);
-        }
-      
-        else if (glowMode === 'neonBorder') {
-            const mBase = new THREE.Mesh(innerGeo, sharedCapMat);
-            const nGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.4, bevelSegments: 3, height: 0.1 });
-            const mTube = new THREE.Mesh(nGeo, sharedLedMat);
-            mBase.position.set(x, y, 0);
-            mTube.position.set(x, y, 0.5);
-            mTube.userData.isLed = true; mTube.layers.enable(BLOOM_SCENE);
-            lineGroup.add(mBase, mTube);
-            newFrontMeshes.push(mBase); newBackMeshes.push(mTube);
-        }
-        else if (glowMode === 'testFrontGlow') {
-            const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
-            const mShell = new THREE.Mesh(bGeo, sharedCapMat);
-            mLED.position.set(x, y, 0.11);
-            mShell.position.set(x, y, -bDepth);
-            mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
-            lineGroup.add(mLED, mShell);
-            newFrontMeshes.push(mLED); newBackMeshes.push(mShell); if (isFlowRGB) newFlowMeshes.push(mLED);
-        } 
-        else if (glowMode === 'sideGlowTest') {
-            const glowMesh = new THREE.Mesh(fGeo, sharedLedMat);
-            glowMesh.userData.isLed = true; glowMesh.layers.enable(BLOOM_SCENE);
-            const colourMesh = new THREE.Mesh(innerGeo, sharedColourAttrMat);
-            colourMesh.position.set(x, y, fDepth + 0.01);
-            const fixedMesh = new THREE.Mesh(innerGeo, createBackMaterial('Metal011', true, 0xffffff));
-            fixedMesh.position.set(x, y, -0.11);
-            glowMesh.position.set(x, y, 0);
-            lineGroup.add(glowMesh, colourMesh, fixedMesh);
-            newFrontMeshes.push(glowMesh); newColourMeshes.push(colourMesh); newBackMeshes.push(fixedMesh);
-            if (isFlowRGB) newFlowMeshes.push(glowMesh);
-        }
-        else if (glowMode === 'frontBackGlow') {
-            const mFrontLed = new THREE.Mesh(innerGeo, sharedLedMat);
-            const mShell = new THREE.Mesh(fGeo, sharedCapMat);
-            const mBackLed = new THREE.Mesh(innerGeo, sharedLedMat);
-            mFrontLed.position.set(x, y, 0.05);
-            mShell.position.set(x, y, -fDepth);
-            mBackLed.position.set(x, y, -fDepth - 0.1 - 0.05);
-            mFrontLed.userData.isLed = true; mBackLed.userData.isLed = true;
-            mFrontLed.layers.enable(BLOOM_SCENE); mBackLed.layers.enable(BLOOM_SCENE);
-            const wallGlow = createWallGlow(fGeo, ledColor);
-            wallGlow.position.set(x, y, -0.11); 
-            lineGroup.add(mFrontLed, mShell, mBackLed, wallGlow);
-            const lightElements = [mFrontLed, mBackLed, ...wallGlow.children];
-            newFrontMeshes.push(...lightElements); newBackMeshes.push(mShell);
-            if (isFlowRGB) newFlowMeshes.push(...lightElements);
-        }
-        else if (glowMode === 'sideHalfGlowTest') {
-            const m1 = new THREE.Mesh(fGeo, sharedLedMat);
-            const m2 = new THREE.Mesh(bGeo, sharedCapMat);
-            const colourMesh = new THREE.Mesh(innerGeo, sharedColourAttrMat);
-            m1.userData.isLed = true; m1.layers.enable(BLOOM_SCENE);
-            m1.position.set(x, y, 0);
-            m2.position.set(x, y, -bDepth - 0.01);
-            colourMesh.position.set(x, y, fDepth + 0.01);
-            lineGroup.add(m1, m2, colourMesh);
-            newFrontMeshes.push(m1); newBackMeshes.push(m2); newColourMeshes.push(colourMesh);
-            if (isFlowRGB) newFlowMeshes.push(m1);
-        }
-        else if (glowMode === 'testBackGlow') {
-            const mShell = new THREE.Mesh(fGeo, sharedCapMat);
-            const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
-            mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
-            mShell.position.set(x, y, 0); mLED.position.set(x, y, -0.11);
-            const wallGlow = createWallGlow(fGeo, ledColor);
-            wallGlow.position.set(x, y, -fDepth - 0.15); 
-            lineGroup.add(mShell, mLED, wallGlow); 
-            const lightElements = [mLED, ...wallGlow.children]; 
-            newFrontMeshes.push(mShell); newBackMeshes.push(...lightElements);
-            if (isFlowRGB) newFlowMeshes.push(...lightElements);
-        }
-        else if (glowMode === 'metalCut' || glowMode === 'acrylicCut') {
-            const isMetal = (glowMode === 'metalCut');
-            const meshMat = isMetal ? sharedCapMat : new THREE.MeshStandardMaterial({ color: ledColor, roughness: 0.3, metalness: 0.1, side: THREE.DoubleSide });
-            const mesh = new THREE.Mesh(fGeo, meshMat);
-            mesh.position.set(x, y, 0);
-            lineGroup.add(mesh);
-            if (isMetal) newBackMeshes.push(mesh); else newFrontMeshes.push(mesh);
-        }
-        else {
-            const isBack = (glowMode === 'backGlow');
-            const fMesh = new THREE.Mesh(fGeo, isBack ? sharedCapMat : sharedLedMat);
-            const bMesh = new THREE.Mesh(bGeo, isBack ? sharedLedMat : sharedCapMat);
-            const lightMesh = isBack ? bMesh : fMesh;
-            lightMesh.userData.isLed = true; lightMesh.layers.enable(BLOOM_SCENE);
-            fMesh.position.set(x, y, 0);
-            bMesh.position.set(x, y, -bDepth - 0.01);
-            const lightElements = [lightMesh];
-            if (isBack) {
-                const wallGlow = createWallGlow(fGeo, ledColor);
-                wallGlow.position.set(x, y, -bDepth - 0.01); 
-                lineGroup.add(wallGlow);
-                lightElements.push(...wallGlow.children); 
+                glowGroup.add(mesh);
             }
-            lineGroup.add(fMesh, bMesh);
-            newFrontMeshes.push(...lightElements); 
-            newBackMeshes.push(isBack ? fMesh : bMesh);
-            if (isFlowRGB) newFlowMeshes.push(...lightElements);
+
+            // 核心 4：整体再往内部稍微收缩一点点，防止漏出硬边
+            glowGroup.scale.set(0.95, 0.95, 1);
+
+            return glowGroup;
         }
-        group.add(lineGroup);
-    }
+        async function parseSvgToShapes(file) {
+            const text = await file.text();
+            const parsed = svgLoader.parse(text);
+            const shapes = [];
+            parsed.paths.forEach(path => shapes.push(...path.toShapes(true)));
+            return shapes;
+        }
 
-    // 5. 判断模式生成
-  // 5. 判断模式生成
-    if (isSvgMode && svgPaths) {
-        const shapes = [];
-        svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
-        const tempShapeGeo = new THREE.ShapeGeometry(shapes);
-        tempShapeGeo.computeBoundingBox();
-        
-        const pixelW = tempShapeGeo.boundingBox.max.x - tempShapeGeo.boundingBox.min.x;
-        const pixelH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
-        
-        const scale = textSize / pixelH;
-        
-        // --- 核心修复：更新全局测量变量，供标注使用 ---
-        realTextWidth = pixelW * scale;
-        realTextHeight = textSize;
-        // --------------------------------------------
 
-        const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        const fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth / scale });
-        const bGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: bDepth / scale });
-        const innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: 0.1 / scale });
 
-        [fGeo, bGeo, innerGeo].forEach(geo => {
-            geo.applyMatrix4(matrix);
-            geo.computeBoundingBox();
-            const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
-            const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
-            geo.translate(cx, cy, 0);
-        });
-        
-        assembleMeshes(fGeo, bGeo, innerGeo, 0, 0, backstageGroup, "", 0);
-    }else {
-        const lines = textString.split('\n');
-        const refSize = 10;
-        const sampleText = lines.find(l => l.trim() !== "") || "A";
-        const tempGeo = new TextGeometry(sampleText, { font: currentFont, size: refSize, height: 0 });
-        tempGeo.computeBoundingBox();
-        const rawH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
-        const finalScale = textSize / rawH;
-        const scaledFontSize = refSize * finalScale;
-   let maxLineW = 0;
-        lines.forEach(lineText => {
-            if (lineText.trim() === "") return;
-            // 创建无倒角的测量几何体
-            const measureGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, height: 0, bevelEnabled: false });
-            
-            measureGeo.computeBoundingBox(); // 1. 先执行计算
-            if (measureGeo.boundingBox) {    // 2. 检查是否存在结果
-                const w = measureGeo.boundingBox.max.x - measureGeo.boundingBox.min.x; // 3. 再读取值
-                if (w > maxLineW) maxLineW = w;
+        function generate3DText(textString, adjustCamera = true) {
+            console.log("=== 开始生成 3D 模型 ===");
+
+            // 1. 基础检查
+            if (!isSvgMode && !currentFont) {
+                loadFontAndGenerate('helvetiker', textString, adjustCamera);
+                return;
             }
-            measureGeo.dispose(); // 释放内存
-        });
-        
-        realTextWidth = maxLineW; 
-        // 净高度：基于字数和行间距计算理论高度
-        realTextHeight = (lines.length > 1) ? ((lines.length - 1) * (textSize * lineSpacing) + textSize) : textSize;
-        // ------------------------------------
-        // ------------------------------------
-        lines.forEach((lineText, index) => {
-            if (lineText.trim() === "") return;
 
-            const lineFGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth });
-            const lineBGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: bDepth });
-            const lineInnerGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: 0.1 });
+            const backstageGroup = new THREE.Group();
+            let newFlowMeshes = [], newFrontMeshes = [], newBackMeshes = [], newColourMeshes = [];
 
-            [lineFGeo, lineBGeo, lineInnerGeo].forEach(geo => {
-                geo.scale(1, yScale, 1);
-                geo.computeBoundingBox();
+            // 2. 材质更新逻辑
+            const ledColorVal = document.getElementById('ledColorPicker').value;
+            const ledColor = new THREE.Color(ledColorVal);
+
+            if (!sharedColourAttrMat) {
+                sharedColourAttrMat = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide });
+            }
+            sharedColourAttrMat.color.set(document.getElementById('colourAttrPicker').value);
+
+            if (isPaintMode) {
+                if (!sharedCapMat || !sharedCapMat.userData.isPaint) {
+                    sharedCapMat = new THREE.MeshStandardMaterial({ roughness: 0.2, metalness: 0.05, side: THREE.DoubleSide, depthWrite: true });
+                    sharedCapMat.userData.isPaint = true;
+                }
+                sharedCapMat.color.set(currentPaintColor);
+            } else {
+                sharedCapMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
+            }
+
+            if (!sharedLedMat) {
+                sharedLedMat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
+                if (isFlowRGB && glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
+                    sharedLedMat.userData.uTime = { value: 0 };
+                    sharedLedMat.onBeforeCompile = (shader) => {
+                        shader.uniforms.uTime = sharedLedMat.userData.uTime;
+                        shader.vertexShader = `varying vec3 vWorldPos;\n` + shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
+                        shader.fragmentShader = `uniform float uTime; varying vec3 vWorldPos;\n` + shader.fragmentShader.replace('#include <emissivemap_fragment>', `float xPos = vWorldPos.x * 0.05; float t = uTime * 4.0 - xPos; vec3 rainbow = vec3(0.5 + 0.5 * sin(t), 0.5 + 0.5 * sin(t + 2.094), 0.5 + 0.5 * sin(t + 4.188)); vec3 softColor = mix(rainbow, vec3(1.0), 0.3); totalEmissiveRadiance *= softColor;`);
+                    };
+                }
+            }
+            sharedLedMat.color.set(isFlowRGB ? 0x000000 : ledColor);
+            sharedLedMat.emissive.set(isFlowRGB ? 0xffffff : ledColor);
+            sharedLedMat.emissiveIntensity = isFlowRGB ? 1.5 : (document.getElementById('brightnessSlider').value / 100) * 1.2;
+            sharedLedMat.needsUpdate = true;
+
+            // 3. 几何体生成参数
+            const commonExtrude = { bevelEnabled: false, steps: 1, caps: true, curveSegments: 5 };
+            const fDepth = frontThickness / 10;
+            const bDepth = backThickness / 10;
+            const lineSpacing = 1.3;
+
+            // 4. 辅助函数：根据工艺组装 Mesh (定义在内部以共享作用域)
+            function assembleMeshes(fGeo, bGeo, innerGeo, x, y, group, lineText, scaledFontSize) {
+                const lineGroup = new THREE.Group();
+
+                if (glowMode === 'neonWord') {
+                    const nGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, bevelEnabled: true, bevelThickness: 0.8, bevelSize: 0.8, bevelSegments: 5, height: 0.5 });
+                    const nMesh = new THREE.Mesh(nGeo, sharedLedMat);
+                    nMesh.position.set(x, y, 0);
+                    nMesh.userData.isLed = true; nMesh.layers.enable(BLOOM_SCENE);
+                    lineGroup.add(nMesh);
+                    newFrontMeshes.push(nMesh); if (isFlowRGB) newFlowMeshes.push(nMesh);
+                }
+                else if (glowMode === 'neonWord012') {
+                    const mShell = new THREE.Mesh(fGeo, sharedCapMat);
+                    const nGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 5, height: 0.2 });
+                    const mLED = new THREE.Mesh(nGeo, sharedLedMat);
+                    mShell.position.set(x, y, -fDepth);
+                    mLED.position.set(x, y, 0.08);
+                    mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
+                    lineGroup.add(mShell, mLED);
+                    newFrontMeshes.push(mShell); newBackMeshes.push(mLED); if (isFlowRGB) newFlowMeshes.push(mLED);
+                }
+
+                else if (glowMode === 'neonBorder') {
+                    const mBase = new THREE.Mesh(innerGeo, sharedCapMat);
+                    const nGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.4, bevelSegments: 3, height: 0.1 });
+                    const mTube = new THREE.Mesh(nGeo, sharedLedMat);
+                    mBase.position.set(x, y, 0);
+                    mTube.position.set(x, y, 0.5);
+                    mTube.userData.isLed = true; mTube.layers.enable(BLOOM_SCENE);
+                    lineGroup.add(mBase, mTube);
+                    newFrontMeshes.push(mBase); newBackMeshes.push(mTube);
+                }
+                else if (glowMode === 'testFrontGlow') {
+                    const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
+                    const mShell = new THREE.Mesh(bGeo, sharedCapMat);
+                    mLED.position.set(x, y, 0.11);
+                    mShell.position.set(x, y, -bDepth);
+                    mLED.userData.isLed = true; mLED.layers.enable(BLOOM_SCENE);
+                    lineGroup.add(mLED, mShell);
+                    newFrontMeshes.push(mLED); newBackMeshes.push(mShell); if (isFlowRGB) newFlowMeshes.push(mLED);
+                }
+                else if (glowMode === 'sideGlowTest') {
+                    const glowMesh = new THREE.Mesh(fGeo, sharedLedMat);
+                    glowMesh.userData.isLed = true; glowMesh.layers.enable(BLOOM_SCENE);
+                    const colourMesh = new THREE.Mesh(innerGeo, sharedColourAttrMat);
+                    colourMesh.position.set(x, y, fDepth + 0.01);
+                    const fixedMesh = new THREE.Mesh(innerGeo, createBackMaterial('Metal011', true, 0xffffff));
+                    fixedMesh.position.set(x, y, -0.11);
+                    glowMesh.position.set(x, y, 0);
+                    lineGroup.add(glowMesh, colourMesh, fixedMesh);
+                    newFrontMeshes.push(glowMesh); newColourMeshes.push(colourMesh); newBackMeshes.push(fixedMesh);
+                    if (isFlowRGB) newFlowMeshes.push(glowMesh);
+                }
+                else if (glowMode === 'frontBackGlow') {
+                     const mFrontLed = new THREE.Mesh(innerGeo, sharedLedMat);
+    const mShell = new THREE.Mesh(fGeo, sharedCapMat);
+    const mBackLed = new THREE.Mesh(innerGeo, sharedLedMat);
+    
+    mFrontLed.position.set(x, y, 0.05); // 正面灯板
+    mShell.position.set(x, y, -fDepth); // 中间金属壳
+    
+    // 背面灯板：放在金属壳的最后面再往后一点
+    mBackLed.position.set(x, y, -fDepth - 0.15); 
+    
+    mFrontLed.userData.isLed = true; 
+    mBackLed.userData.isLed = true;
+    mFrontLed.layers.enable(BLOOM_SCENE); 
+    mBackLed.layers.enable(BLOOM_SCENE);
+
+    // --- 核心修改：让光晕的位置基于 fDepth 动态计算 ---
+    const wallGlow = createWallGlow(fGeo, ledColor);
+    // 之前是 -0.11，现在改为贴在背面灯板处
+    wallGlow.position.set(x, y, -fDepth - 0.16); 
+                    lineGroup.add(mFrontLed, mShell, mBackLed, wallGlow);
+                    const lightElements = [mFrontLed, mBackLed, ...wallGlow.children];
+                    newFrontMeshes.push(...lightElements); newBackMeshes.push(mShell);
+                    if (isFlowRGB) newFlowMeshes.push(...lightElements);
+                }
+                else if (glowMode === 'sideHalfGlowTest') {
+                    const m1 = new THREE.Mesh(fGeo, sharedLedMat);
+                    const m2 = new THREE.Mesh(bGeo, sharedCapMat);
+                    const colourMesh = new THREE.Mesh(innerGeo, sharedColourAttrMat);
+                    m1.userData.isLed = true; m1.layers.enable(BLOOM_SCENE);
+                    m1.position.set(x, y, 0);
+                    m2.position.set(x, y, -bDepth - 0.01);
+                    colourMesh.position.set(x, y, fDepth + 0.01);
+                    lineGroup.add(m1, m2, colourMesh);
+                    newFrontMeshes.push(m1); newBackMeshes.push(m2); newColourMeshes.push(colourMesh);
+                    if (isFlowRGB) newFlowMeshes.push(m1);
+                }
+            else if (glowMode === 'testBackGlow') {
+    const mShell = new THREE.Mesh(fGeo, sharedCapMat);
+    const mLED = new THREE.Mesh(innerGeo, sharedLedMat);
+    mLED.userData.isLed = true; 
+    mLED.layers.enable(BLOOM_SCENE);
+    mShell.position.set(x, y, 0); 
+    mLED.position.set(x, y, -0.11);
+    
+    // --- 核心修改：让光晕紧贴在壳子后面，不要推太远 ---
+    const wallGlow = createWallGlow(fGeo, ledColor);
+    // 之前可能是 -fDepth - 0.15，现在改成 -fDepth - 0.01
+    // fDepth 是材质壳的厚度，-0.01 是为了防止和壳子重叠闪烁
+    wallGlow.position.set(x, y, -fDepth - 0.01); 
+    
+    lineGroup.add(mShell, mLED, wallGlow); 
+    const lightElements = [mLED, ...wallGlow.children]; 
+    newFrontMeshes.push(mShell); 
+    newBackMeshes.push(...lightElements);
+    if (isFlowRGB) newFlowMeshes.push(...lightElements);
+}
+                else if (glowMode === 'metalCut' || glowMode === 'acrylicCut') {
+                    const isMetal = (glowMode === 'metalCut');
+                    const meshMat = isMetal ? sharedCapMat : new THREE.MeshStandardMaterial({ color: ledColor, roughness: 0.3, metalness: 0.1, side: THREE.DoubleSide });
+                    const mesh = new THREE.Mesh(fGeo, meshMat);
+                    mesh.position.set(x, y, 0);
+                    lineGroup.add(mesh);
+                    if (isMetal) newBackMeshes.push(mesh); else newFrontMeshes.push(mesh);
+                }
+                else {
+                    const isBack = (glowMode === 'backGlow');
+                    const fMesh = new THREE.Mesh(fGeo, isBack ? sharedCapMat : sharedLedMat);
+                    const bMesh = new THREE.Mesh(bGeo, isBack ? sharedLedMat : sharedCapMat);
+                    const lightMesh = isBack ? bMesh : fMesh;
+                    lightMesh.userData.isLed = true; lightMesh.layers.enable(BLOOM_SCENE);
+                    fMesh.position.set(x, y, 0);
+                    bMesh.position.set(x, y, -bDepth - 0.01);
+                    const lightElements = [lightMesh];
+                    if (isBack) {
+                        const wallGlow = createWallGlow(fGeo, ledColor);
+                        wallGlow.position.set(x, y, -bDepth - 0.01);
+                        lineGroup.add(wallGlow);
+                        lightElements.push(...wallGlow.children);
+                    }
+                    lineGroup.add(fMesh, bMesh);
+                    newFrontMeshes.push(...lightElements);
+                    newBackMeshes.push(isBack ? fMesh : bMesh);
+                    if (isFlowRGB) newFlowMeshes.push(...lightElements);
+                }
+                group.add(lineGroup);
+            }
+
+            // 5. 判断模式生成
+            // 5. 判断模式生成
+            if (isSvgMode && svgPaths) {
+                const shapes = [];
+                svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
+                const tempShapeGeo = new THREE.ShapeGeometry(shapes);
+                tempShapeGeo.computeBoundingBox();
+
+                const pixelW = tempShapeGeo.boundingBox.max.x - tempShapeGeo.boundingBox.min.x;
+                const pixelH = tempShapeGeo.boundingBox.max.y - tempShapeGeo.boundingBox.min.y;
+
+                const scale = textSize / pixelH;
+
+                // --- 核心修复：更新全局测量变量，供标注使用 ---
+                realTextWidth = pixelW * scale;
+                realTextHeight = textSize;
+                // --------------------------------------------
+
+                const matrix = new THREE.Matrix4().makeScale(scale, -scale * yScale, scale);
+
+                const fGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: fDepth / scale });
+                const bGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: bDepth / scale });
+                const innerGeo = new THREE.ExtrudeGeometry(shapes, { ...commonExtrude, depth: 0.1 / scale });
+
+                [fGeo, bGeo, innerGeo].forEach(geo => {
+                    geo.applyMatrix4(matrix);
+                    geo.computeBoundingBox();
+                    const cx = -0.5 * (geo.boundingBox.max.x + geo.boundingBox.min.x);
+                    const cy = -0.5 * (geo.boundingBox.max.y + geo.boundingBox.min.y);
+                    geo.translate(cx, cy, 0);
+                });
+
+                assembleMeshes(fGeo, bGeo, innerGeo, 0, 0, backstageGroup, "", 0);
+            } else {
+                const lines = textString.split('\n');
+                const refSize = 10;
+                const sampleText = lines.find(l => l.trim() !== "") || "A";
+                const tempGeo = new TextGeometry(sampleText, { font: currentFont, size: refSize, height: 0 });
+                tempGeo.computeBoundingBox();
+                const rawH = tempGeo.boundingBox.max.y - tempGeo.boundingBox.min.y;
+                const finalScale = textSize / rawH;
+                const scaledFontSize = refSize * finalScale;
+                let maxLineW = 0;
+                lines.forEach(lineText => {
+                    if (lineText.trim() === "") return;
+                    // 创建无倒角的测量几何体
+                    const measureGeo = new TextGeometry(lineText, { font: currentFont, size: scaledFontSize, height: 0, bevelEnabled: false });
+
+                    measureGeo.computeBoundingBox(); // 1. 先执行计算
+                    if (measureGeo.boundingBox) {    // 2. 检查是否存在结果
+                        const w = measureGeo.boundingBox.max.x - measureGeo.boundingBox.min.x; // 3. 再读取值
+                        if (w > maxLineW) maxLineW = w;
+                    }
+                    measureGeo.dispose(); // 释放内存
+                });
+
+                realTextWidth = maxLineW;
+                // 净高度：基于字数和行间距计算理论高度
+                realTextHeight = (lines.length > 1) ? ((lines.length - 1) * (textSize * lineSpacing) + textSize) : textSize;
+                // ------------------------------------
+                // ------------------------------------
+                lines.forEach((lineText, index) => {
+                    if (lineText.trim() === "") return;
+
+                    const lineFGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: fDepth });
+                    const lineBGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: bDepth });
+                    const lineInnerGeo = new TextGeometry(lineText, { ...commonExtrude, font: currentFont, size: scaledFontSize, height: 0.1 });
+
+                    [lineFGeo, lineBGeo, lineInnerGeo].forEach(geo => {
+                        geo.scale(1, yScale, 1);
+                        geo.computeBoundingBox();
+                    });
+
+                    const lineWidth = lineFGeo.boundingBox.max.x - lineFGeo.boundingBox.min.x;
+                    let xOffset = 0;
+                    if (textAlign === 'center') xOffset = -lineWidth / 2;
+                    else if (textAlign === 'right') xOffset = -lineWidth;
+
+                    const yOffset = -index * (textSize * lineSpacing);
+                    assembleMeshes(lineFGeo, lineBGeo, lineInnerGeo, xOffset, yOffset, backstageGroup, lineText, scaledFontSize);
+                });
+            }
+
+            // 6. 整体中心对齐
+            const overallBox = new THREE.Box3().setFromObject(backstageGroup);
+            const center = overallBox.getCenter(new THREE.Vector3());
+            backstageGroup.position.x = -center.x;
+            backstageGroup.position.y = -center.y;
+
+            // 7. 替换场景物体
+            while (textGroup.children.length > 0) {
+                textGroup.remove(textGroup.children[0]);
+            }
+            textGroup.add(backstageGroup);
+
+            // 8. 同步全局状态
+            // --- 找到 generate3DText 的最后几行 ---
+            // 8. 同步全局状态
+            frontMeshes = newFrontMeshes;
+            backMeshes = newBackMeshes;
+            colourMeshes = newColourMeshes;
+            flowMeshes = newFlowMeshes;
+
+            // 【修改点 2】：确保先更新矩阵，再画标注
+            textGroup.updateMatrixWorld(true);
+
+            // 使用 requestAnimationFrame 确保在渲染循环开始前更新一次
+            requestAnimationFrame(() => {
+                updateDimensions();
             });
 
-            const lineWidth = lineFGeo.boundingBox.max.x - lineFGeo.boundingBox.min.x;
-            let xOffset = 0;
-            if (textAlign === 'center') xOffset = -lineWidth / 2;
-            else if (textAlign === 'right') xOffset = -lineWidth;
+            if (adjustCamera && textString !== lastText) {
+                centerAndFitCamera();
+                lastText = textString;
+            }
 
-            const yOffset = -index * (textSize * lineSpacing);
-            assembleMeshes(lineFGeo, lineBGeo, lineInnerGeo, xOffset, yOffset, backstageGroup, lineText, scaledFontSize);
-        });
-    }
-
-    // 6. 整体中心对齐
-    const overallBox = new THREE.Box3().setFromObject(backstageGroup);
-    const center = overallBox.getCenter(new THREE.Vector3());
-    backstageGroup.position.x = -center.x;
-    backstageGroup.position.y = -center.y;
-
-    // 7. 替换场景物体
-    while (textGroup.children.length > 0) {
-        textGroup.remove(textGroup.children[0]);
-    }
-    textGroup.add(backstageGroup);
-
-    // 8. 同步全局状态
-   // --- 找到 generate3DText 的最后几行 ---
-    // 8. 同步全局状态
-    frontMeshes = newFrontMeshes;
-    backMeshes = newBackMeshes;
-    colourMeshes = newColourMeshes;
-    flowMeshes = newFlowMeshes;
-
-    // 【修改点 2】：确保先更新矩阵，再画标注
-    textGroup.updateMatrixWorld(true); 
-    
-    // 使用 requestAnimationFrame 确保在渲染循环开始前更新一次
-    requestAnimationFrame(() => {
-        updateDimensions();
-    });
-    
-    if (adjustCamera && textString !== lastText) { 
-        centerAndFitCamera();
-        lastText = textString;
-    }
-
-    setTimeout(() => updateDimensions(), 10);
-}
+            setTimeout(() => updateDimensions(), 10);
+        }
         // 封装后的防抖生成函数
         function debouncedGenerate(delay = 50) {
             // delay 是延迟毫秒数。50ms 既能保证视觉流畅，又能极大地减轻性能压力
@@ -2665,12 +2766,12 @@ async function parseSvgToShapes(file) {
         // ==========================================
         // 新增：监听 SVG 上传并解析
         // ==========================================
-       
+
         const svgInput = document.getElementById('svgInput');
         const clearSvgBtn = document.getElementById('clearSvgBtn');
         const textInputEl = document.getElementById('textInput');
 
-       svgInput.addEventListener('change', (e) => {
+        svgInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -2681,7 +2782,7 @@ async function parseSvgToShapes(file) {
                     svgPaths = parsed.paths;
                     isSvgMode = true;
                     toggleNeonOptions(true);
-                    
+
                     const shapes = [];
                     svgPaths.forEach(path => shapes.push(...SVGLoader.createShapes(path)));
                     const tempGeo = new THREE.ShapeGeometry(shapes);
@@ -2702,7 +2803,7 @@ async function parseSvgToShapes(file) {
 
                     // 4. 【修复点】计算当前缩放下的物理宽度和高度，用于标注
                     const currentScale = textSize / pixelH; // 计算比例
-                    realTextWidth = pixelW * currentScale; 
+                    realTextWidth = pixelW * currentScale;
                     realTextHeight = textSize;
 
                     // 5. 记录原始比例
@@ -2878,318 +2979,170 @@ async function parseSvgToShapes(file) {
         // ==========================================
         // UI 状态控制函数
         // ==========================================
-        function updateUIState() {
-            // 1. 获取所有 UI 组件
+    function updateUIState() {
+    // 1. 获取所有 UI 组件
+    const fCont = document.getElementById('frontThicknessSlider').closest('.thickness-control');
+    const bCont = document.getElementById('backThicknessSlider').closest('.thickness-control');
+    const ntCont = document.getElementById('neonTubeControl');
+    const npCont = document.getElementById('neonPlateControl');
 
+    const matSection = document.getElementById('materialSection');
+    const tintSection = document.getElementById('tintSection');
+    const colourSection = document.getElementById('colourAttributeSection');
+    const ledPicker = document.getElementById('ledColorPicker');
+    const ledLabel = document.getElementById('ledColorLabel');
+    const ledMainLabel = document.getElementById('ledMainLabel'); // 获取主标题
+    const brightDiv = document.getElementById('brightnessControl');
+    const frontLabel = document.getElementById('frontLabel');
+    const backLabel = document.getElementById('backLabel');
+    const depthControl = document.getElementById('depthControl');
+    const swatchContainer = document.querySelector('.color-swatch-container');
+    const ledSection = document.getElementById('ledSection');
+    const paintSection = document.getElementById('paintColorSection');
 
-            const fCont = document.getElementById('frontThicknessSlider').closest('.thickness-control');
-            const bCont = document.getElementById('backThicknessSlider').closest('.thickness-control');
-            const ntCont = document.getElementById('neonTubeControl');
-            const npCont = document.getElementById('neonPlateControl');
+    // --- 第一步：重置所有状态为默认可见 ---
+    fCont.classList.remove('hidden');
+    bCont.classList.remove('hidden');
+    ledSection.classList.remove('hidden');
+    brightDiv.classList.remove('hidden');
+    brightDiv.style.opacity = '1';
+    matSection.classList.remove('hidden', 'disabled-overlay');
+    tintSection.classList.remove('hidden', 'disabled-overlay');
+    colourSection.classList.add('hidden');
+    depthControl.classList.add('hidden');
+    if (ledPicker) {
+        ledPicker.disabled = false;
+        ledPicker.classList.remove('disabled-picker');
+    }
+    document.getElementById('brightnessSlider').disabled = false;
 
-            const matSection = document.getElementById('materialSection');
-            const tintSection = document.getElementById('tintSection');
-            const colourSection = document.getElementById('colourAttributeSection');
-            const ledPicker = document.getElementById('ledColorPicker');
-            const ledLabel = document.getElementById('ledColorLabel');
-            const brightDiv = document.getElementById('brightnessControl');
-            const frontLabel = document.getElementById('frontLabel');
-            const backLabel = document.getElementById('backLabel');
-            const frontDesc = document.getElementById('frontDesc');
-            const backDesc = document.getElementById('backDesc');
-            const depthControl = document.getElementById('depthControl');
-            const swatchContainer = document.querySelector('.color-swatch-container');
-            const backControlContainer = document.getElementById('backThicknessSlider').closest('.thickness-control');
-            const allSwatches = document.querySelectorAll('#ledSwatchContainer .color-swatch');
-            allSwatches.forEach(s => s.classList.remove('hidden'));
+    // 清理所有色块隐藏状态
+    document.querySelectorAll('#ledSwatchContainer .color-swatch').forEach(s => s.classList.remove('hidden'));
+    if (swatchContainer) {
+        swatchContainer.classList.remove('disabled');
+        swatchContainer.style.opacity = '1';
+        swatchContainer.style.pointerEvents = 'auto';
+    }
 
+    // --- 第二步：精准定制每个工艺的标签与显示逻辑 ---
 
-            const ledSection = document.getElementById('ledSection');          // 绿圈部分
+    // 1. 侧面与背面发光 (M005C/N011)
+    if (glowMode === 'backGlow') {
+        frontLabel.innerText = '📏 金属面壳厚度 (mm)';
+        backLabel.innerText = '📏 亚克力背板厚度 (mm)';
+        ledLabel.innerText = '💡 背面发光颜色';
+    } 
 
+    // 2. 侧面一半和正面发光 (M006/N013)
+    else if (glowMode === 'frontGlow') {
+        frontLabel.innerText = '📏 亚克力面板厚度 (mm)';
+        backLabel.innerText = '📏 金属侧边厚度 (mm)';
+        ledLabel.innerText = '💡 正面发光颜色';
+    }
 
-            // 【关键修复点】：定义变量，指向你 HTML 里的 paintColorSection
-            const paintSection = document.getElementById('paintColorSection');
+    // 3. 侧面发光 (N015)
+    else if (glowMode === 'sideGlowTest') {
+        colourSection.classList.remove('hidden');
+        matSection.classList.add('disabled-overlay');
+        tintSection.classList.add('disabled-overlay');
+        bCont.classList.add('hidden'); 
+        frontLabel.innerText = '📏 侧面发光层厚度 (mm)';
+        ledLabel.innerText = '🎨 侧发光颜色';
+    }
 
+    // 4. 侧面一半发光 (N013)
+    else if (glowMode === 'sideHalfGlowTest') {
+        colourSection.classList.remove('hidden');
+        frontLabel.innerText = '📏 发光层厚度 (mm)';
+        backLabel.innerText = '📏 材质层厚度 (mm)';
+    }
 
-            const paintLabel = paintSection ? paintSection.querySelector('label') : null;
+    // 5. 背面发光 (M005B)
+    else if (glowMode === 'testBackGlow') {
+        bCont.classList.add('hidden'); 
+        colourSection.classList.add('hidden');
+        frontLabel.innerText = '📏 材质外壳深度 (mm)';
+        ledLabel.innerText = '💡 背面投射光颜色';
+    }
 
-            if (fCont) fCont.classList.remove('hidden');
-            if (bCont) bCont.classList.remove('hidden');
+    // 6. 霓虹灯字 (N019 - 纯灯管)
+    else if (glowMode === 'neonWord') {
+        bCont.classList.add('hidden');
+        matSection.classList.add('hidden');
+        tintSection.classList.add('hidden');
+        frontLabel.innerText = '📏 霓虹灯管直径 (mm)';
+        ledLabel.innerText = '🎨 灯管颜色';
+    }
 
-            if (ledSection) ledSection.classList.remove('hidden');
-            if (brightDiv) brightDiv.classList.remove('hidden');
-            if (colourSection) colourSection.classList.add('hidden'); // 默认隐藏面板颜色
+    // 7. 霓虹灯字 (N018 - 槽位)
+    else if (glowMode === 'neonWord012') {
+        bCont.classList.remove('hidden');
+        frontLabel.innerText = '📏 支撑壳厚度 (mm)';
+        backLabel.innerText = '📏 灯管直径 (mm)';
+        ledLabel.innerText = '🎨 霓虹颜色';
+    }
 
+    // 8. 亚克力切割字
+    else if (glowMode === 'acrylicCut') {
+        bCont.classList.add('hidden');
+        matSection.classList.add('disabled-overlay');
+        tintSection.classList.add('disabled-overlay');
+        brightDiv.style.opacity = '0.3';
+        document.getElementById('brightnessSlider').disabled = true;
+        if (ledMainLabel) ledMainLabel.innerText = '🎨 亚克力喷漆颜色';
+        frontLabel.innerText = '📏 板材厚度 (mm)';
+        // 隐藏动态色块
+        const rgbSwatches = document.querySelectorAll('#ledSwatchContainer .color-swatch[data-color="RGB"], #ledSwatchContainer .color-swatch[data-color="FLOWRGB"]');
+        rgbSwatches.forEach(s => s.classList.add('hidden'));
+        isFlowRGB = false; isRGBGlow = false;
+    }
 
-            // 如果有被禁用的容器，也恢复
-            if (swatchContainer) {
-                swatchContainer.classList.remove('disabled');
-                swatchContainer.style.opacity = '1';
-                swatchContainer.style.pointerEvents = 'auto';
-            }
-            // 如果有被禁用的容器，也恢复
-            if (swatchContainer) {
-                swatchContainer.classList.remove('disabled');
-                swatchContainer.style.opacity = '1';
-                swatchContainer.style.pointerEvents = 'auto';
-            }
-            // -------------------------------------------------------
+    // 9. 金属字切割
+    else if (glowMode === 'metalCut') {
+        ledSection.classList.add('hidden');
+        brightDiv.classList.add('hidden');
+        bCont.classList.add('hidden');
+        frontLabel.innerText = '📏 金属实心厚度 (mm)';
+        isFlowRGB = false; isRGBGlow = false;
+    }
 
-            // --- 第一步：重置所有状态（恢复默认可见/可用） ---
-            if (backControlContainer) backControlContainer.classList.remove('hidden');
-            matSection.classList.remove('hidden', 'disabled-overlay');
-            tintSection.classList.remove('hidden', 'disabled-overlay');
-            colourSection.classList.add('hidden'); // 默认隐藏面板颜色
+    // 10. 正面与背面发光 (N008)
+    else if (glowMode === 'frontBackGlow') {
+        bCont.classList.add('hidden');
+        frontLabel.innerText = '📏 材质层厚度 (mm)';
+        ledLabel.innerText = '💡 前后发光颜色';
+    }
 
+    // 11. 正面发光 (M024)
+    else if (glowMode === 'testFrontGlow') {
+        fCont.classList.add('hidden');
+        backLabel.innerText = '📏 材质层厚度 (mm)';
+        ledLabel.innerText = '💡 正面发光颜色';
+    }
 
-            if (fCont) fCont.classList.remove('hidden'); // 【修复】确保正面滑块默认可见
-            if (bCont) bCont.classList.remove('hidden'); // 【修复】确保背面滑块默认可见
+    // 12. 霓虹围边
+    else if (glowMode === 'neonBorder') {
+        fCont.classList.add('hidden');
+        bCont.classList.add('hidden');
+        ledLabel.innerText = '🎨 围边灯条颜色';
+    }
 
+    // --- 第三步：保留原本的字体/工艺联动逻辑 ---
+    const craftSelect = document.getElementById('craftSelect');
+    const fontSelector = document.getElementById('fontSelector');
+    const isNeonCraft = craftSelect.value.toLowerCase().startsWith('neon');
 
-            ledPicker.disabled = false;
-            ledPicker.classList.remove('disabled-picker');
-            brightDiv.style.opacity = '1';
-            document.getElementById('brightnessSlider').disabled = false;
-            depthControl.classList.add('hidden');
+    Array.from(fontSelector.options).forEach(opt => {
+        const isNeonFont = opt.value.toLowerCase().includes('neo') || opt.value.toLowerCase().includes('neon');
+        opt.classList.toggle('hidden', isNeonCraft ? !isNeonFont : isNeonFont);
+    });
 
-            // 默认文字描述
-            frontLabel.innerText = '📏 面板层厚度(单位:mm)';
-            backLabel.innerText = '📏 材质层厚度(单位:mm)';
-
-            ledLabel.innerText = '💡 灯光颜色 (LED Color)';
-
-            // --- 第二步：根据工艺 (glowMode) 执行特定显示逻辑 ---
-
-            if (glowMode === 'sideGlowTest') {
-                // 【测试 侧面发光】
-                colourSection.classList.remove('hidden'); // 显示面板颜色
-                matSection.classList.add('disabled-overlay'); // 禁用材质选择
-                tintSection.classList.add('disabled-overlay');
-                brightDiv.style.opacity = '1';
-                document.getElementById('brightnessSlider').disabled = false;
-                document.getElementById('brightnessValue').textContent = "不发光";
-
-                ledLabel.innerText = '🎨 颜色调色盘';
-                frontLabel.innerText = '📏 发光层厚度 (mm)';
-
-                // --- 核心修改：隐藏背面滑块容器 ---
-                if (backControlContainer) {
-                    backControlContainer.classList.add('hidden');
-                }
-                // -------------------------------
-            }// --- 拆分后的逻辑 ---
-            else if (glowMode === 'sideHalfGlowTest') {
-                // 【半侧面发光】保持滑块可见，用于手动调节
-                colourSection.classList.remove('hidden');
-                frontLabel.innerText = '📏 发光层厚度 (mm)';
-                backLabel.innerText = '📏 材质层厚度 (mm)';
-
-                // 确保滑块是显示的
-                const fCont = document.getElementById('frontThicknessSlider').closest('.thickness-control');
-                const bCont = document.getElementById('backThicknessSlider').closest('.thickness-control');
-                if (fCont) fCont.classList.remove('hidden');
-                if (bCont) bCont.classList.remove('hidden');
-
-            } else if (glowMode === 'testBackGlow') {
-                // 隐藏不需要的滑块和面板
-                if (fCont) fCont.classList.remove('hidden');
-                if (bCont) bCont.classList.add('hidden'); // 隐藏背面滑块，用正面一个滑块控全身
-
-                colourSection.classList.add('hidden'); // 【核心】删除/隐藏正面的改色面板
-
-                frontLabel.innerText = '📏 材质外壳厚度 (mm)';
-                ledLabel.innerText = '💡 背面发光颜色';
-            }// --- 修改后的 UI 逻辑 ---
-            // 在 updateUIState 函数内部：
-            else if (glowMode === 'neonBorder') {
-                // --- 1. 隐藏“正面厚度”滑块 ---
-                const fCont = document.getElementById('frontThicknessSlider').closest('.thickness-control');
-                if (fCont) fCont.classList.add('hidden'); // 这里改为 add('hidden') 即可隐藏
-
-                // 隐藏背面滑块
-                if (bCont) bCont.classList.add('hidden');
-
-                // 其他 UI 显示逻辑
-                matSection.classList.remove('hidden');
-                colourSection.classList.add('hidden');
-                tintSection.classList.remove('hidden');
-
-                ledLabel.innerText = '🎨 内嵌灯带颜色';
-                brightDiv.style.opacity = '1';
-                document.getElementById('brightnessSlider').disabled = false;
-            }
-           else if (glowMode === 'neonWord' || glowMode === 'neonWord012') {
-                // 1. 通用逻辑：隐藏背面厚度滑块，重命名灯光标签
-                if (bCont) bCont.classList.add('hidden');
-                ledLabel.innerText = '🎨 霓虹发光颜色';
-                
-                // 确保亮度调节是开启的
-                brightDiv.style.opacity = '1';
-                document.getElementById('brightnessSlider').disabled = false;
-
-                if (glowMode === 'neonWord') {
-                    // 【019 普通霓虹字】：纯灯管模式
-                    // 1. 隐藏材质和金属调色面板（因为没有底壳）
-                    matSection.classList.add('hidden');
-                    tintSection.classList.add('hidden');
-                    colourSection.classList.add('hidden');
-
-                    // 2. 显示正面滑块，并将其作为“灯管粗细”控制器
-                    if (fCont) {
-                        fCont.classList.remove('hidden');
-                        frontLabel.innerText = '📏 灯管直径/粗细 (mm)';
-                    }
-                    // 隐藏可能存在的 012 专用滑块
-                    if (ntCont) ntCont.classList.add('hidden');
-                }
-                else {
-                    // 【018 霓虹字 012】：底壳 + 灯管模式
-                    // 1. 显示材质面板和金属调色（用于控制底座壳）
-                    matSection.classList.remove('hidden');
-                    tintSection.classList.remove('hidden');
-                    colourSection.classList.add('hidden');
-
-                    // 2. 正面滑块用来控制“支撑壳的厚度”
-                    if (fCont) {
-                        fCont.classList.remove('hidden');
-                        frontLabel.innerText = '📏 支撑壳厚度 (mm)';
-                    }
-
-                    // 3. 处理灯管粗细控制
-                    // 如果你 HTML 里有专门的 ntCont 滑块则显示它
-                    if (ntCont) {
-                        ntCont.classList.remove('hidden');
-                    } else {
-                        // 如果没有 ntCont，我们可以临时借用“背面滑块”并显示它，用来调管子粗细
-                        if (bCont) {
-                            bCont.classList.remove('hidden');
-                            backLabel.innerText = '📏 灯管直径/粗细 (mm)';
-                        }
-                    }
-                }
-            }
-           else if (glowMode === 'acrylicCut') {
-                if (ledMainLabel) ledMainLabel.innerText = '🎨 亚克力喷漆颜色';
-                if (ledLabel) ledLabel.innerText = '🎨 颜色调色盘';
-                // --- 1. 滑块控制 ---
-                if (fCont) fCont.classList.remove('hidden');
-                if (bCont) bCont.classList.add('hidden'); // 隐藏背面滑块，单层切割只用一个滑块
-                frontLabel.innerText = '📏 亚克力厚度 (mm)';
-
-                // --- 2. 材质面板控制 ---
-                matSection.classList.add('disabled-overlay');
-                tintSection.classList.add('disabled-overlay');
-
-                // --- 3. 亮度滑块控制 (禁用) ---
-                brightDiv.style.opacity = '0.3';
-                document.getElementById('brightnessSlider').disabled = true;
-                document.getElementById('brightnessValue').textContent = "不发光";
-
-                // --- 4. 核心：隐藏 RGB 预设色块 ---
-                const rgbSwatches = document.querySelectorAll('#ledSwatchContainer .color-swatch[data-color="RGB"], #ledSwatchContainer .color-swatch[data-color="FLOWRGB"]');
-                rgbSwatches.forEach(s => s.classList.add('hidden'));
-
-                // 强制重置发光状态，防止切过来时还在跑动画
-                isFlowRGB = false;
-                isRGBGlow = false;
-
-                ledLabel.innerText = '🎨 调色盘';
-                colourSection.classList.add('hidden');
-            } if (glowMode === 'metalCut') {
-                // --- 【核心修改：金属切割模式】 ---
-
-                // 1. 彻底隐藏绿圈部分 (预设颜色 + 灯光颜色选择器)
-                if (ledSection) ledSection.classList.add('hidden');
-
-                // 2. 彻底隐藏亮度调节滑块
-                if (brightDiv) brightDiv.classList.add('hidden');
-
-                // 3. 隐藏背面厚度滑块（金属字通常只用正面滑块控厚度）
-                if (bCont) bCont.classList.add('hidden');
-
-                // 4. 重命名正面滑块标签
-                frontLabel.innerText = '📏 金属字厚度 (mm)';
-
-                // 5. 关闭后台灯效，防止报错
-                isFlowRGB = false;
-                isRGBGlow = false;
-                flowMeshes = [];
-
-            }
-            else if (glowMode === 'frontBackGlow') {
-                // 1. 正面滑块控制中间壳
-                frontLabel.innerText = '📏 中间材质壳厚度 (mm)';
-
-                // 2. 核心：隐藏背面厚度滑块及其容器
-                const backControlContainer = document.getElementById('backThicknessSlider').closest('.thickness-control');
-                if (backControlContainer) {
-                    backControlContainer.classList.add('hidden');
-                }
-
-                // 3. 其他UI状态
-                matSection.classList.remove('hidden');
-                tintSection.classList.remove('hidden');
-                if (colourSection) colourSection.classList.add('hidden');
-                ledLabel.innerText = '💡 前后发光颜色';
-            }
-            // --- 在 updateUIState 函数中添加对应逻辑 ---
-
-            else if (glowMode === 'testFrontGlow') {
-                // 1. 隐藏“正面厚度”滑块（因为它是固定的0.01mm）
-                const fCont = document.getElementById('frontThicknessSlider').closest('.thickness-control');
-                if (fCont) fCont.classList.add('hidden');
-
-                // 2. 显示“背面厚度”滑块并更名为“壳体厚度”
-                const bCont = document.getElementById('backThicknessSlider').closest('.thickness-control');
-                if (bCont) {
-                    bCont.classList.remove('hidden');
-                    bCont.style.opacity = '1';
-                }
-                backLabel.innerText = '📏 材质层厚度 (mm)';
-
-
-                ledLabel.innerText = '💡 正面发光颜色';
-            }
-            // 处理流水灯/RGB色块的禁用状态
-            if (swatchContainer && glowMode !== 'metalCut') {
-                swatchContainer.classList.remove('disabled');
-            }
-            // --- 新增：工艺与字体的联动过滤 ---
-            // --- 核心：工艺与字体的双向过滤逻辑 ---
-            const craftSelect = document.getElementById('craftSelect');
-            const fontSelector = document.getElementById('fontSelector');
-            const currentCraft = craftSelect.value;
-
-            // 1. 判断当前是不是霓虹类工艺 (以 neon 开头)
-            const isNeonCraft = currentCraft.toLowerCase().startsWith('neon');
-
-            Array.from(fontSelector.options).forEach(opt => {
-                // 2. 判断该字体是不是霓虹类字体 (包含 neo 或 neon)
-                const isNeonFont = opt.value.toLowerCase().includes('neo') || opt.value.toLowerCase().includes('neon');
-
-                if (isNeonCraft) {
-                    // 【霓虹模式】：只留霓虹字体，隐藏普通字体
-                    opt.classList.toggle('hidden', !isNeonFont);
-                } else {
-                    // 【普通模式】：隐藏霓虹字体，只留普通字体
-                    opt.classList.toggle('hidden', isNeonFont);
-                }
-            });
-
-            // --- 3. 安全自动跳转：防止当前选中的字体变“无形” ---
-            const selectedOpt = fontSelector.options[fontSelector.selectedIndex];
-            if (selectedOpt && selectedOpt.classList.contains('hidden')) {
-                if (isNeonCraft) {
-                    fontSelector.value = 'neonFont'; // 自动切到第一个霓虹字体
-                } else {
-                    fontSelector.value = 'helvetiker'; // 自动切到默认英文字体
-                }
-
-                // 立即执行一次加载和生成，确保模型同步更新
-                const currentText = document.getElementById('textInput').value;
-                loadFontAndGenerate(fontSelector.value, currentText, false);
-            }
-        }
+    const selectedOpt = fontSelector.options[fontSelector.selectedIndex];
+    if (selectedOpt && selectedOpt.classList.contains('hidden')) {
+        fontSelector.value = isNeonCraft ? 'neonFont' : 'helvetiker';
+        loadFontAndGenerate(fontSelector.value, document.getElementById('textInput').value, false);
+    }
+}
         // ==========================================
         // 交互逻辑
         // ==========================================
@@ -3507,9 +3460,9 @@ async function parseSvgToShapes(file) {
             const tRadius013 = 0.5;
             const explodeGap = 30;
 
-       
+
             // --- B. 霓虹围边 ---
-             if (glowMode === 'neonBorder') {
+            if (glowMode === 'neonBorder') {
                 const tubes = backMeshes;
                 const bases = frontMeshes;
                 const tRadius = neonTubeSize / 40;
@@ -3523,17 +3476,17 @@ async function parseSvgToShapes(file) {
                 }
             }
             // --- C. 霓虹 012 ---
-          // --- A. 018 (neonWord012) 霓虹灯字一键解体/合并逻辑 ---
-      // --- A. 018 (neonWord012) 霓虹灯字一键解体/合并逻辑 ---
+            // --- A. 018 (neonWord012) 霓虹灯字一键解体/合并逻辑 ---
+            // --- A. 018 (neonWord012) 霓虹灯字一键解体/合并逻辑 ---
             else if (glowMode === 'neonWord012') {
                 // 使用全局变量 frontMeshes (它存储了所有的底座壳)
                 frontMeshes.forEach(mShell => {
                     // 合位时回到 -fDepth，解体时向后移动 explodeGap
                     const targetZ = isDecomposed ? (-fDepth - explodeGap) : -fDepth;
-                    gsap.to(mShell.position, { 
-                        z: targetZ, 
-                        duration: 1, 
-                        ease: "power2.inOut" 
+                    gsap.to(mShell.position, {
+                        z: targetZ,
+                        duration: 1,
+                        ease: "power2.inOut"
                     });
                 });
 
@@ -3541,10 +3494,10 @@ async function parseSvgToShapes(file) {
                 backMeshes.forEach(mLED => {
                     // 合位时回到 0.1，解体时向前移动 explodeGap
                     const targetZ = isDecomposed ? (0.1 + explodeGap) : 0.1;
-                    gsap.to(mLED.position, { 
-                        z: targetZ, 
-                        duration: 1, 
-                        ease: "power2.inOut", 
+                    gsap.to(mLED.position, {
+                        z: targetZ,
+                        duration: 1,
+                        ease: "power2.inOut",
                         onUpdate: () => updateDimensions() // 动画过程中实时更新标注线位置
                     });
                 });
@@ -3744,175 +3697,175 @@ async function parseSvgToShapes(file) {
         // 鼠标按下：检测是否点中标签
         // --- 统一的鼠标按下事件 ---
         // --- 统一的鼠标按下事件：支持背景、文字、背板的选中 ---
-    container.addEventListener('pointerdown', (event) => {
-    // 1. 如果点击的是中键 (button 1) 且处于移动模式，立即禁用相机
-    if (event.button === 1 && isMoveModeActive) {
-        controls.enabled = false;
-        return;
-    }
-
-    const rect = container.getBoundingClientRect();
-    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-    // 2. 移动模式下的确认退出逻辑
-    if (isMoveModeActive && selectedObject && event.button === 0) {
-        isMoveModeActive = false;
-        controls.enabled = true;
-        container.style.cursor = 'pointer';
-        outlinePass.edgeStrength = 3.0;
-        return;
-    }
-
-    raycaster.setFromCamera(mouse, camera);
-    raycaster.layers.enable(0); 
-    raycaster.layers.enable(2); 
-
-    // 3. 标注标签检测 (优先级最高)
-    const labelIntersects = raycaster.intersectObjects(dimensionGroup.children, true);
-    if (labelIntersects.length > 0) {
-        const hitObject = labelIntersects[0].object;
-        if (hitObject.userData.axis) {
-            selectedLabelAxis = hitObject.userData.axis;
-            isDraggingLabel = true;
-            controls.enabled = false;
-            return;
-        }
-    }
-
-    // 4. 物体选中逻辑
-    // 【核心修改】：将 userPlateMesh 加入可检测列表
-    const selectableObjects = [textGroup, bgPlaneMesh, lPlateGroup, stackedPlatesGroup, userPlateMesh].filter(Boolean);
-    const intersects = raycaster.intersectObjects(selectableObjects, true);
-
-    if (intersects.length > 0) {
-        let hitObject = intersects[0].object;
-        let logicalTarget = textGroup;
-
-        // --- 1. 判定点击了哪一类物体 ---
-        const isMainPlate = lPlateGroup && (hitObject === lPlateGroup || hitObject.parent === lPlateGroup);
-        const isStackedPlate = stackedPlatesGroup.children.includes(hitObject) || 
-                            (hitObject.parent && stackedPlatesGroup.children.includes(hitObject.parent));
-        const isBackground = bgPlaneMesh && (hitObject === bgPlaneMesh || hitObject.parent === bgPlaneMesh);
-        
-        // 【新增】：判定是否为自定义 SVG 轮廓背板
-        const isCustomSVGPlate = userPlateMesh && (hitObject === userPlateMesh || hitObject.parent === userPlateMesh);
-
-        if (isBackground) {
-            logicalTarget = bgPlaneMesh;
-            activeBackplate = null;
-            console.log("选中了背景参考图");
-        } 
-        else if (isMainPlate || isStackedPlate || isCustomSVGPlate) {
-            // --- 选中了任何一种背板 ---
-            logicalTarget = isCustomSVGPlate ? userPlateMesh : hitObject; 
-            activeBackplate = logicalTarget; 
-
-            // --- 2. 核心：从模型反向同步数据到 UI 面板 ---
-            if (isCustomSVGPlate) {
-                // 自定义 SVG 背板：通过测量包围盒获取缩放后的实际尺寸
-                const box = new THREE.Box3().setFromObject(logicalTarget);
-                const size = box.getSize(new THREE.Vector3());
-                document.getElementById('plateWidthInput').value = Math.round(size.x * 10);
-                document.getElementById('plateHeightInput').value = Math.round(size.y * 10);
-                document.getElementById('plateThicknessInput').value = (size.z * 10).toFixed(1);
-            } else if (hitObject.geometry && hitObject.geometry.parameters) {
-                // 标准方块背板：直接读取几何体参数
-                const params = hitObject.geometry.parameters;
-                document.getElementById('plateWidthInput').value = Math.round(params.width * 10);
-                document.getElementById('plateHeightInput').value = Math.round(params.height * 10);
-                document.getElementById('plateThicknessInput').value = (params.depth * 10).toFixed(1);
+        container.addEventListener('pointerdown', (event) => {
+            // 1. 如果点击的是中键 (button 1) 且处于移动模式，立即禁用相机
+            if (event.button === 1 && isMoveModeActive) {
+                controls.enabled = false;
+                return;
             }
 
-            // 读取颜色并同步选择器
-            if (logicalTarget.material && logicalTarget.material.color) {
-                const hexColor = "#" + logicalTarget.material.color.getHexString();
-                document.getElementById('plateColorPicker').value = hexColor;
-            }
-            
-            console.log("已选中背板，尺寸属性已同步");
-        } 
-        else {
-            logicalTarget = textGroup;
-            activeBackplate = null;
-        }
+            const rect = container.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        // --- 3. 执行选中反馈 ---
-        selectedObject = logicalTarget;
-        outlinePass.selectedObjects = [logicalTarget];
-        container.style.cursor = 'pointer';
-        setupDragPlane(intersects[0].point, logicalTarget.position);
-        
-    } else {
-        // 点击空白
-        selectedObject = null;
-        activeBackplate = null;
-        outlinePass.selectedObjects = [];
-        container.style.cursor = 'default';
-    }
-});
+            // 2. 移动模式下的确认退出逻辑
+            if (isMoveModeActive && selectedObject && event.button === 0) {
+                isMoveModeActive = false;
+                controls.enabled = true;
+                container.style.cursor = 'pointer';
+                outlinePass.edgeStrength = 3.0;
+                return;
+            }
+
+            raycaster.setFromCamera(mouse, camera);
+            raycaster.layers.enable(0);
+            raycaster.layers.enable(2);
+
+            // 3. 标注标签检测 (优先级最高)
+            const labelIntersects = raycaster.intersectObjects(dimensionGroup.children, true);
+            if (labelIntersects.length > 0) {
+                const hitObject = labelIntersects[0].object;
+                if (hitObject.userData.axis) {
+                    selectedLabelAxis = hitObject.userData.axis;
+                    isDraggingLabel = true;
+                    controls.enabled = false;
+                    return;
+                }
+            }
+
+            // 4. 物体选中逻辑
+            // 【核心修改】：将 userPlateMesh 加入可检测列表
+            const selectableObjects = [textGroup, bgPlaneMesh, lPlateGroup, stackedPlatesGroup, userPlateMesh].filter(Boolean);
+            const intersects = raycaster.intersectObjects(selectableObjects, true);
+
+            if (intersects.length > 0) {
+                let hitObject = intersects[0].object;
+                let logicalTarget = textGroup;
+
+                // --- 1. 判定点击了哪一类物体 ---
+                const isMainPlate = lPlateGroup && (hitObject === lPlateGroup || hitObject.parent === lPlateGroup);
+                const isStackedPlate = stackedPlatesGroup.children.includes(hitObject) ||
+                    (hitObject.parent && stackedPlatesGroup.children.includes(hitObject.parent));
+                const isBackground = bgPlaneMesh && (hitObject === bgPlaneMesh || hitObject.parent === bgPlaneMesh);
+
+                // 【新增】：判定是否为自定义 SVG 轮廓背板
+                const isCustomSVGPlate = userPlateMesh && (hitObject === userPlateMesh || hitObject.parent === userPlateMesh);
+
+                if (isBackground) {
+                    logicalTarget = bgPlaneMesh;
+                    activeBackplate = null;
+                    console.log("选中了背景参考图");
+                }
+                else if (isMainPlate || isStackedPlate || isCustomSVGPlate) {
+                    // --- 选中了任何一种背板 ---
+                    logicalTarget = isCustomSVGPlate ? userPlateMesh : hitObject;
+                    activeBackplate = logicalTarget;
+
+                    // --- 2. 核心：从模型反向同步数据到 UI 面板 ---
+                    if (isCustomSVGPlate) {
+                        // 自定义 SVG 背板：通过测量包围盒获取缩放后的实际尺寸
+                        const box = new THREE.Box3().setFromObject(logicalTarget);
+                        const size = box.getSize(new THREE.Vector3());
+                        document.getElementById('plateWidthInput').value = Math.round(size.x * 10);
+                        document.getElementById('plateHeightInput').value = Math.round(size.y * 10);
+                        document.getElementById('plateThicknessInput').value = (size.z * 10).toFixed(1);
+                    } else if (hitObject.geometry && hitObject.geometry.parameters) {
+                        // 标准方块背板：直接读取几何体参数
+                        const params = hitObject.geometry.parameters;
+                        document.getElementById('plateWidthInput').value = Math.round(params.width * 10);
+                        document.getElementById('plateHeightInput').value = Math.round(params.height * 10);
+                        document.getElementById('plateThicknessInput').value = (params.depth * 10).toFixed(1);
+                    }
+
+                    // 读取颜色并同步选择器
+                    if (logicalTarget.material && logicalTarget.material.color) {
+                        const hexColor = "#" + logicalTarget.material.color.getHexString();
+                        document.getElementById('plateColorPicker').value = hexColor;
+                    }
+
+                    console.log("已选中背板，尺寸属性已同步");
+                }
+                else {
+                    logicalTarget = textGroup;
+                    activeBackplate = null;
+                }
+
+                // --- 3. 执行选中反馈 ---
+                selectedObject = logicalTarget;
+                outlinePass.selectedObjects = [logicalTarget];
+                container.style.cursor = 'pointer';
+                setupDragPlane(intersects[0].point, logicalTarget.position);
+
+            } else {
+                // 点击空白
+                selectedObject = null;
+                activeBackplate = null;
+                outlinePass.selectedObjects = [];
+                container.style.cursor = 'default';
+            }
+        });
 
         // 辅助函数：设置拖拽平面
-     function setupDragPlane(intersectPoint, targetPosition) {
-    // 判断是否为背板类（主背板或叠加组里的背板）
-    const isBackplate = (selectedObject === lPlateGroup) || 
-                        (lPlateGroup && lPlateGroup.children.includes(selectedObject)) ||
-                        (stackedPlatesGroup.children.includes(selectedObject))||
-                         (selectedObject === userPlateMesh); // 增加这一行
+        function setupDragPlane(intersectPoint, targetPosition) {
+            // 判断是否为背板类（主背板或叠加组里的背板）
+            const isBackplate = (selectedObject === lPlateGroup) ||
+                (lPlateGroup && lPlateGroup.children.includes(selectedObject)) ||
+                (stackedPlatesGroup.children.includes(selectedObject)) ||
+                (selectedObject === userPlateMesh); // 增加这一行
 
-    if (isBackplate) {
-        // 如果是背板：强制平面法线朝向 Z 轴（锁定 XY 移动）
-        dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), intersectPoint);
-    } else {
-        // 如果是其他（文字/背景）：平面法线朝向相机（自由移动）
-        const normal = new THREE.Vector3();
-        camera.getWorldDirection(normal).negate();
-        dragPlane.setFromNormalAndCoplanarPoint(normal, intersectPoint);
-    }
-    
-    // 统一记录当前的初始 Z 轴，供后续锁定使用
-    selectedObject.userData.lockedZ = targetPosition.z;
-    dragOffset.copy(intersectPoint).sub(targetPosition);
-}
+            if (isBackplate) {
+                // 如果是背板：强制平面法线朝向 Z 轴（锁定 XY 移动）
+                dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), intersectPoint);
+            } else {
+                // 如果是其他（文字/背景）：平面法线朝向相机（自由移动）
+                const normal = new THREE.Vector3();
+                camera.getWorldDirection(normal).negate();
+                dragPlane.setFromNormalAndCoplanarPoint(normal, intersectPoint);
+            }
 
-    
+            // 统一记录当前的初始 Z 轴，供后续锁定使用
+            selectedObject.userData.lockedZ = targetPosition.z;
+            dragOffset.copy(intersectPoint).sub(targetPosition);
+        }
+
+
         window.addEventListener('pointermove', (event) => {
             // --- A. 标注平移逻辑 (修复后的版本) ---
-         // --- 修改后的标注移动逻辑 ---
-// --- 修改后的标注移动逻辑 ---
-// --- 修改后的标注移动逻辑 (线性约束版) ---
-if (isDraggingLabel && selectedLabelAxis) {
-    // 1. 计算鼠标位移量 (将屏幕像素换算为 3D 长度)
-    // 使用当前 textSize 作为参考比例，保证缩放后手感一致
-    const movementScale = textSize * 0.002; 
-    const dx = event.movementX * movementScale;
-    const dy = -event.movementY * movementScale; // 屏幕坐标 Y 是反的
+            // --- 修改后的标注移动逻辑 ---
+            // --- 修改后的标注移动逻辑 ---
+            // --- 修改后的标注移动逻辑 (线性约束版) ---
+            if (isDraggingLabel && selectedLabelAxis) {
+                // 1. 计算鼠标位移量 (将屏幕像素换算为 3D 长度)
+                // 使用当前 textSize 作为参考比例，保证缩放后手感一致
+                const movementScale = textSize * 0.002;
+                const dx = event.movementX * movementScale;
+                const dy = -event.movementY * movementScale; // 屏幕坐标 Y 是反的
 
-    const axis = selectedLabelAxis;
-    const offset = labelManualOffsets[axis];
+                const axis = selectedLabelAxis;
+                const offset = labelManualOffsets[axis];
 
-    // 2. --- 线性约束核心：只允许单向移动 ---
-    if (axis === 'x' || axis === 'pW') {
-        // 【宽度标注 / 横线】：只能上下推拉间距
-        // 强行锁定 X 和 Z，只允许修改 Y
-        offset.y += dy; 
-    } 
-    else if (axis === 'y' || axis === 'pH') {
-        // 【高度标注 / 竖线】：只能左右推拉间距
-        // 强行锁定 Y 和 Z，只允许修改 X
-        offset.x += dx;
-    } 
-    else if (axis === 'z' || axis === 'pT') {
-        // 【厚度标注 / 斜线】：允许在视角平面内推拉
-        // 修改 Y 来调整高度位置，修改 X 调整水平位置
-        offset.y += dy;
-        offset.x += dx;
-    }
+                // 2. --- 线性约束核心：只允许单向移动 ---
+                if (axis === 'x' || axis === 'pW') {
+                    // 【宽度标注 / 横线】：只能上下推拉间距
+                    // 强行锁定 X 和 Z，只允许修改 Y
+                    offset.y += dy;
+                }
+                else if (axis === 'y' || axis === 'pH') {
+                    // 【高度标注 / 竖线】：只能左右推拉间距
+                    // 强行锁定 Y 和 Z，只允许修改 X
+                    offset.x += dx;
+                }
+                else if (axis === 'z' || axis === 'pT') {
+                    // 【厚度标注 / 斜线】：允许在视角平面内推拉
+                    // 修改 Y 来调整高度位置，修改 X 调整水平位置
+                    offset.y += dy;
+                    offset.x += dx;
+                }
 
-    // 3. 实时重绘标注
-    updateDimensions();
-    return;
-}
+                // 3. 实时重绘标注
+                updateDimensions();
+                return;
+            }
             // --- B. 物体移动逻辑 (Blender 风格) ---
             if (isMoveModeActive && selectedObject) {
                 if (event.buttons === 4) { // 中键平移
@@ -3930,28 +3883,28 @@ if (isDraggingLabel && selectedLabelAxis) {
                 mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
 
-               // 找到这部分代码进行替换
-if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
-    // 再次判断是否为背板
-    const isBackplate = (selectedObject === lPlateGroup) || 
+                // 找到这部分代码进行替换
+                if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
+                    // 再次判断是否为背板
+                    const isBackplate = (selectedObject === lPlateGroup) ||
                         (lPlateGroup && lPlateGroup.children.includes(selectedObject)) ||
                         (stackedPlatesGroup.children.includes(selectedObject));
 
-    if (isBackplate) {
-        // --- 背板专属：仅更新 X 和 Y，强制保持 Z 不变 ---
-        selectedObject.position.x = dragIntersection.x;
-        selectedObject.position.y = dragIntersection.y;
-        
-        if (selectedObject.userData.lockedZ !== undefined) {
-            selectedObject.position.z = selectedObject.userData.lockedZ;
-        }
-    } else {
-        // --- 其他物体：保持自由跟随鼠标位置 ---
-        selectedObject.position.copy(dragIntersection);
-    }
-    
-    updateDimensions(); // 实时更新标注
-}
+                    if (isBackplate) {
+                        // --- 背板专属：仅更新 X 和 Y，强制保持 Z 不变 ---
+                        selectedObject.position.x = dragIntersection.x;
+                        selectedObject.position.y = dragIntersection.y;
+
+                        if (selectedObject.userData.lockedZ !== undefined) {
+                            selectedObject.position.z = selectedObject.userData.lockedZ;
+                        }
+                    } else {
+                        // --- 其他物体：保持自由跟随鼠标位置 ---
+                        selectedObject.position.copy(dragIntersection);
+                    }
+
+                    updateDimensions(); // 实时更新标注
+                }
                 container.style.cursor = 'move';
             }
         });
@@ -3991,7 +3944,7 @@ if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
             });
         }
         // 2. 主动画循环
-       // ==========================================
+        // ==========================================
         // 主动画循环 (加入 60FPS 智能限速器，防止霸占显卡性能)
         // ==========================================
         let lastRenderTime = 0;
@@ -4033,13 +3986,13 @@ if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
             if ((isRGBGlow || isFlowRGB || true) && glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
                 const allDynamicMeshes = [...frontMeshes, ...backMeshes, ...colourMeshes];
                 const breath = (Math.sin(currentTime * 2.5) + 1.0) / 2.0; // 提取呼吸节奏
-                
+
                 for (let i = 0; i < allDynamicMeshes.length; i++) {
                     const obj = allDynamicMeshes[i];
                     if (obj && obj.material && obj.userData.isLed) {
                         const mat = obj.material;
                         const intensity = isRGBGlow ? (safeBrightness * (0.4 + breath * 1.6)) : (safeBrightness * 1.5);
-                        
+
                         if (obj.userData.isWallGlow) {
                             // 【光晕层专属逻辑】：通过压暗颜色来模拟亮度降低
                             mat.color.copy(activeColor).multiplyScalar(intensity);
@@ -4068,7 +4021,7 @@ if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
             // --- 9. 执行核心渲染流程 ---
             renderSceneAll();
         }
-        
+
         // 3. 窗口自适应监听
         // --- 终极整合键盘监听器 (放在 animate() 之后) ---
         window.addEventListener('keydown', (e) => {
@@ -4078,7 +4031,7 @@ if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
             const panel = document.getElementById('svg-upload-container');
 
             // --- 1. 使用 ] 键实现浮窗显示/隐藏 (带 GSAP 动画) ---
-           
+
             // --- 2. M 键切换移动模式 ---
             if (e.key.toLowerCase() === 'm') {
                 if (selectedObject) {
@@ -4101,134 +4054,144 @@ if (raycaster.ray.intersectPlane(dragPlane, dragIntersection)) {
                 }
             }
             // --- 在 keydown 监听器内部添加 P 键逻辑 ---
-// --- 精准对齐版：按下 P 键实现“背面贴合背板正面” ---
-// --- 彻底修复版：P 键吸附 (背面贴合背板正面) ---
+            // --- 精准对齐版：按下 P 键实现“背面贴合背板正面” ---
+            // --- 彻底修复版：P 键吸附 (背面贴合背板正面) ---
+          // --- 彻底修复版：P 键吸附 (支持主背板、叠加背板、SVG背板) ---
 if (e.key.toLowerCase() === 'p') {
-    // 1. 检查是否选中了文字或矢量轮廓
+    // 1. 基础检查：必须选中文字才能吸附
     if (!selectedObject || selectedObject !== textGroup) {
-        console.warn("请先选中文字物体。");
+        console.warn("请先选中文字。");
         return;
     }
 
-    // 2. 确定目标背板
-    let targetPlate = (activeBackplate && activeBackplate !== textGroup) ? activeBackplate : lPlateGroup;
+    // 2. 【核心修改】：按照优先级寻找“目标背板”
+    let targetPlate = null;
+
+    if (activeBackplate) {
+        // 优先级 1：如果鼠标刚刚点选了某块特定的背板（不管是哪种），就吸附到它上面
+        targetPlate = activeBackplate;
+    } else if (lPlateGroup) {
+        // 优先级 2：如果没有点选，默认找主背板
+        targetPlate = lPlateGroup;
+    } else if (stackedPlatesGroup && stackedPlatesGroup.children.length > 0) {
+        // 优先级 3：如果主背板被删了，找叠加背板里的第一块
+        targetPlate = stackedPlatesGroup.children[0];
+    } else if (userPlateMesh) {
+        // 优先级 4：最后找用户上传的 SVG 背板
+        targetPlate = userPlateMesh;
+    }
+
     if (!targetPlate) {
-        alert("场景中没有背板。");
+        alert("场景中没有检测到任何背板，无法吸附。");
         return;
     }
 
-    // --- 核心修复：强制更新世界矩阵以获取最新包围盒 ---
+    // 3. 执行吸附计算
     textGroup.updateMatrixWorld(true);
     targetPlate.updateMatrixWorld(true);
 
     const plateBox = new THREE.Box3().setFromObject(targetPlate);
     const textBox = new THREE.Box3().setFromObject(textGroup);
 
-    // 3. 计算对齐坐标
-    // 背板的最前面 (World Z)
+    // 计算背板的正面位置 (World Z)
     const plateFrontZ = plateBox.max.z;
-    // 文字当前的最背面 (World Z)
+    // 计算文字当前的最背面位置 (World Z)
     const textBackZ = textBox.min.z;
     
-    // 算出为了让背面贴合，需要移动的增量
-    // 增加 0.05 的安全空隙（既不闪烁，肉眼看也是贴合的）
-    const offsetZ = (plateFrontZ - textBackZ) + 0.05;
+    // 计算为了贴合需要移动的距离 (增加 0.02 防止闪烁)
+    const offsetZ = (plateFrontZ - textBackZ) + 0.02;
     
-    // 最终 textGroup 应该到达的 Z 坐标
+    // 计算最终坐标
     const finalZ = textGroup.position.z + offsetZ;
-
-    // 4. 计算 X 和 Y 的中心点
     const plateCenter = new THREE.Vector3();
     plateBox.getCenter(plateCenter);
 
-    // --- 核心修复：更新拖拽锁定的 Z 轴，防止下次移动时被打回原形 ---
+    // 更新拖拽锁定值，防止下次移动时跳回原位
     textGroup.userData.lockedZ = finalZ;
 
-    // 5. 执行 GSAP 动画
+    // 4. 执行平滑动画
     gsap.to(textGroup.position, {
         x: plateCenter.x,
         y: plateCenter.y,
         z: finalZ,
         duration: 0.6,
         ease: "power2.inOut",
-        onUpdate: () => {
-            updateDimensions(); // 实时更新标注线
-        },
+        onUpdate: () => updateDimensions(), // 移动时实时更新标注线
         onComplete: () => {
-            console.log("吸附完成：背面已贴合。当前锁定高度:", finalZ);
+            console.log("已成功吸附至目标背板:", targetPlate.name || "叠加背板");
         }
     });
 }
 
             // --- 3. Delete / Backspace 键删除逻辑 ---
             // --- 3. Delete / Backspace 键删除逻辑 ---
-         // --- 3. Delete / Backspace 键删除逻辑 (增强版) ---
-if (e.key === 'Delete' || e.key === 'Backspace') {
-    if (selectedObject) {
-        // A. 判定是否为主背板（点击的是组本身或者是组内的子物体）
-        const isMainPlate = (selectedObject === lPlateGroup) || (lPlateGroup && lPlateGroup.children.includes(selectedObject));
-        
-        // B. 判定是否为堆叠背板
-        const isStackedPlate = stackedPlatesGroup.children.includes(selectedObject);
+            // --- 3. Delete / Backspace 键删除逻辑 (增强版) ---
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (selectedObject) {
+                    // A. 判定是否为主背板（点击的是组本身或者是组内的子物体）
+                    const isMainPlate = (selectedObject === lPlateGroup) || (lPlateGroup && lPlateGroup.children.includes(selectedObject));
 
-        // C. 判定是否为背景参考图
-        const isBackground = (selectedObject === bgPlaneMesh);
+                    // B. 判定是否为堆叠背板
+                    const isStackedPlate = stackedPlatesGroup.children.includes(selectedObject);
 
-        // D. 判定是否为用户上传的图片背板
-        const isUserPlate = (selectedObject === userPlateMesh);
+                    // C. 判定是否为背景参考图
+                    const isBackground = (selectedObject === bgPlaneMesh);
 
-        if (isMainPlate) {
-            scene.remove(lPlateGroup);
-            lPlateGroup = null;
-            activeBackplate = null;
-            console.log("主背板已移除");
-        } 
-        else if (isStackedPlate) {
-            // 从堆叠组中移除选中的那一层
-            stackedPlatesGroup.remove(selectedObject);
-            // 释放内存
-            if (selectedObject.geometry) selectedObject.geometry.dispose();
-            if (selectedObject.material) selectedObject.material.dispose();
-            console.log("选中的堆叠层已移除");
-        }
-        else if (isUserPlate) {
-            removeUserPlate(); // 调用已有的移除函数
-            console.log("用户图片背板已移除");
-        }
-        else if (isBackground) {
-            scene.remove(bgPlaneMesh);
-            bgPlaneMesh = null;
-            document.getElementById('clearBgBtn').classList.add('hidden');
-            console.log("背景参考图已移除");
-        } 
-        else if (selectedObject === textGroup) {
-            console.warn("文字组不可直接删除");
-            return;
-        }
+                    // D. 判定是否为用户上传的图片背板
+                    const isUserPlate = (selectedObject === userPlateMesh);
 
-        // --- 统一清理选中状态和标注 ---
-        selectedObject = null;
-        outlinePass.selectedObjects = [];
-        isMoveModeActive = false;
-        controls.enabled = true;
-        container.style.cursor = 'default';
-        
-        // 重置标注偏移量（如果是删除了背板相关的）
-        if (isMainPlate) {
-            labelManualOffsets.pW.set(0, 0, 0);
-            labelManualOffsets.pH.set(0, 0, 0);
-            labelManualOffsets.pT.set(0, 0, 0);
-        }
-        
-        // 立即刷新标注显示
-        updateDimensions();
-    }
-}
+                    if (isMainPlate) {
+                        scene.remove(lPlateGroup);
+                        lPlateGroup = null;
+                        activeBackplate = null;
+                        console.log("主背板已移除");
+                    }
+                    else if (isStackedPlate) {
+                        // 从堆叠组中移除选中的那一层
+                        stackedPlatesGroup.remove(selectedObject);
+                        // 释放内存
+                        if (selectedObject.geometry) selectedObject.geometry.dispose();
+                        if (selectedObject.material) selectedObject.material.dispose();
+                        console.log("选中的堆叠层已移除");
+                    }
+                    else if (isUserPlate) {
+                        removeUserPlate(); // 调用已有的移除函数
+                        console.log("用户图片背板已移除");
+                    }
+                    else if (isBackground) {
+                        scene.remove(bgPlaneMesh);
+                        bgPlaneMesh = null;
+                        document.getElementById('clearBgBtn').classList.add('hidden');
+                        console.log("背景参考图已移除");
+                    }
+                    else if (selectedObject === textGroup) {
+                        console.warn("文字组不可直接删除");
+                        return;
+                    }
+
+                    // --- 统一清理选中状态和标注 ---
+                    selectedObject = null;
+                    outlinePass.selectedObjects = [];
+                    isMoveModeActive = false;
+                    controls.enabled = true;
+                    container.style.cursor = 'default';
+
+                    // 重置标注偏移量（如果是删除了背板相关的）
+                    if (isMainPlate) {
+                        labelManualOffsets.pW.set(0, 0, 0);
+                        labelManualOffsets.pH.set(0, 0, 0);
+                        labelManualOffsets.pT.set(0, 0, 0);
+                    }
+
+                    // 立即刷新标注显示
+                    updateDimensions();
+                }
+            }
 
         });
         // 绑定“添加/重置背板”按钮
-     // --- 修正后的背板控制逻辑 ---
-        
+        // --- 修正后的背板控制逻辑 ---
+
         // 1. “添加/重置”按钮保持原样，用于快速生成主背板
         document.getElementById('addPlateBtn').addEventListener('click', () => {
             createLPlate();
@@ -4467,7 +4430,7 @@ if (e.key === 'Delete' || e.key === 'Backspace') {
         </div>
     </div>
 
-    
+
 </body>
 
 </html>
