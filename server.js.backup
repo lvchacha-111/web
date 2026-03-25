@@ -345,7 +345,7 @@ app.post('/api/logout', (req, res) => {
     };
     
     res.json(stats);
-
+});
 
 // 受保护的内容API示例
 app.get('/api/protected-content', authenticate, (req, res) => {
