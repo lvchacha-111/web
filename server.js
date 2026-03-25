@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -5,7 +7,7 @@ const compression = require('compression');
 const os = require('os');
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 const UPLOAD_DIR = 'uploads';
 
 // --- 1. 中间件配置 ---

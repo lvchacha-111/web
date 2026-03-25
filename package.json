@@ -5,7 +5,14 @@
   "main": "GLTFLoader.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "admin": "node admin.js",
+    "both": "concurrently \"npm start\" \"npm run admin\"",
+    "backup": "node backup.js",
+    "backup-dry": "node backup.js --dry-run",
+    "check-sensitive": "node check-sensitive.js",
+    "dev": "nodemon server.js",
+    "lint": "echo \"No linter configured\""
   },
   "keywords": [],
   "author": "",
@@ -13,7 +20,9 @@
   "type": "commonjs",
   "dependencies": {
     "compression": "^1.8.1",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-basic-auth": "^1.2.1",
     "fontmin": "^1.1.1",
     "multer": "^2.1.0"
   }

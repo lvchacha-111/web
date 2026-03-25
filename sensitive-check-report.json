@@ -1,0 +1,49 @@
+{
+  "scanTime": "2026-03-25T01:55:42.274Z",
+  "totalFilesScanned": 18,
+  "totalIssues": 7,
+  "issues": [
+    {
+      "file": "D:\\xinweb\\admin.js",
+      "line": 659,
+      "match": "127.0.0.1",
+      "context": "if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {"
+    },
+    {
+      "file": "D:\\xinweb\\admin.js",
+      "line": 671,
+      "match": "0.0.0.0",
+      "context": "// 这里添加 '0.0.0.0' 是为了允许局域网内的其他设备连接"
+    },
+    {
+      "file": "D:\\xinweb\\admin.js",
+      "line": 672,
+      "match": "0.0.0.0",
+      "context": "app.listen(PORT, '0.0.0.0', () => {"
+    },
+    {
+      "file": "D:\\xinweb\\package-lock.json",
+      "line": 443,
+      "match": "i@izs.me",
+      "context": "\"deprecated\": \"Old versions of glob are not supported, and contain widely publicized security vulner"
+    },
+    {
+      "file": "D:\\xinweb\\package-lock.json",
+      "line": 1472,
+      "match": "i@izs.me",
+      "context": "\"deprecated\": \"Old versions of glob are not supported, and contain widely publicized security vulner"
+    },
+    {
+      "file": "D:\\xinweb\\package-lock.json",
+      "line": 3523,
+      "match": "i@izs.me",
+      "context": "\"deprecated\": \"Old versions of tar are not supported, and contain widely publicized security vulnera"
+    },
+    {
+      "file": "D:\\xinweb\\server.js",
+      "line": 80,
+      "match": "0.0.0.0",
+      "context": "app.listen(port, '0.0.0.0', () => {"
+    }
+  ]
+}
