@@ -2,453 +2,147 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs').promises; // 异步文件处理，性能更好
+const fsSync = require('fs');      // 用于启动时检查目录
 const compression = require('compression');
 const os = require('os');
-const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
 const port = process.env.PORT || 5000;
 const UPLOAD_DIR = 'uploads';
 
-// --- 1. 性能优化配置 ---
+// --- 1. 性能与安全配置 ---
 
-// 1.1 Gzip压缩（已启用）
+// 1.1 开启 Gzip 压缩（显著提升 3D 模型加载速度）
 app.use(compression());
 
-// 1.2 全局限流 - 防止DDoS
-const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15分钟窗口
-    max: 1000, // 每个IP最多1000次请求
-    message: { error: '请求过于频繁，请稍后再试' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
-app.use(globalLimiter);
+// 1.2 基础解析中间件
+app.use(express.json());
 
-// 1.3 API限流 - 更严格
-const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100, // API接口更严格
-    message: { error: 'API调用过于频繁' }
-});
-// 使用正则表达式匹配所有/api/开头的路径
-app.use(/^\/api\//, apiLimiter);
-
-// 1.4 静态文件缓存配置
-const staticOptions = {
-    maxAge: '7d', // 缓存7天
-    etag: true,
-    lastModified: true,
-    setHeaders: (res, path) => {
-        // 根据文件类型设置不同缓存策略
-        if (path.match(/\.(html|htm)$/)) {
-            // HTML文件不缓存或短期缓存
-            res.setHeader('Cache-Control', 'public, max-age=300'); // 5分钟
-        } else if (path.match(/\.(js|css)$/)) {
-            // JS/CSS缓存1年（通过文件名hash解决更新问题）
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        } else if (path.match(/\.(png|jpg|jpeg|gif|ico|svg|ttf|woff|woff2)$/)) {
-            // 图片字体缓存1年
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-    }
-};
-
-// --- 2. 基础中间件 ---
-app.use(express.json()); // 支持解析 JSON 格式的请求体
-app.use(cookieParser()); // 解析cookie
-
-// --- 性能监控接口（放在静态文件之前）---
-
-// 健康检查接口（负载均衡器用）
-app.get('/health', (req, res) => {
-    res.json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        nodeVersion: process.version
-    });
-});
-
-// 性能状态接口
-app.get('/api/status', (req, res) => {
-    const memory = process.memoryUsage();
-    const stats = {
-        server: {
-            uptime: Math.floor(process.uptime()),
-            nodeVersion: process.version,
-            platform: process.platform
-        },
-        memory: {
-            rss: Math.round(memory.rss / 1024 / 1024) + 'MB',
-            heapTotal: Math.round(memory.heapTotal / 1024 / 1024) + 'MB',
-            heapUsed: Math.round(memory.heapUsed / 1024 / 1024) + 'MB',
-            external: Math.round(memory.external / 1024 / 1024) + 'MB'
-        },
-        sessions: {
-            active: userSessions.size,
-            maxAge: '30天'
-        },
-        limits: {
-            rateLimit: '1000请求/15分钟',
-            apiLimit: '100请求/15分钟'
-        }
-    };
-    
-    res.json(stats);
-});
-
-// 静态文件服务（带缓存优化）
-app.use((req, res, next) => {
-    // 检查是否访问受保护目录
-    const protectedPaths = ['/model/', '/Metal011_2K-JPG/', '/textures/', '/stl/', '/uploads/'];
-    const isProtectedPath = protectedPaths.some(path => req.path.startsWith(path));
-    
-    if (isProtectedPath) {
-        // 受保护路径需要验证
-        return authenticate(req, res, next);
-    }
-    
-    // 其他路径使用优化后的静态文件服务
-    express.static(path.join(__dirname), staticOptions)(req, res, next);
-});
-
-// 确保上传根目录存在，不存在则创建一个
-const uploadsPath = path.join(__dirname, UPLOAD_DIR);
-if (!fs.existsSync(uploadsPath)) {
-    fs.mkdirSync(uploadsPath);
-}
-
-// --- 2. CORS 跨域处理 ---
+// 1.3 跨域处理 (CORS) - 允许所有来源
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
 });
 
-// --- 3. 清理冗余文件的接口 (把原本报错的代码放在这里) ---
-// 你可以从前端发送 POST 请求到 http://localhost:5000/api/cleanup
-app.post('/api/cleanup', (req, res) => {
+// 1.4 全局限流（防止恶意刷流量，保护服务器不挂掉）
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15分钟
+    max: 2000, // 每个IP最多2000个请求
+    message: { error: '请求过于频繁' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+app.use(limiter);
+
+// --- 2. 静态资源服务 (重点优化缓存) ---
+
+const staticOptions = {
+    maxAge: '7d', // 默认缓存7天
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+        // 针对 3D 资源（模型、贴图、字体）设置强缓存，减少重复下载
+        if (filePath.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|ttf|woff|woff2|glb|gltf|stl|bin)$/)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 缓存1年
+        }
+    }
+};
+
+// 允许直接访问当前目录下所有文件
+app.use(express.static(path.join(__dirname), staticOptions));
+
+// --- 3. 业务接口 ---
+
+// 3.1 健康检查/性能状态
+app.get('/api/status', (req, res) => {
+    const memory = process.memoryUsage();
+    res.json({
+        status: 'online',
+        uptime: Math.floor(process.uptime()) + 's',
+        memory: {
+            rss: Math.round(memory.rss / 1024 / 1024) + 'MB',
+            heapUsed: Math.round(memory.heapUsed / 1024 / 1024) + 'MB'
+        },
+        nodeVersion: process.version
+    });
+});
+
+// 3.2 清理冗余文件的接口 (修复了安全隐患和性能问题)
+app.post('/api/cleanup', async (req, res) => {
     try {
         const { newParts, newId } = req.body;
 
-        // 验证必要参数
-        if (!newParts || !Array.isArray(newParts) || !newId) {
-            return res.status(400).json({ error: '缺少必要参数 newParts (数组) 或 newId (字符串)' });
+        // 安全校验：防止通过 ".." 路径攻击删除系统文件
+        if (!newId || typeof newId !== 'string' || newId.includes('.') || newId.includes('/') || newId.includes('\\')) {
+            return res.status(400).json({ error: '无效的文件夹ID' });
         }
 
-        // 1. 提取配置文件中需要保留的文件名
+        if (!Array.isArray(newParts)) {
+            return res.status(400).json({ error: 'newParts 格式错误' });
+        }
+
+        // 提取需要保留的文件名
         const keptFiles = newParts.map(line => {
             const match = line.match(/file:\s*"([^"]+)"/);
             return match ? match[1] : null;
         }).filter(Boolean);
 
-        // 2. 确定对应 ID 的文件夹路径
         const dirPath = path.join(__dirname, UPLOAD_DIR, newId);
 
-        if (fs.existsSync(dirPath)) {
-            const diskFiles = fs.readdirSync(dirPath);
+        try {
+            await fs.access(dirPath);
+            const diskFiles = await fs.readdir(dirPath);
             let deletedCount = 0;
 
-            // 3. 找出并删除不在 keptFiles 列表中的文件
-            diskFiles.forEach(file => {
+            // 异步删除不再需要的文件
+            for (const file of diskFiles) {
                 if (!keptFiles.includes(file)) {
-                    try {
-                        fs.unlinkSync(path.join(dirPath, file));
-                        console.log(`已清理冗余文件: ${file}`);
-                        deletedCount++;
-                    } catch (err) {
-                        console.error(`清理失败: ${file}`, err);
-                    }
+                    await fs.unlink(path.join(dirPath, file));
+                    deletedCount++;
                 }
-            });
-
-            res.json({ message: '清理完成', deletedFiles: deletedCount });
-        } else {
-            res.status(404).json({ error: '找不到指定的文件夹: ' + newId });
+            }
+            res.json({ success: true, message: `清理完成，删除了 ${deletedCount} 个文件` });
+        } catch (err) {
+            res.status(404).json({ error: '找不到指定的资源文件夹' });
         }
     } catch (error) {
-        console.error('服务器内部错误:', error);
-        res.status(500).json({ error: '服务器清理逻辑执行失败' });
+        console.error('清理失败:', error);
+        res.status(500).json({ error: '服务器内部清理逻辑错误' });
     }
 });
 
-// --- 4. 服务器端用户验证系统 ---
+// --- 4. 启动服务器 ---
 
-// 用户会话存储（生产环境应使用Redis或数据库）
-const userSessions = new Map();
-// 有效的邀请码（生产环境应从数据库读取）
-const validInviteCodes = {
-    // 格式: 邀请码: { type: 'lifetime'|'monthly'|'daily'|'trial', days: 天数 }
-    'YJ-LIFE-2024VIP': { type: 'lifetime', days: 9999 },
-    'YJ-30D-2024MONTH': { type: 'monthly', days: 30 },
-    'YJ-1D-2024DAY': { type: 'daily', days: 1 },
-    'YJ-2M-2024TEST': { type: 'trial', minutes: 2 } // 2分钟试用
-};
-
-// 生成安全的会话令牌
-function generateSessionToken() {
-    return require('crypto').randomBytes(32).toString('hex');
+// 确保上传目录存在
+const uploadsPath = path.join(__dirname, UPLOAD_DIR);
+if (!fsSync.existsSync(uploadsPath)) {
+    fsSync.mkdirSync(uploadsPath, { recursive: true });
 }
 
-// 验证邀请码API
-app.post('/api/verify-invite', (req, res) => {
-    try {
-        const { inviteCode } = req.body;
-        
-        if (!inviteCode) {
-            return res.status(400).json({ error: '请输入邀请码' });
-        }
-        
-        const codeInfo = validInviteCodes[inviteCode.toUpperCase()];
-        
-        if (!codeInfo) {
-            return res.status(401).json({ error: '邀请码无效' });
-        }
-        
-        // 计算过期时间
-        let expiryTime;
-        if (codeInfo.minutes) {
-            expiryTime = Date.now() + (codeInfo.minutes * 60 * 1000);
-        } else {
-            expiryTime = Date.now() + (codeInfo.days * 24 * 60 * 60 * 1000);
-        }
-        
-        // 生成会话令牌
-        const sessionToken = generateSessionToken();
-        
-        // 存储用户会话
-        userSessions.set(sessionToken, {
-            inviteCode: inviteCode.toUpperCase(),
-            type: codeInfo.type,
-            expiry: expiryTime,
-            createdAt: Date.now()
-        });
-        
-        // 设置会话cookie（安全配置）
-        res.cookie('session_token', sessionToken, {
-            httpOnly: true, // 防止XSS攻击读取cookie
-            secure: process.env.NODE_ENV === 'production', // 生产环境只用HTTPS
-            sameSite: 'strict', // 防止CSRF
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30天
-        });
-        
-        res.json({
-            success: true,
-            message: getWelcomeMessage(codeInfo.type),
-            type: codeInfo.type,
-            expiry: expiryTime
-        });
-        
-    } catch (error) {
-        console.error('验证邀请码错误:', error);
-        res.status(500).json({ error: '服务器内部错误' });
-    }
-});
-
-// 获取欢迎消息
-function getWelcomeMessage(type) {
-    const messages = {
-        'lifetime': '👑 尊贵的买断会员，欢迎回来！',
-        'monthly': '💎 包月权限已激活！',
-        'daily': '✨ 日租权限已激活！',
-        'trial': '⏱️ 试用通道开启！'
-    };
-    return messages[type] || '欢迎访问！';
-}
-
-// 验证会话中间件
-function authenticate(req, res, next) {
-    // 从cookie或header获取令牌
-    const sessionToken = req.cookies?.session_token || req.headers['x-session-token'];
-    
-    if (!sessionToken) {
-        return res.status(401).json({ error: '需要登录访问' });
-    }
-    
-    const session = userSessions.get(sessionToken);
-    
-    if (!session) {
-        return res.status(401).json({ error: '会话无效或已过期' });
-    }
-    
-    // 检查是否过期
-    if (Date.now() > session.expiry) {
-        userSessions.delete(sessionToken);
-        return res.status(401).json({ error: '会话已过期，请重新登录' });
-    }
-    
-    // 将会话信息附加到请求对象
-    req.userSession = session;
-    next();
-}
-
-// 检查订阅状态的中间件
-function requireSubscription(req, res, next) {
-    if (!req.userSession) {
-        return res.status(401).json({ error: '需要订阅访问' });
-    }
-    next();
-}
-
-// 检查会话状态API（前端定期调用）
-app.get('/api/check-session', authenticate, (req, res) => {
-    res.json({
-        success: true,
-        valid: true,
-        type: req.userSession.type,
-        expiry: req.userSession.expiry,
-        remaining: Math.floor((req.userSession.expiry - Date.now()) / 1000) + '秒'
-    });
-});
-
-// 登出API
-app.post('/api/logout', (req, res) => {
-    const sessionToken = req.cookies?.session_token;
-    
-    if (sessionToken && userSessions.has(sessionToken)) {
-        userSessions.delete(sessionToken);
-    }
-    
-    // 清除cookie
-    res.clearCookie('session_token');
-    
-    res.json({ success: true, message: '已登出' });
-});
-
-
-    const memory = process.memoryUsage();
-    const stats = {
-        server: {
-            uptime: Math.floor(process.uptime()),
-            nodeVersion: process.version,
-            platform: process.platform
-        },
-        memory: {
-            rss: Math.round(memory.rss / 1024 / 1024) + 'MB',
-            heapTotal: Math.round(memory.heapTotal / 1024 / 1024) + 'MB',
-            heapUsed: Math.round(memory.heapUsed / 1024 / 1024) + 'MB',
-            external: Math.round(memory.external / 1024 / 1024) + 'MB'
-        },
-        sessions: {
-            active: userSessions.size,
-            maxAge: '30天'
-        },
-        limits: {
-            rateLimit: '1000请求/15分钟',
-            apiLimit: '100请求/15分钟'
-        }
-    };
-    
-    res.json(stats);
-
-
-// 受保护的内容API示例
-app.get('/api/protected-content', authenticate, (req, res) => {
-    res.json({
-        success: true,
-        message: '这是受保护的内容',
-        userType: req.userSession.type,
-        expiresIn: Math.floor((req.userSession.expiry - Date.now()) / (1000 * 60 * 60 * 24)) + '天'
-    });
-});
-
-// --- 性能优化定时任务 ---
-
-// 1. 清理过期会话（每小时运行一次）
-setInterval(() => {
-    const now = Date.now();
-    let cleaned = 0;
-    
-    for (const [token, session] of userSessions.entries()) {
-        if (now > session.expiry) {
-            userSessions.delete(token);
-            cleaned++;
-        }
-    }
-    
-    if (cleaned > 0) {
-        console.log(`[${new Date().toISOString()}] 清理了 ${cleaned} 个过期会话`);
-    }
-}, 60 * 60 * 1000); // 每小时
-
-// 2. 内存监控（每5分钟记录一次）
-setInterval(() => {
-    const memory = process.memoryUsage();
-    const memoryMB = {
-        rss: Math.round(memory.rss / 1024 / 1024),
-        heapUsed: Math.round(memory.heapUsed / 1024 / 1024)
-    };
-    
-    // 如果内存使用超过500MB，记录警告
-    if (memoryMB.heapUsed > 500) {
-        console.warn(`[内存警告] 堆内存使用: ${memoryMB.heapUsed}MB`);
-    }
-    
-    // 每30分钟记录一次内存状态
-    if (Date.now() % (30 * 60 * 1000) < 5000) {
-        console.log(`[内存状态] RSS: ${memoryMB.rss}MB, Heap: ${memoryMB.heapUsed}MB, 会话: ${userSessions.size}`);
-    }
-}, 5 * 60 * 1000); // 5分钟
-
-// 3. 大文件下载限流中间件
-function limitLargeFileDownload(req, res, next) {
-    const largeFiles = ['.ttf', '.stl', '.bin', '.gltf', '.glb'];
-    const isLargeFile = largeFiles.some(ext => req.path.endsWith(ext));
-    
-    if (isLargeFile) {
-        // 大文件下载限流更严格
-        const fileLimiter = rateLimit({
-            windowMs: 60 * 60 * 1000, // 1小时
-            max: 20, // 每个IP最多下载20次
-            message: { error: '大文件下载次数超限，请1小时后再试' }
-        });
-        return fileLimiter(req, res, next);
-    }
-    
-    next();
-}
-
-// 应用大文件下载限流
-app.use(limitLargeFileDownload);
-
-// --- 5. 启动服务器 ---
 app.listen(port, '0.0.0.0', () => {
-    console.log('🚀 3D Web 服务器已启动（性能优化版）！');
-    console.log(`📍 本机访问：http://localhost:${port}`);
-    console.log(`🌐 局域网访问：http://${getIPAddress()}:${port}`);
-    console.log('------------------------------------------');
-    console.log('📊 性能优化已启用：');
-    console.log('  • Gzip压缩：已启用');
-    console.log('  • 静态缓存：7天（根据文件类型）');
-    console.log('  • 全局限流：1000请求/15分钟/IP');
-    console.log('  • API限流：100请求/15分钟/IP');
-    console.log('  • 大文件限流：20次/小时/IP');
-    console.log('  • 内存监控：每5分钟检查');
-    console.log('------------------------------------------');
-    console.log('🔧 监控接口：');
-    console.log('  • 健康检查：GET http://localhost:5000/health');
-    console.log('  • 性能状态：GET http://localhost:5000/api/status');
-    console.log('  • 清理接口：POST http://localhost:5000/api/cleanup');
-    console.log('  • 验证接口：POST http://localhost:5000/api/verify-invite');
-    console.log('------------------------------------------');
-    console.log('💡 提示：生产环境建议配置Nginx反向代理和CDN');
+    console.log(`
+    🚀 3D展示服务器 (纯净公开版) 已启动！
+    ------------------------------------------
+    本机访问：http://localhost:${port}
+    局域网访问：http://${getIPAddress()}:${port}
+    
+    性能模式：Gzip压缩 + 强缓存 (已开启)
+    安全限制：无验证，所有人可看
+    ------------------------------------------
+    `);
 });
 
-// --- 5. 辅助工具函数 ---
-
-// 获取本机IP地址
+// 获取本机IP地址的工具函数
 function getIPAddress() {
     const interfaces = os.networkInterfaces();
     for (const iface of Object.values(interfaces)) {
         for (const alias of iface) {
-            if (alias.family === 'IPv4' && !alias.internal) {
-                return alias.address;
-            }
+            if (alias.family === 'IPv4' && !alias.internal) return alias.address;
         }
     }
     return 'localhost';
