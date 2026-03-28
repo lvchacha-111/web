@@ -1,5 +1,12 @@
 (function() {
     // ============================================================
+    // 服务器端验证配置
+    // ============================================================
+    const API_BASE_URL = window.location.origin; // 自动获取当前域名
+    const VERIFY_API = `${API_BASE_URL}/api/verify-invite`;
+    const CHECK_SESSION_API = `${API_BASE_URL}/api/check-session`;
+    
+    // ============================================================
     // 1. 注入 CSS (核心：使用 opacity 做呼吸渐变效果)
     // ============================================================
     const style = document.createElement('style');
@@ -74,18 +81,48 @@
     // 3. 逻辑控制
     // ============================================================
     
-    // 检查权限
-    function checkAccess() {
-        const status = localStorage.getItem('yj_vip_status');
-        if (status === 'lifetime') return true; 
+    // 检查权限 - 需要与服务器通信验证
+    async function checkAccess() {
+        // 先检查本地是否有缓存的会话信息
+        const lastType = localStorage.getItem('last_session_type');
+        const lastExpiry = localStorage.getItem('last_session_expiry');
         
-        if (status === 'temporary') {
-            const expiry = localStorage.getItem('yj_vip_expiry');
-            if (expiry && new Date().getTime() < parseInt(expiry)) {
-                return true; 
+        if (lastType === 'lifetime') {
+            // 终身会员，但还需要服务器验证
+            return await verifyWithServer();
+        }
+        
+        if (lastType && lastExpiry) {
+            const expiryTime = parseInt(lastExpiry);
+            if (Date.now() < expiryTime) {
+                // 本地缓存未过期，但仍需要服务器验证
+                return await verifyWithServer();
             }
         }
-        return false; 
+        
+        return false;
+    }
+    
+    // 与服务器验证会话
+    async function verifyWithServer() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/check-session`, {
+                method: 'GET',
+                credentials: 'include' // 包含cookie
+            });
+            
+            if (response.status === 401) {
+                // 会话无效，清除本地缓存
+                localStorage.removeItem('last_session_type');
+                localStorage.removeItem('last_session_expiry');
+                return false;
+            }
+            
+            return response.ok;
+        } catch (error) {
+            console.error('会话验证失败:', error);
+            return false;
+        }
     }
 
     // 执行锁屏动作 (淡入淡出核心)
@@ -113,29 +150,34 @@
     }
 
     // 初始化检查
-    if (!checkAccess()) {
-        // 如果一开始就没权限，瞬间锁屏（不加动画），防止闪屏
-        const overlay = document.getElementById('authOverlay');
-        overlay.style.transition = 'none'; 
-        overlay.classList.add('locked');
-        // 恢复动画属性，为了下一次渐变
-        setTimeout(() => overlay.style.transition = 'opacity 2.5s ease-in-out', 100);
-    }
+    (async function initCheck() {
+        const hasAccess = await checkAccess();
+        if (!hasAccess) {
+            // 如果一开始就没权限，瞬间锁屏（不加动画），防止闪屏
+            const overlay = document.getElementById('authOverlay');
+            overlay.style.transition = 'none'; 
+            overlay.classList.add('locked');
+            // 恢复动画属性，为了下一次渐变
+            setTimeout(() => overlay.style.transition = 'opacity 2.5s ease-in-out', 100);
+        }
+    })();
 
-    // 定时器：每 1 秒检查一次
-    setInterval(() => {
+    // 定时器：每 30 秒检查一次会话状态
+    setInterval(async () => {
         // 只有当没有锁屏的时候才检查
-        if (!document.getElementById('authOverlay').classList.contains('locked')) {
-            if (!checkAccess()) {
+        const overlay = document.getElementById('authOverlay');
+        if (!overlay.classList.contains('locked')) {
+            const hasAccess = await checkAccess();
+            if (!hasAccess) {
                 // 时间到！触发缓慢变黑
-                localStorage.removeItem('yj_vip_status');
-                localStorage.removeItem('yj_vip_expiry');
+                localStorage.removeItem('last_session_type');
+                localStorage.removeItem('last_session_expiry');
                 document.getElementById('authCodeInput').value = ""; 
                 
                 toggleLock(true, "试用体验结束，屏幕即将关闭。<br>请重新输入邀请码续费。");
             }
         }
-    }, 1000);
+    }, 30000); // 30秒检查一次，减少服务器压力
 
     // 解锁提示
     function showWelcome(text) {
@@ -145,46 +187,54 @@
         setTimeout(() => toast.style.opacity = '0', 3000);
     }
 
-    // 验证按钮点击
-    document.getElementById('verifyAuthBtn').addEventListener('click', () => {
-        const code = document.getElementById('authCodeInput').value.trim().toUpperCase(); 
+    // 验证按钮点击 - 服务器端验证
+    document.getElementById('verifyAuthBtn').addEventListener('click', async () => {
+        const code = document.getElementById('authCodeInput').value.trim();
         const msg = document.getElementById('authMsg');
-        const now = new Date().getTime();
-        let isValid = false;
-        let welcomeMsg = "";
-
-        if (code.length >= 10) { 
-            if (code.startsWith('YJ-LIFE-')) {
-                localStorage.setItem('yj_vip_status', 'lifetime');
-                welcomeMsg = "👑 尊贵的买断会员，欢迎回来！";
-                isValid = true;
-            } 
-            else if (code.startsWith('YJ-30D-')) {
-                localStorage.setItem('yj_vip_status', 'temporary');
-                localStorage.setItem('yj_vip_expiry', now + (30 * 24 * 60 * 60 * 1000));
-                welcomeMsg = "💎 包月权限已激活！";
-                isValid = true;
-            }
-            else if (code.startsWith('YJ-1D-')) {
-                localStorage.setItem('yj_vip_status', 'temporary');
-                localStorage.setItem('yj_vip_expiry', now + (24 * 60 * 60 * 1000));
-                welcomeMsg = "✨ 日租权限已激活！";
-                isValid = true;
-            }
-            else if (code.startsWith('YJ-2M-')) {
-                localStorage.setItem('yj_vip_status', 'temporary');
-                localStorage.setItem('yj_vip_expiry', now + (10* 1000)); // 2分钟
-                welcomeMsg = "⏱️ 试用通道开启！";
-                isValid = true;
-            }
+        const verifyBtn = document.getElementById('verifyAuthBtn');
+        
+        if (!code) {
+            msg.innerText = "请输入邀请码";
+            return;
         }
-
-        if (isValid) {
-            msg.innerText = "";
-            toggleLock(false); // 解锁，屏幕慢慢变亮
-            showWelcome(welcomeMsg);
-        } else {
-            msg.innerText = "邀请码无效";
+        
+        // 禁用按钮防止重复点击
+        verifyBtn.disabled = true;
+        verifyBtn.textContent = "验证中...";
+        msg.innerText = "";
+        
+        try {
+            // 发送邀请码到服务器验证
+            const response = await fetch(VERIFY_API, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ inviteCode: code }),
+                credentials: 'include' // 包含cookie
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                msg.innerText = "";
+                toggleLock(false); // 解锁，屏幕慢慢变亮
+                showWelcome(data.message);
+                
+                // 存储服务器返回的会话信息（仅用于显示）
+                localStorage.setItem('last_session_type', data.type);
+                localStorage.setItem('last_session_expiry', data.expiry);
+            } else {
+                msg.innerText = data.error || "邀请码无效";
+            }
+            
+        } catch (error) {
+            console.error('验证请求失败:', error);
+            msg.innerText = "网络错误，请重试";
+        } finally {
+            // 恢复按钮状态
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = "解锁 / 续费";
         }
     });
     

@@ -1,9 +1,20 @@
+require('dotenv').config();
 const express = require('express');
 const os = require('os');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const basicAuth = require('express-basic-auth');
 const app = express();
+
+// 基本认证（放在所有路由之前）
+app.use(basicAuth({
+    users: { 
+        [process.env.ADMIN_USER || 'admin']: process.env.ADMIN_PASSWORD || 'admin123' 
+    },
+    challenge: true, // 显示登录框
+    realm: 'Admin Area' // 提示文字
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -653,7 +664,7 @@ function getLocalIp() {
     return 'localhost';
 }
 
-const PORT = 3000;
+const PORT = process.env.ADMIN_PORT || 3000;
 const IP = getLocalIp();
 
 // --- 启动服务器 ---
