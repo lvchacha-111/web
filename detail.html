@@ -260,7 +260,7 @@
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 // --- 1. 全局路径配置 ---
-const ASSET_BASE_URL = 'https://cdn.jsdelivr.net/gh/lvchacha-111/web@dev/';
+const ASSET_BASE_URL = 'https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/';
 // 上线阿里云后改为: const ASSET_BASE_URL = 'https://你的bucket.oss-cn-hangzhou.aliyuncs.com/';
 
 // --- 2. 加载监工 (Manager) ---
@@ -299,23 +299,22 @@ rgbeLoader
         scene.environment = t; 
         scene.environmentIntensity = 0; 
     });
-   const NOTES_DB = {
-                "YJ-N007": "images/9ffca629-1.png", //notes
-        "YJ-N008": "images/0dbaebfb-1.png", //notes
-        "YJ-N011": "images/3487040b-1.png", //notes
-        "YJ-N013": "images/a5f26ce5-1.png", //notes
-        "YJ-N015": "images/32c1b0f8-1.png", //notes
-        "YJ-N016": "images/22.jpg", //notes
-        "YJ-N020": "images/26.jpg|images/27.jpg", //notes
-        "YJ-N017": "images/23.jpg", //notes
-        "YJ-N019": "images/25.jpg", //notes
-        "YJ-N018": "images/24.jpg", //notes
-                                                                "YJ-M000": "images/YJ-M000.jpg", //notes      
-        "YJ-M002": "images/01941129-1.png", //notes
-        "YJ-M005C": "images/2af6a339-1.png", //notes
-        /* === 自动插入点：注意事项 === */
-    };
-
+const NOTES_DB = {
+    "YJ-N007": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/9ffca629-1.png",
+    "YJ-N008": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/0dbaebfb-1.png",
+    "YJ-N011": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/3487040b-1.png",
+    "YJ-N013": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/a5f26ce5-1.png",
+    "YJ-N015": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/32c1b0f8-1.png",
+    "YJ-N016": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/22.jpg",
+    "YJ-N020": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/26.jpg|https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/27.jpg",
+    "YJ-N017": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/23.jpg",
+    "YJ-N019": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/25.jpg",
+    "YJ-N018": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/24.jpg",
+    "YJ-M000": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/YJ-M000.jpg",
+    "YJ-M002": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/01941129-1.png",
+    "YJ-M005C": "https://cdn.jsdelivr.net/gh/lvchacha-111/web@main/images/2af6a339-1.png"
+    /* === 自动插入点：注意事项 === */
+};
     
     // 产品配置（保持不变）
     const PRODUCT_DB = {
@@ -914,7 +913,7 @@ if (productId === 'YJ-N007') {
         paths.forEach(path => {
             if(path.trim()) {
                 const img = document.createElement('img');
-                img.src = path;
+              img.src = path; // 保持直接赋值 path 即可
                 imgContainer.appendChild(img);
             }
         });
