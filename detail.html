@@ -123,7 +123,8 @@
         @media (max-width: 768px) { body { flex-direction: column; } #sidebar { width: 100%; height: 45vh; } #canvas-container { height: 55vh; } }
     </style>
     
-    <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/gsap/3.12.2/gsap.min.js"></script>
+   <!-- ✅ 正确链接 -->
+<script src="https://cdn.staticfile.org/gsap/3.12.2/gsap.min.js"></script>
     <!-- ✅ 修改后 (使用字节跳动国内镜像，秒开) -->
 <script type="importmap">
     { 
@@ -418,15 +419,15 @@ const NOTES_DB = {
         ],        "YJ-M005A": [
             { file: "front.glb",  type: "front", move: { z: 20 }, change: true },
             { file: "plate.glb",  type: "plate", move: { z: -10 }, emissive: true },
-            { file: "led.glb",  type: "led", move: null },
-            { file: "fixedled.glb",  type: "fixed", move: null }
+            { file: "LED-v29.glb",  type: "led", move: null },
+            { file: "fixedled-v28.glb",  type: "fixed", move: null }
         ],        "YJ-M000A": [
-            { file: "BACK01.glb",  type: "front", move: { z: -20 }, change: true },
-            { file: "BACK02.glb",  type: "front", move: { z: -20 }, change: true },
-            { file: "PLATE.glb",  type: "plate", move: { z: 10 }, emissive: true },
-            { file: "LED.glb",  type: "led", move: { z: -20 } },
-            { file: "FIXED-FDOWN.glb",  type: "fixed", move: { y: -10 } },
-            { file: "FIXED-FHIGH.glb",  type: "fixed", move: { y: 10 } },
+            { file: "BACK01-v20.glb",  type: "front", move: { z: -20 }, change: true },
+            { file: "BACK02-v21.glb",  type: "front", move: { z: -20 }, change: true },
+            { file: "plate-v27.glb",  type: "plate", move: { z: 10 }, emissive: true },
+            { file: "led-v25.glb",  type: "led", move: { z: -20 } },
+            { file: "FIXED-FDOWN-v23.glb",  type: "fixed", move: { y: -10 } },
+            { file: "FIXED-FHIGH-v24.glb",  type: "fixed", move: { y: 10 } },
             { file: "led-fixed.glb",  type: "fixed", move: { z: -20 } }
         ],        "YJ-M005B": [
             { file: "BACK.glb",  type: "front", move: { z: 20 }, change: true },
@@ -486,20 +487,20 @@ const NOTES_DB = {
             { file: "fixedhigh.glb",  type: "fixed", move: { z: -10 } },
             { file: "fixedled.glb",  type: "fixed", move: null }
         ],
-        "YJ-N004": [
-            { file: "front.glb",  type: "front", move: { z: 20 } },
-            { file: "plate.glb",  type: "plate", move: { z: 20 }, emissive: true },
-            { file: "led.glb",  type: "led", move: null },
-            { file: "fixed.glb",  type: "fixed", move: { z: -10 } },
-            { file: "fixedled.glb",  type: "fixed", move: null }
+        "YJ-N0044": [
+            { file: "FRONT-v10.glb",  type: "front", move: { z: 20 } },
+            { file: "PLATE-v12.glb",  type: "plate", move: { z: 20 }, emissive: true },
+            { file: "LED-v11.glb",  type: "led", move: null },
+            { file: "FIXED-v8.glb",  type: "fixed", move: { z: -10 } },
+            { file: "fixedled-v9.glb",  type: "fixed", move: null }
         ],
         "YJ-N003": [
-            { file: "front.glb",  type: "front", move: { z: 20 } },
-            { file: "plate.glb",  type: "plate", move: { z: 20 }, emissive: true },
-            { file: "led.glb",  type: "led", move: null },
-            { file: "fixed.glb",  type: "fixed", move: { z: -10 } },
-            { file: "fixed001.glb",  type: "fixed", move: null },
-            { file: "fixed003.glb",  type: "fixed", move: null }
+            { file: "FRONT-v16.glb",  type: "front", move: { z: 20 } },
+            { file: "PLATE-v18.glb",  type: "plate", move: { z: 20 }, emissive: true },
+            { file: "LED-v17.glb",  type: "led", move: null },
+            { file: "FIXED-v13.glb",  type: "fixed", move: { z: -10 } },
+            { file: "fixed001-v14.glb",  type: "fixed", move: null },
+            { file: "fixed003-v15.glb",  type: "fixed", move: null }
         ],
         "YJ-N002": [
             { file: "back.glb",  type: "front", move: { z: 10 } },
