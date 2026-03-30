@@ -123,10 +123,16 @@
         @media (max-width: 768px) { body { flex-direction: column; } #sidebar { width: 100%; height: 45vh; } #canvas-container { height: 55vh; } }
     </style>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
-    </script>
+    <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/gsap/3.12.2/gsap.min.js"></script>
+    <!-- ✅ 修改后 (使用字节跳动国内镜像，秒开) -->
+<script type="importmap">
+    { 
+        "imports": { 
+            "three": "https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M/three.js/0.160.0/three.module.js", 
+            "three/addons/": "https://cdn.staticfile.org/three.js/0.160.0/jsm/" 
+        } 
+    }
+</script>
 
     <!-- PWA 相关 -->
     <link rel="manifest" href="manifest.json">
