@@ -1747,7 +1747,7 @@
 
         function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
             const map = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Color.jpg`);
-            const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGl.jpg`);
+            const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGL.jpg`);
             const roughnessMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Roughness.jpg`);
 
             [map, normalMap, roughnessMap].forEach(t => {
