@@ -1089,6 +1089,7 @@
         // 3. 初始化全局加载器 (绑定监工)
         // ==========================================
         const textureLoader = new THREE.TextureLoader(manager);
+        textureLoader.setCrossOrigin('anonymous');
         const fontLoader = new FontLoader(manager);
         const rgbeLoader = new RGBELoader(manager);
         const svgLoader = new SVGLoader(manager);
@@ -3051,6 +3052,8 @@ if (typeof stackedPlatesGroup !== 'undefined' && stackedPlatesGroup) {
             const reader = new FileReader();
             reader.onload = (event) => {
                 const loader = new THREE.TextureLoader();
+                  loader.setCrossOrigin('anonymous'); 
+
                 loader.load(event.target.result, (texture) => {
                     // 1. 如果已有背景，先移除
                     if (bgPlaneMesh) {
