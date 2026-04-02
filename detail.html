@@ -282,7 +282,7 @@ manager.onLoad = function () {
 
 const gltfLoader = new GLTFLoader(manager);
 const stlLoader = new STLLoader(manager);
-const rgbeLoader = new RGBELoader(manager); // <--- 就是这一行修复报错！
+const exrLoader = new EXRLoader(manager);
 const textureLoader = new THREE.TextureLoader(manager);
 // --- 4. 自动修复 UI 按钮的背景图路径 ---
 document.querySelectorAll('.material-btn').forEach(btn => {
