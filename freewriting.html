@@ -1048,6 +1048,7 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+        import { EXRLoader } from 'three/addons/loaders/EXRLoader.js';
         import { FontLoader } from 'three/addons/loaders/FontLoader.js';
         import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
         import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -1669,11 +1670,25 @@
         outlinePass.visibleEdgeColor.set('#f39c12');
         outlinePass.hiddenEdgeColor.set('#1e1e1e');
         finalComposer.addPass(outlinePass);
-        new RGBELoader().setPath('textures/').load('monochrome_studio_02_2k (1).hdr', (t) => {
-            t.mapping = THREE.EquirectangularReflectionMapping;
-            scene.environment = t;
-            scene.environmentIntensity = 0;
-        });
+        // 使用 EXRLoader 加载新文件
+const exrLoader = new EXRLoader(manager); // 绑定 manager 可以看到进度条
+
+exrLoader.load(`${ASSET_BASE_URL}textures/monochrome_studio_02_2k.exr`, (texture) => {
+    // 1. 核心设置：设置为经纬环绕模式，这样金属表面才有反射
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    
+    // 2. 应用到场景环境
+    scene.environment = texture;
+    
+    // 3. 关键：调整反射强度。
+    // 如果你之前设置的是 0，金属会是黑色的。
+    // 建议设为 1.0 左右，如果觉得太亮就调小，觉得反射不明显就调大。
+    scene.environmentIntensity = 1.0; 
+    
+    // 4. 如果不需要显示背景图，就不用写 scene.background = texture;
+    
+    console.log("EXR 环境贴图加载并应用成功！");
+});
 
         scene.add(new THREE.AmbientLight(0xffffff, 0));
         const light = new THREE.DirectionalLight(0xffffff, 0.4);
