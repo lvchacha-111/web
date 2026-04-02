@@ -253,6 +253,7 @@
     import { STLLoader } from 'three/addons/loaders/STLLoader.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+    import { EXRLoader } from 'three/addons/loaders/EXRLoader.js';
     import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
     import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
     import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -292,13 +293,7 @@ document.querySelectorAll('.material-btn').forEach(btn => {
 });
 
 // --- 5. 加载环境光 (HDR) ---
-rgbeLoader
-    .setPath(`${ASSET_BASE_URL}textures/`) 
-    .load('monochrome_studio_02_2k (1).hdr', (t) => {
-        t.mapping = THREE.EquirectangularReflectionMapping; 
-        scene.environment = t; 
-        scene.environmentIntensity = 0; 
-    });
+
    const NOTES_DB = {
                 "YJ-N007": "images/9ffca629-1.png", //notes
         "YJ-N008": "images/0dbaebfb-1.png", //notes
@@ -649,13 +644,17 @@ scene.fog = new THREE.Fog(blenderBgColor, 100, 1000);
     finalComposer.addPass(renderScene);
     finalComposer.addPass(mixPass);
     finalComposer.addPass(new OutputPass()); 
-rgbeLoader
-     .setPath(`${ASSET_BASE_URL}textures/`)
-     .load('monochrome_studio_02_2k (1).hdr', (t) => {
-        t.mapping = THREE.EquirectangularReflectionMapping; 
-        scene.environment = t; 
-        scene.environmentIntensity = 0; 
-    });
+// 使用 EXRLoader 加载
+exrLoader.load(`${ASSET_BASE_URL}textures/monochrome_studio_02_2k.exr`, (texture) => {
+    texture.mapping = THREE.EquirectangularReflectionMapping; 
+    scene.environment = texture; 
+    
+    // 注意：如果是 0，物体会是黑色的。
+    // 建议设为 1.0，如果觉得太亮再调小
+    scene.environmentIntensity = 1.0; 
+    
+    console.log("EXR 环境贴图加载成功");
+});
 
     // === 1. 基础环境光 (保留一点，防止阴影死黑) ===
     scene.add(new THREE.AmbientLight(0xffffff, 0.3));
