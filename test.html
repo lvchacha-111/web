@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试页面</title>
+    <style>
+        body { background: #333; color: white; padding: 20px; }
+        .test { margin: 10px; padding: 10px; background: #555; }
+    </style>
+</head>
+<body>
+    <h1>测试页面</h1>
+    <div class="test">如果能看到这个，说明服务器正常</div>
+    <div class="test">
+        <a href="index.html">访问首页</a> | 
+        <a href="detail.html">访问详情页</a>
+    </div>
+    <div class="test">
+        <h3>测试资源加载：</h3>
+        <div id="test-results">测试中...</div>
+    </div>
+    
+    <script>
+        // 测试资源加载
+        const resources = [
+            'logo.png',
+            'textures/Metal011_2K-JPG_Color.jpg',
+            'fonts/simhei.ttf'
+        ];
+        
+        const resultsDiv = document.getElementById('test-results');
+        let results = [];
+        
+        resources.forEach(resource => {
+            const img = new Image();
+            img.onload = () => {
+                results.push(`✅ ${resource} 加载成功`);
+                updateResults();
+            };
+            img.onerror = () => {
+                results.push(`❌ ${resource} 加载失败`);
+                updateResults();
+            };
+            img.src = resource;
+        });
+        
+        function updateResults() {
+            resultsDiv.innerHTML = results.join('<br>');
+        }
+    </script>
+</body>
+</html>
