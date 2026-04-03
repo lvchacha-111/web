@@ -162,7 +162,9 @@
       });
     });
   }
+  
 </script>
+
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
 <script>
@@ -172,7 +174,13 @@
 
   // 这里的 G-XXXXXXXXXX 换成你刚才申请到的 ID
   gtag('config', 'G-XXXXXXXXXX');
+
+  
 </script>
+
+    <link rel="prefetch" href="https://xinweb.oss-cn-hongkong.aliyuncs.com/textures/monochrome_studio_02_2k.exr">
+    <link rel="prefetch" href="https://xinweb.oss-cn-hongkong.aliyuncs.com/textures/Metal011_2K-JPG_NormalGL.jpg">
+    <link rel="prefetch" href="https://xinweb.oss-cn-hongkong.aliyuncs.com/textures/Metal011_2K-JPG_Color.jpg">
 </head>
 <body class="locked"> <!-- 初始状态：加上 locked 禁止页面滚动 -->
 
@@ -347,9 +355,10 @@ const PRELOAD_CONFIG = {
     assets: [
         'textures/monochrome_studio_02_2k.exr', // 环境光 (最建议预加载)
         'textures/Metal011_2K-JPG_Color.jpg',   // 通用拉丝贴图
+ 'textures/Metal049A_2K-JPG_Color.jpg',  // 通用镜面贴图
         'textures/Metal011_2K-JPG_NormalGL.jpg',
         'textures/Metal011_2K-JPG_Roughness.jpg',
-        'textures/Metal049A_2K-JPG_Color.jpg',  // 通用镜面贴图
+       
         'textures/Metal049A_2K-JPG_NormalGL.jpg',
         'textures/Metal049A_2K-JPG_Roughness.jpg'
     ]
@@ -389,7 +398,7 @@ window.addEventListener('load', () => {
         } else {
             startBackgroundPreload();
         }
-    }, 3000);
+    }, 1000);
 });
         // 初始渲染（此时 products 已经是排好序的了）
         renderProducts(products);
