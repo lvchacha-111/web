@@ -2632,17 +2632,40 @@ if (typeof stackedPlatesGroup !== 'undefined' && stackedPlatesGroup) {
                 sharedCapMat = createBackMaterial(currentTexName, currentIsBrushed, currentTintColor);
             }
 
-            if (!sharedLedMat) {
-                sharedLedMat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
-                if (isFlowRGB && glowMode !== 'acrylicCut' && glowMode !== 'metalCut') {
-                    sharedLedMat.userData.uTime = { value: 0 };
-                    sharedLedMat.onBeforeCompile = (shader) => {
-                        shader.uniforms.uTime = sharedLedMat.userData.uTime;
-                        shader.vertexShader = `varying vec3 vWorldPos;\n` + shader.vertexShader.replace('#include <worldpos_vertex>', `#include <worldpos_vertex>\nvWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
-                        shader.fragmentShader = `uniform float uTime; varying vec3 vWorldPos;\n` + shader.fragmentShader.replace('#include <emissivemap_fragment>', `float xPos = vWorldPos.x * 0.05; float t = uTime * 4.0 - xPos; vec3 rainbow = vec3(0.5 + 0.5 * sin(t), 0.5 + 0.5 * sin(t + 2.094), 0.5 + 0.5 * sin(t + 4.188)); vec3 softColor = mix(rainbow, vec3(1.0), 0.3); totalEmissiveRadiance *= softColor;`);
-                    };
-                }
-            }
+           // --- 在 generate3DText 函数内部找到 sharedLedMat 逻辑并替换 ---
+if (!sharedLedMat) {
+    sharedLedMat = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
+    
+    if (isFlowRGB) {
+        sharedLedMat.userData.uTime = { value: 0 };
+        // 关键：修改材质编译逻辑
+        sharedLedMat.onBeforeCompile = (shader) => {
+            shader.uniforms.uTime = sharedLedMat.userData.uTime;
+            shader.vertexShader = `varying vec3 vWorldPos;\n` + shader.vertexShader.replace(
+                '#include <worldpos_vertex>',
+                `#include <worldpos_vertex>\nvWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`
+            );
+            shader.fragmentShader = `uniform float uTime; varying vec3 vWorldPos;\n` + shader.fragmentShader.replace(
+                '#include <emissivemap_fragment>',
+                `
+                // 控制流动密度（0.05-0.1 之间比较平滑）
+                float xPos = vWorldPos.x * 0.08; 
+                // 控制速度
+                float t = uTime * 3.0 - xPos; 
+                vec3 rainbow = vec3(
+                    0.5 + 0.5 * sin(t),
+                    0.5 + 0.5 * sin(t + 2.094),
+                    0.5 + 0.5 * sin(t + 4.188)
+                );
+                // 亮度混合
+                totalEmissiveRadiance *= rainbow * 2.5;
+                `
+            );
+        };
+        // 告诉 Three.js 这是一个带 Shader 的特殊材质
+        sharedLedMat.customProgramCacheKey = () => "flow_led_shader";
+    }
+}
             sharedLedMat.color.set(isFlowRGB ? 0x000000 : ledColor);
             sharedLedMat.emissive.set(isFlowRGB ? 0xffffff : ledColor);
             sharedLedMat.emissiveIntensity = isFlowRGB ? 1.5 : (document.getElementById('brightnessSlider').value / 100) * 1.2;
@@ -3276,12 +3299,41 @@ textGroup.add(backstageGroup);
             document.getElementById('brightnessSlider').disabled = false;
 
             // 清理所有色块隐藏状态
-            document.querySelectorAll('#ledSwatchContainer .color-swatch').forEach(s => s.classList.remove('hidden'));
-            if (swatchContainer) {
-                swatchContainer.classList.remove('disabled');
-                swatchContainer.style.opacity = '1';
-                swatchContainer.style.pointerEvents = 'auto';
-            }
+          // --- 找到该部分并替换 ---
+document.querySelectorAll('#ledSwatchContainer .color-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+        if (glowMode === 'metalCut') return;
+
+        document.querySelectorAll('#ledSwatchContainer .color-swatch').forEach(s => {
+            s.classList.remove('active', 'marquee-active');
+        });
+
+        swatch.classList.add('active');
+        const color = swatch.dataset.color;
+        const colorTitle = swatch.getAttribute('title') || "自定义";
+        document.getElementById('currentColorName').innerText = '当前：' + colorTitle;
+
+        if (color === 'FLOWRGB') {
+            isFlowRGB = true;
+            isRGBGlow = false;
+            swatch.classList.add('marquee-active');
+            // 关键：强制清理旧材质，确保重新编译带 Shader 的版本
+            if (sharedLedMat) sharedLedMat.dispose(); 
+            sharedLedMat = null; 
+        } else if (color === 'RGB') {
+            isFlowRGB = false;
+            isRGBGlow = true;
+            swatch.classList.add('marquee-active');
+        } else {
+            isFlowRGB = false;
+            isRGBGlow = false;
+            document.getElementById('ledColorPicker').value = color;
+        }
+
+        // 重新生成文字，应用新逻辑
+        generate3DText(document.getElementById('textInput').value, false);
+    });
+});
 
             // --- 第二步：精准定制每个工艺的标签与显示逻辑 ---
 
