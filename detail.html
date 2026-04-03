@@ -684,7 +684,7 @@ exrLoader.load(`${ASSET_BASE_URL}textures/monochrome_studio_02_2k.exr`, (texture
     // 材质创建函数（同 freewriting 中，支持染色）
    function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
       const map = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Color.jpg`);
-    const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGl.jpg`);
+   const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGL.jpg`);
     const roughnessMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Roughness.jpg`);
 
     // 设置重复模式以支持三平面映射
