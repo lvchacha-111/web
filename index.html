@@ -177,10 +177,10 @@
 
   
 </script>
-
-    <link rel="prefetch" href="https://xinweb.oss-cn-hongkong.aliyuncs.com/textures/monochrome_studio_02_2k.exr">
-    <link rel="prefetch" href="https://xinweb.oss-cn-hongkong.aliyuncs.com/textures/Metal011_2K-JPG_NormalGL.jpg">
-    <link rel="prefetch" href="https://xinweb.oss-cn-hongkong.aliyuncs.com/textures/Metal011_2K-JPG_Color.jpg">
+<!-- 修改后的 Head 预取代码 -->
+<link rel="prefetch" href="https://xinweb.oss-cn-hongkong.aliyuncs.com/textures/monochrome_studio_02_2k.exr" crossorigin="anonymous">
+<link rel="prefetch" href="https://xinweb.oss-cn-hongkong.aliyuncs.com/textures/Metal011_2K-JPG_NormalGL.jpg" crossorigin="anonymous">
+<link rel="prefetch" href="https://xinweb.oss-cn-hongkong.aliyuncs.com/textures/Metal011_2K-JPG_Color.jpg" crossorigin="anonymous">
 </head>
 <body class="locked"> <!-- 初始状态：加上 locked 禁止页面滚动 -->
 
@@ -349,20 +349,7 @@
 // ==========================================
 // 🚀 资源后台预加载系统
 // ==========================================
-const PRELOAD_CONFIG = {
-    baseUrl: 'https://xinweb.oss-cn-hongkong.aliyuncs.com/', // 确保与你详情页一致
-    // 优先加载最重、最通用的资源
-    assets: [
-        'textures/monochrome_studio_02_2k.exr', // 环境光 (最建议预加载)
-        'textures/Metal011_2K-JPG_Color.jpg',   // 通用拉丝贴图
- 'textures/Metal049A_2K-JPG_Color.jpg',  // 通用镜面贴图
-        'textures/Metal011_2K-JPG_NormalGL.jpg',
-        'textures/Metal011_2K-JPG_Roughness.jpg',
-       
-        'textures/Metal049A_2K-JPG_NormalGL.jpg',
-        'textures/Metal049A_2K-JPG_Roughness.jpg'
-    ]
-};
+
 
 
         // 初始渲染（此时 products 已经是排好序的了）
