@@ -1766,14 +1766,13 @@ const _texCache = new Map();
 const _matCache = new Map();
 
 function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
-    // 1. 生成材质缓存 Key (根据贴图名和是否拉丝决定材质模板)
-    // 注意：我们将颜色排除在 Key 之外，这样同一种材质可以复用，只需改颜色
+    // 1. 生成材质缓存 Key
     const matKey = `${texName}_${isBrushed}`;
 
-    // 2. 如果缓存中已有该材质，直接更新颜色并返回
+    // 2. 如果缓存中已有该材质，直接更新颜色并返回（极其丝滑）
     if (_matCache.has(matKey)) {
         const cachedMat = _matCache.get(matKey);
-        cachedMat.color.set(tintColor); // 颜色更新是瞬间的，不需要重新创建材质
+        cachedMat.color.set(tintColor); 
         return cachedMat;
     }
 
@@ -1789,14 +1788,14 @@ function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
         return _texCache.get(url);
     };
 
-    const map = getCachedTexture('Color');
+    // --- 👈 这里删掉了 const map = getCachedTexture('Color'); ---
     const normalMap = getCachedTexture('NormalGL');
     const roughnessMap = getCachedTexture('Roughness');
 
-    // 4. 创建新材质（仅在缓存中没有时执行一次）
+    // 4. 创建新材质
     const mat = new THREE.MeshStandardMaterial({
         color: new THREE.Color(tintColor),
-        map: map,
+        map: null,                         // 👈 设为 null，不再需要加载颜色贴图
         normalMap: isBrushed ? normalMap : null,
         roughnessMap: roughnessMap,
         metalness: 1.0,
@@ -1808,7 +1807,7 @@ function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
         depthWrite: true
     });
 
-    // 5. 注入你原有的 Shader 代码 (逻辑保持完全一致)
+    // 5. 注入 Shader 代码
     if (isBrushed) {
         mat.onBeforeCompile = (shader) => {
             shader.uniforms.uRepeat = { value: 0.8 };
@@ -1852,12 +1851,7 @@ function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
                 }
             `);
 
-            shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
-                #ifdef USE_MAP
-                    vec4 sampledColor = triplanarTexture(map, vWorldPosition, vWorldNormal);
-                    diffuseColor.rgb *= sampledColor.rgb;
-                #endif
-            `);
+            // --- 👈 这里删掉了原本对 #include <map_fragment> 的替换代码 ---
 
             shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `
                 float roughnessFactor = roughness;
@@ -1874,7 +1868,6 @@ function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
             `);
         };
         
-        // 关键点：为自定义 Shader 设置缓存标识符，防止 Three.js 在拖动滑块时重复编译
         mat.customProgramCacheKey = () => matKey;
     }
 

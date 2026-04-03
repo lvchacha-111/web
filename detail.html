@@ -684,31 +684,29 @@ exrLoader.load(`${ASSET_BASE_URL}textures/monochrome_studio_02_2k.exr`, (texture
 
     // 材质创建函数（同 freewriting 中，支持染色）
    function createBackMaterial(texName, isBrushed, tintColor = 0xffffff) {
-      const map = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Color.jpg`);
-   const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGL.jpg`);
+    // 1. 【修改】删掉了 Color 贴图的加载，只保留 Normal 和 Roughness
+    const normalMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_NormalGL.jpg`);
     const roughnessMap = textureLoader.load(`${ASSET_BASE_URL}textures/${texName}_2K-JPG_Roughness.jpg`);
 
     // 设置重复模式以支持三平面映射
-    [map, normalMap, roughnessMap].forEach(t => {
+    [normalMap, roughnessMap].forEach(t => {
         t.wrapS = THREE.RepeatWrapping;
         t.wrapT = THREE.RepeatWrapping;
     });
 
     const mat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(tintColor),
-        map: map,
+        color: new THREE.Color(tintColor), // 👈 金属颜色现在完全由这行控制
+        map: null,                         // 👈 【修改】设为 null，不再需要下载颜色图片
         normalMap: isBrushed ? normalMap : null,
         roughnessMap: roughnessMap,
-        metalness: 1.0,
+        metalness: 1.0,                    // 👈 金属感拉满
         roughness: 0.5,
-        envMapIntensity: 0.5,
+        envMapIntensity: 1.0,              // 👈 提高反射强度，让金属更亮更高级
         side: THREE.DoubleSide
     });
 
     if (isBrushed) {
         mat.onBeforeCompile = (shader) => {
-            // uRepeat 控制拉丝的密度
-            // uStretch 控制拉丝的长度（数值越大，线条越长，越不容易出现横向纹路）
             shader.uniforms.uRepeat = { value: 0.2 }; 
             shader.uniforms.uStretch = { value: 0.02 }; 
 
@@ -737,11 +735,6 @@ exrLoader.load(`${ASSET_BASE_URL}textures/monochrome_studio_02_2k.exr`, (texture
                 }
 
                 vec4 triplanarTexture(sampler2D tex, vec3 worldPos, vec3 normal) {
-                    // 核心修改：
-                    // 在 XY 面（前后）和 ZY 面（左右），将 U 轴锁定为 Y (竖向)
-                    // 在 XZ 面（顶底），将 U 轴锁定为 Z (纵向)
-                    // 通过 uStretch 极大地拉伸 U 轴，使线条变长
-                    
                     vec2 uvXY = vec2(worldPos.y * uStretch, worldPos.x * uRepeat);
                     vec2 uvZY = vec2(worldPos.y * uStretch, worldPos.z * uRepeat);
                     vec2 uvXZ = vec2(worldPos.z * uStretch, worldPos.x * uRepeat);
@@ -755,16 +748,13 @@ exrLoader.load(`${ASSET_BASE_URL}textures/monochrome_studio_02_2k.exr`, (texture
                 }
             `);
 
-            shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
-                #ifdef USE_MAP
-                    vec4 sampledColor = triplanarTexture(map, vWorldPosition, vWorldNormal);
-                    diffuseColor.rgb *= sampledColor.rgb;
-                #endif
-            `);
+            // 👈 【修改】删掉了原本这里对 #include <map_fragment> 的替换逻辑
+            // 这样系统就会自动使用上面定义的 mat.color，而不再去寻找 map 贴图
             
             shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `
                 float roughnessFactor = roughness;
                 #ifdef USE_ROUGHNESSMAP
+                    // 粗糙度依然使用三平面映射，保留拉丝的质感
                     roughnessFactor *= triplanarTexture(roughnessMap, vWorldPosition, vWorldNormal).r;
                 #endif
             `);
@@ -772,8 +762,8 @@ exrLoader.load(`${ASSET_BASE_URL}textures/monochrome_studio_02_2k.exr`, (texture
             if (isBrushed) {
                 shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>', `
                     #ifdef USE_NORMALMAP
+                        // 法线依然使用三平面映射，保留拉丝的物理起伏感
                         vec3 normalSample = triplanarTexture(normalMap, vWorldPosition, vWorldNormal).xyz * 2.0 - 1.0;
-                        // 混合三平面法线
                         normal = normalize(normal + normalSample * 0.5); 
                     #endif
                 `);
