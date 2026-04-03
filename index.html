@@ -364,42 +364,7 @@ const PRELOAD_CONFIG = {
     ]
 };
 
-function startBackgroundPreload() {
-    console.log("开始后台静默预加载资源...");
-    
-    // 遍历资源列表
-    PRELOAD_CONFIG.assets.forEach(path => {
-        const fullUrl = PRELOAD_CONFIG.baseUrl + path;
-        
-        // 使用 fetch 发起低优先级请求，浏览器会自动处理缓存
-        fetch(fullUrl, { mode: 'cors' })
-            .then(response => {
-                if (response.ok) {
-                    console.log(`✅ 预加载完成: ${path}`);
-                }
-            })
-            .catch(err => console.warn(`❌ 预加载失败: ${path}`, err));
-    });
 
-    // 可选：预加载几个热门产品的第一个模型文件 (如 YJ-M000B 的 front.glb)
-    const hotModels = ['stl/YJ-M000B/front.glb'];
-    hotModels.forEach(path => {
-        fetch(PRELOAD_CONFIG.baseUrl + path, { mode: 'cors' });
-    });
-}
-
-// 【关键】：等开场动画结束、页面完全稳定后再开始预加载，不抢首屏带宽
-window.addEventListener('load', () => {
-    // 延迟 3 秒启动，确保用户的开场门动画顺滑
-    setTimeout(() => {
-        // 如果浏览器支持 requestIdleCallback，在带宽空闲时执行
-        if ('requestIdleCallback' in window) {
-            requestIdleCallback(() => startBackgroundPreload());
-        } else {
-            startBackgroundPreload();
-        }
-    }, 1000);
-});
         // 初始渲染（此时 products 已经是排好序的了）
         renderProducts(products);
 
