@@ -284,6 +284,7 @@ const gltfLoader = new GLTFLoader(manager);
 const stlLoader = new STLLoader(manager);
 const exrLoader = new EXRLoader(manager);
 const textureLoader = new THREE.TextureLoader(manager);
+textureLoader.setCrossOrigin('anonymous'); // <--- 必须有这一行！
 // --- 4. 自动修复 UI 按钮的背景图路径 ---
 document.querySelectorAll('.material-btn').forEach(btn => {
     const bgImg = btn.style.backgroundImage;
